@@ -1,0 +1,18 @@
+App/Info.plist
+  h_923c208e183a7b 45-51
+App/SettingsView.swift
+  h_923c208e183a7b 170
+project.yml
+  h_923c208e183a7b 50-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d9f7d3eecc2eecb1b5b087f005605f7b6b93606c",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

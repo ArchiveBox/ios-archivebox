@@ -4,7 +4,10 @@ import Security
 public struct ServerConfiguration: Codable, Sendable, Equatable {
     public let server: URL
     public let token: String
-    public init(server: URL, token: String) { self.server = server; self.token = token }
+    public let persona: String?
+    public init(server: URL, token: String, persona: String? = nil) {
+        self.server = server; self.token = token; self.persona = persona
+    }
 }
 
 /// One atomic Keychain item binds the token to its verified server. Both targets use this group.

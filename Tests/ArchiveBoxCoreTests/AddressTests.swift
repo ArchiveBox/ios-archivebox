@@ -28,3 +28,12 @@ import Testing
     #expect(SharedLinks.extract(from: "https://user:password@example.com").isEmpty)
     #expect(SharedLinks.extract(from: "https://example.com https://example.com").count == 1)
 }
+
+@Test func existingConnectionsRemainReadableWhenAddingPersonas() throws {
+    let stored = Data(#"{"server":"https://archive.example","token":"test-only"}"#.utf8)
+    let configuration = try JSONDecoder().decode(ServerConfiguration.self, from: stored)
+    #expect(configuration.persona == nil)
+    #expect(configuration.server.absoluteString == "https://archive.example")
+    let updated = ServerConfiguration(server: configuration.server, token: configuration.token, persona: "Work")
+    #expect(try JSONDecoder().decode(ServerConfiguration.self, from: JSONEncoder().encode(updated)) == updated)
+}

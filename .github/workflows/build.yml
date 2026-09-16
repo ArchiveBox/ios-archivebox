@@ -7,10 +7,23 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+      - name: Prepare pinned WXT Safari extension
+        run: node scripts/prepare-safari.mjs
       - name: Swift package tests
         run: swift test
-      - name: Build app and share extension
+      - name: Build iOS app, share extension, and Safari extension
         run: >-
           xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox
           -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
           -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - name: Build native macOS app and both extensions
+        run: >-
+          xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxMac
+          -destination 'generic/platform=macOS' -derivedDataPath build-mac
+          CODE_SIGNING_ALLOWED=NO build

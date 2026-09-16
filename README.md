@@ -1,77 +1,86 @@
-# ArchiveBox for iOS
+# ArchiveBox for Apple devices
 
-A small native iPhone and iPad app for sending links directly to your own **ArchiveBox 0.9.x or later** server. Built with Swift 6, SwiftUI, and the system’s Liquid Glass controls. Requires iOS/iPadOS 26 or later and Xcode 26 or later.
+A small SwiftUI app for iPhone, iPad, and Mac: configure your **ArchiveBox 0.9.x+** server and save links through the system share sheet. Uses Swift 6 and standard Liquid Glass controls on iOS/iPadOS/macOS 26+. The same project also bundles the existing WXT Safari extension.
 
 ## Use
 
-1. Enter your server address and tap **Test server**. Pasted admin/API paths are removed; missing schemes default to HTTPS. The app probes the entered host, the corresponding `api.` host, and the base host. The working address is shown in the field. For an HTTP-only server, include `http://` explicitly.
-2. Paste an administrator’s API key from ArchiveBox’s admin → API Tokens and tap **Test API key**.
-3. Tap **Save**. The verified server/key pair is saved atomically in shared Keychain, accessible only while the device is unlocked.
-4. From Safari or another app, share a web URL or text containing links. Choose **ArchiveBox**, review the destination, and tap **Save to ArchiveBox**. Keep the sheet open until **Sent to ArchiveBox** appears.
+1. Enter your server address and select **Test server**. Pasted admin/API paths are removed; missing schemes default to HTTPS. The app probes the entered host, its `api.` host, and the base host without sending credentials. The working address appears in the field. Include `http://` explicitly for an HTTP-only server.
+2. Enter an administrator’s API key from ArchiveBox’s admin → API Tokens and select **Test API key**.
+3. Choose a **Default persona** from the live server list, or leave **Server default** to use `Default`. **Refresh personas** reloads the list. Servers without the persona-list endpoint can still use Server default.
+4. Select **Save**. The connection and persona are saved together in device-only Keychain.
+5. Share a URL from Safari or another app, choose **ArchiveBox**, review the server and persona, and select **Save to ArchiveBox**. Keep the sheet open until **Sent to ArchiveBox** appears.
 
-The share extension submits a JSON POST to `/api/v1/cli/add`. Success means the server accepted the submission, not that remote archiving has finished. There is **no local queue, offline storage, submission history, automatic retry, or background transfer**. If a request fails, the sheet reports the failure. A timeout can leave the outcome uncertain: check the server before sharing again.
+On Mac, enable ArchiveBox under System Settings → General → Login Items & Extensions → Extensions → ArchiveBox → Sharing if it does not appear in the share menu.
 
-Private servers require the device to be on the appropriate Wi-Fi or VPN. `localhost` on a physical phone refers to the phone, not your Mac. The simulator can use a server running on the Mac.
+The native share extensions POST directly to `/api/v1/cli/add`. Success means the server accepted the URL, not that archiving has finished. There is **no native local queue, offline saving, submission history, automatic retry, or background transfer**. After a timeout, check the server before sharing again. Explicit personas are checked before submission so a deleted persona is not silently recreated by the server.
+
+Private servers require the device’s Wi-Fi or VPN connection. `localhost` on a physical phone refers to the phone; the iPhone simulator can reach a server on the Mac.
+
+## Safari extension
+
+Enable ArchiveBox in Safari’s Extensions settings (on iOS: Settings → Apps → Safari → Extensions). In the extension popup/options, select **Use app connection** to import the native app’s saved server and API key. Repeat the import after changing them. The native default persona applies to the system share sheet; the browser extension retains its own persona controls and existing behavior.
+
+Apple packaging lives entirely here. `scripts/prepare-safari.mjs` builds a pinned revision of [archivebox-browser-extension](https://github.com/ArchiveBox/archivebox-browser-extension) in an ignored build directory. It adds only native messaging permission and a small explicit connection-import button to the generated assets. The upstream repository is unchanged and remains extension-focused. There is no automatic two-way settings synchronization or fork of its application code.
+
+The native app, share extension, and Safari native handler share one Keychain access group. Importing into Safari explicitly copies the server/key into the browser extension’s normal local settings storage, as required by its existing API client. Native sharing continues to use Keychain directly.
 
 ## Build
 
-Open `ArchiveBox.xcodeproj`, select the **ArchiveBox** scheme, and run on an iOS 26+ simulator. The generated project is committed; XcodeGen is only needed when changing `project.yml`.
+Requires Xcode 26+ with Swift 6.2, Node.js 22+, and pnpm 10.33.2. Prepare the Safari resources before opening/building the committed project:
 
 ```sh
+node scripts/prepare-safari.mjs
 swift test
 xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
-  -sdk iphonesimulator -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
-
-# After changing project.yml (XcodeGen 2.46+):
-xcodegen generate
+  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxMac \
+  -destination 'generic/platform=macOS' -derivedDataPath build-mac \
+  CODE_SIGNING_ALLOWED=NO build
 ```
 
-For a physical device or TestFlight, select your Apple Developer team for **both** targets. Register the app and extension bundle IDs and enable their matching Keychain Sharing entitlement. The share extension ID must remain prefixed by the app ID. Override `ARCHIVEBOX_KEYCHAIN_GROUP` consistently if your organization uses another shared group. No App Group is needed yet: all shared state fits in one Keychain item.
+Select **ArchiveBox** for iPhone/iPad or **ArchiveBoxMac** for native Mac. The generated project is committed. After changing `project.yml`, run `xcodegen generate` (XcodeGen 2.46+) after preparing Safari resources.
 
-## Architecture and future Safari/macOS integration
+To run on Mac or a physical device, select your Apple Developer team for the app and both extension targets, or pass `DEVELOPMENT_TEAM=YOUR_TEAM_ID`. Register their bundle IDs and matching Keychain Sharing entitlement. Use the same `ARCHIVEBOX_KEYCHAIN_GROUP` for all three targets. No App Group is needed.
 
-- `Sources/ArchiveBoxCore`: UI-independent Swift package containing URL normalization, API discovery, token validation, submission, shared-link parsing, and secure configuration storage. Builds on iOS and macOS.
-- `App`: native SwiftUI configuration UI. Standard Form, NavigationStack, system colors, Dynamic Type, and a glass toolbar action; glass stays on controls rather than behind form content.
-- `ShareExtension`: thin UIKit extension host embedding SwiftUI; reads real `NSItemProvider` URL/plain-text attachments and posts directly through the shared client.
-- `project.yml`: reproducible Xcode project and signing/entitlement configuration.
+Both platform apps use `io.archivebox.ArchiveBox`, with `.Share` and `.Safari` extensions. This supports adding iOS and macOS to **one App Store Connect listing / universal purchase**; distribution signing and store submission remain release steps. iPhone/iPad layouts adapt to window size and orientation without model-specific code; unreleased hardware is not separately certified.
 
-To combine this with the WXT Safari extension later, add a Safari Web Extension target to the containing app, bundle the WXT output there, and add a native messaging handler that calls this same Swift package and Keychain store. A macOS target can also reuse the package and adapt the settings view. Keep one owner for the configuration; do not mirror API keys into JavaScript storage. This repository has no dependency on WXT or the browser-extension repository.
+## Architecture
 
-## Connection behavior
+- `Sources/ArchiveBoxCore`: shared API discovery, authentication, persona listing, submission, link parsing, and Keychain configuration.
+- `App`: shared SwiftUI configuration, using system forms, colors, Dynamic Type, and glass controls.
+- `ShareExtension`: shared SwiftUI sheet/model plus thin UIKit host.
+- `MacShareExtension`: thin AppKit host for the same sheet/model.
+- `SafariWebExtension`: native messaging handler and packaging-only connection-import UI; generated WXT resources are ignored.
+- `project.yml`: reproducible platform targets, entitlements, and bundle identifiers.
 
-Server discovery validates the ArchiveBox OpenAPI schema and required modern routes. Probes never include credentials. Authenticated calls use only the verified saved origin; redirects are rejected, including redirects of the token-validation JSON body. Cookies and persistent URL caches are disabled. Tokens are never placed in URLs or logs. The app never downgrades HTTPS to HTTP automatically and never bypasses certificate validation.
+Authenticated requests stay on the verified origin; all redirects are rejected, including token-validation JSON bodies. No persistent cookies/caches, tokens in URLs/logs, automatic HTTPS downgrade, or certificate-validation bypass. ATS permits explicitly configured HTTP self-hosted servers; HTTPS is the default. Review this justification for App Store submission.
 
-App Transport Security allows explicitly configured HTTP self-hosted servers because their domains are not known at build time. HTTPS remains the default. The app and extension declare the local-network purpose. Review this justification when submitting to the App Store.
+## Verification
 
-## Real integration/UI verification
-
-`ArchiveBoxUITests` configures the app through its UI, tests invalid and valid keys, relaunches to verify secure persistence, then shares from Safari through the real iOS share sheet. It needs a disposable **real** ArchiveBox 0.9+ server; it does not mock networking or seed the app’s settings.
-
-Pass `ARCHIVEBOX_TEST_SERVER` and `ARCHIVEBOX_TEST_TOKEN` as Xcode build settings when running the UI scheme. Use an expendable token: Xcode test logs/results may contain test input. The suite creates an example.com snapshot with a unique acceptance query. Check the server’s snapshot API/database for that URL after the run.
+CI builds both apps and both kinds of extension and runs Swift package tests. For a disposable **real** ArchiveBox server, create an `AppleAcceptance` persona using `archivebox persona create AppleAcceptance`, then run the iPhone UI test against an installed simulator:
 
 ```sh
 xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
-  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -destination 'platform=iOS Simulator,name=YOUR_INSTALLED_IPHONE' \
+  DEVELOPMENT_TEAM=YOUR_TEAM_ID \
   ARCHIVEBOX_TEST_SERVER=http://localhost:8947 \
   ARCHIVEBOX_TEST_TOKEN="$ARCHIVEBOX_TEST_TOKEN" test
 ```
 
-CI builds the app and share extension and runs pure Swift tests. Physical-device networking, distribution signing, and App Store review are separate acceptance steps.
-
-## Privacy
-
-No analytics, trackers, or developer-operated service. The app sends shared URLs only to the configured ArchiveBox server. The server address and API key are stored in device-only Keychain; shared links remain in memory only for the lifetime of the share operation. The project includes a privacy manifest.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
-
-The standalone live API check also verifies host correction and persisted crawl contents:
+This tests invalid/valid keys, the live persona picker, saved settings after relaunch, and Safari’s real system share sheet. Use an expendable key: Xcode test artifacts may contain test input. No network interception or seeded app settings.
 
 ```sh
-ARCHIVEBOX_TEST_SERVER=http://archivebox.localhost:8948 \
-ARCHIVEBOX_EXPECTED_SERVER=http://api.archivebox.localhost:8948 \
+ARCHIVEBOX_TEST_SERVER=http://localhost:8947 \
+ARCHIVEBOX_EXPECTED_SERVER=http://localhost:8947 \
+ARCHIVEBOX_TEST_PERSONA=AppleAcceptance \
 ARCHIVEBOX_TEST_TOKEN="$ARCHIVEBOX_TEST_TOKEN" swift run ArchiveBoxIntegration
 ```
 
-See [acceptance evidence](docs/VALIDATION.md) for what has been verified and what remains device/distribution-specific.
+See [validation evidence](docs/VALIDATION.md) for tested behavior and remaining release checks.
+
+## Privacy and license
+
+No analytics, trackers, or developer-operated service. Shared URLs go to your configured ArchiveBox server. Native share links remain in memory for the operation only; configuration uses device-only Keychain. Safari’s upstream behavior/storage is separate as described above. A privacy manifest is included.
+
+MIT. See [LICENSE](LICENSE) and [branding provenance](docs/BRANDING.md). The bundled upstream extension retains its own license; see `SafariWebExtension/UPSTREAM-LICENSE`.

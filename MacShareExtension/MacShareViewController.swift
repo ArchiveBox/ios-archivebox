@@ -1,16 +1,19 @@
-import ArchiveBoxCore
+import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
-import UIKit
 
 @MainActor
-final class ShareViewController: UIViewController {
+final class MacShareViewController: NSViewController {
     private var operation: Task<Void, Never>?
+
+    override func loadView() {
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 460))
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        preferredContentSize = NSSize(width: 480, height: 460)
         let model = ShareModel()
-        let host = UIHostingController(rootView: ShareView(model: model, finish: { [weak self] in
+        let host = NSHostingController(rootView: ShareView(model: model, finish: { [weak self] in
             self?.operation?.cancel()
             self?.extensionContext?.completeRequest(returningItems: nil)
         }))
@@ -23,7 +26,6 @@ final class ShareViewController: UIViewController {
             host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
-        host.didMove(toParent: self)
         let items = extensionContext?.inputItems as? [NSExtensionItem] ?? []
         operation = Task { await model.load(items: items) }
     }

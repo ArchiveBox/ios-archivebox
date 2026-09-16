@@ -18,3 +18,14 @@ Not yet validated: physical-device local-network permissions, distribution provi
 ![Connection settings](screenshots/settings.png)
 
 The full settings → Safari share UI test also passed against the subdomain-mode server, including automatic correction from the base host to the API host.
+
+## Native Mac, Safari packaging, and personas
+
+- Signed native macOS app, share extension, and Safari Web Extension built with Xcode 27.0. Safari recognizes the bundled extension as ArchiveBox 3.3.2.
+- Manually tested Mac config UI: normalized server URL, API key validation, live persona dropdown with `AppleAcceptance` and `Default`, and shared Keychain save.
+- Used Safari’s real macOS File → Share → ArchiveBox sheet. It displayed the saved server and `AppleAcceptance`, submitted the URL, and showed “Sent to ArchiveBox.” Independent SQLite verification matched the URL and persona on crawl `01a0ac80c4a5755694ce8db5ac2a59be`.
+- Live Swift API integration fetched both server personas and submitted with `AppleAcceptance`. The persisted crawl `01a0ac7cec1e770e9548c409cf9a2e02` references that persona.
+- Updated iPhone UI flow selected the live persona, saved/reloaded configuration, and submitted through Safari. The persisted crawl `01a0ac835e7175e38d63f7c48ceb2d1f` references `AppleAcceptance`. An unsigned test build correctly failed shared-Keychain access; runtime tests require signing entitlements. A subsequent signed run completed all UI assertions but Xcode stalled finalizing its result while repeatedly resolving the package graph; a separate build/test invocation is being checked.
+- Upstream WXT source is pinned and built without modifying the browser-extension checkout. Both Apple bundles contain the WXT assets and native connection-import handler.
+
+Safari native-message import still needs an enabled-extension runtime check: Safari ignored automated clicks on its enable checkbox. No Safari security settings were bypassed. iPad and other iPhone form factors share adaptive views/targets but were not separately run. Only the already installed iPhone simulator was used for these expanded checks.

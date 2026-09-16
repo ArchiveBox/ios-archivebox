@@ -59,11 +59,31 @@ public final class ArchiveBoxClient: Sendable {
         }
     }
 
+    public func personas(server: URL, token: String) async throws -> [ServerPersona] {
+        var personas: [ServerPersona] = []
+        while true {
+            let data = try await request(server, path: "api/v1/personas/personas", token: token,
+                                         query: [URLQueryItem(name: "offset", value: String(personas.count))])
+            let page = try JSONDecoder().decode(PersonaPage.self, from: data)
+            personas += page.items
+            if personas.count >= page.total_items { return personas }
+            guard !page.items.isEmpty else {
+                throw ArchiveBoxError.message("The server returned an incomplete persona list. Refresh to try again.")
+            }
+        }
+    }
+
     public func submit(urls: [URL], configuration: ServerConfiguration) async throws -> SubmissionReceipt {
         guard !urls.isEmpty, urls.allSatisfy({ SharedLinks.isWebURL($0) }) else {
             throw ArchiveBoxError.message("Share an http:// or https:// link to ArchiveBox.")
         }
-        let body = try JSONEncoder().encode(AddRequest(urls: urls.map(\.absoluteString)))
+        if let selected = configuration.persona {
+            let available = try await personas(server: configuration.server, token: configuration.token)
+            guard available.contains(where: { $0.name == selected }) else {
+                throw ArchiveBoxError.message("The saved persona is no longer available. Choose a persona in the ArchiveBox app and save your settings again.")
+            }
+        }
+        let body = try JSONEncoder().encode(AddRequest(urls: urls.map(\.absoluteString), persona: configuration.persona ?? "Default"))
         let data = try await request(configuration.server, path: "api/v1/cli/add", body: body, token: configuration.token)
         let response = try JSONDecoder().decode(AddResponse.self, from: data)
         guard response.success, response.errors?.isEmpty != false, let result = response.result,
@@ -73,8 +93,8 @@ public final class ArchiveBoxClient: Sendable {
         return result
     }
 
-    private func request(_ server: URL, path: String, body: Data? = nil, token: String? = nil) async throws -> Data {
-        var request = URLRequest(url: server.appending(path: path))
+    private func request(_ server: URL, path: String, body: Data? = nil, token: String? = nil, query: [URLQueryItem] = []) async throws -> Data {
+        var request = URLRequest(url: server.appending(path: path).appending(queryItems: query))
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
             request.httpMethod = "POST"
@@ -113,7 +133,15 @@ private struct TokenResponse: Decodable {
         else { userID = nil }
     }
 }
-private struct AddRequest: Encodable { let urls: [String]; let depth = 0 }
+public struct ServerPersona: Decodable, Sendable, Identifiable {
+    public let id: String
+    public let name: String
+}
+private struct PersonaPage: Decodable {
+    let items: [ServerPersona]
+    let total_items: Int
+}
+private struct AddRequest: Encodable { let urls: [String]; let persona: String; let depth = 0 }
 private struct AddResponse: Decodable {
     let success: Bool
     let errors: [String]?

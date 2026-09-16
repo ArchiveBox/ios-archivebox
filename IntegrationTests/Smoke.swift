@@ -20,8 +20,14 @@ struct IntegrationChecks {
         print("PASS: invalid key rejected")
         try await client.testToken(server: server, token: token)
         print("PASS: real API key validated")
+        let personas = try await client.personas(server: server, token: token)
+        let selectedPersona = env["ARCHIVEBOX_TEST_PERSONA"]
+        if let selectedPersona {
+            guard personas.contains(where: { $0.name == selectedPersona }) else { fatalError("Requested test persona missing from server") }
+        }
+        print("PASS: fetched \(personas.count) server personas")
         let url = URL(string: "https://example.com/?archivebox-ios-integration=\(UUID().uuidString)")!
-        let result = try await client.submit(urls: [url], configuration: .init(server: server, token: token))
+        let result = try await client.submit(urls: [url], configuration: .init(server: server, token: token, persona: selectedPersona))
         guard let crawlID = result.crawlID else { fatalError("No crawl ID returned") }
         print("PASS: accepted \(url) as crawl \(crawlID)")
         // Verify the durable server-side crawl independently of the submission response.

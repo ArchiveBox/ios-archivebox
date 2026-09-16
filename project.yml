@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: io.archivebox
   deploymentTarget:
     iOS: '26.0'
+    macOS: '26.0'
   xcodeVersion: '26.0'
 packages:
   ArchiveBoxCore:
@@ -33,6 +34,7 @@ targets:
     dependencies:
       - package: ArchiveBoxCore
       - target: ArchiveBoxShare
+      - target: ArchiveBoxSafari
     info:
       path: App/Info.plist
       properties:
@@ -94,7 +96,145 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  ArchiveBoxMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes: [Info.plist, ArchiveBox.entitlements]
+      - MacApp
+    dependencies:
+      - package: ArchiveBoxCore
+      - target: ArchiveBoxMacShare
+      - target: ArchiveBoxMacSafari
+    settings:
+      base:
+        PRODUCT_NAME: ArchiveBox
+        PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_HARDENED_RUNTIME: YES
+    info:
+      path: MacApp/Info.plist
+      properties:
+        CFBundleDisplayName: ArchiveBox
+        ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
+        LSApplicationCategoryType: public.app-category.utilities
+        NSLocalNetworkUsageDescription: Connect to your ArchiveBox server on your local network.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    entitlements:
+      path: MacApp/ArchiveBoxMac.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+  ArchiveBoxMacShare:
+    type: app-extension
+    platform: macOS
+    sources:
+      - MacShareExtension
+      - ShareExtension/ShareModel.swift
+      - ShareExtension/ShareView.swift
+      - App/AppEnvironment.swift
+      - App/Assets.xcassets
+    dependencies:
+      - package: ArchiveBoxCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Share
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        ENABLE_HARDENED_RUNTIME: YES
+    info:
+      path: MacShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: ArchiveBox
+        ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
+        NSLocalNetworkUsageDescription: Send shared links to your ArchiveBox server on your local network.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: '$(PRODUCT_MODULE_NAME).MacShareViewController'
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 20
+              NSExtensionActivationSupportsText: true
+    entitlements:
+      path: MacShareExtension/ArchiveBoxMacShare.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+  ArchiveBoxSafari:
+    type: app-extension
+    platform: iOS
+    sources: &safariSources
+      - SafariWebExtension/SafariWebExtensionHandler.swift
+      - App/AppEnvironment.swift
+      - path: SafariWebExtension/Resources
+        excludes: [assets, chunks, content-scripts, icon, _locales]
+        buildPhase: resources
+      - path: SafariWebExtension/Resources/assets
+        type: folder
+        buildPhase: resources
+      - path: SafariWebExtension/Resources/chunks
+        type: folder
+        buildPhase: resources
+      - path: SafariWebExtension/Resources/content-scripts
+        type: folder
+        buildPhase: resources
+      - path: SafariWebExtension/Resources/icon
+        type: folder
+        buildPhase: resources
+      - path: SafariWebExtension/Resources/_locales
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: ArchiveBoxCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Safari
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+    info:
+      path: SafariWebExtension/Info-iOS.plist
+      properties: &safariInfo
+        CFBundleDisplayName: ArchiveBox
+        ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension
+          NSExtensionPrincipalClass: '$(PRODUCT_MODULE_NAME).SafariWebExtensionHandler'
+    entitlements:
+      path: SafariWebExtension/ArchiveBoxSafari.entitlements
+      properties:
+        keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+  ArchiveBoxMacSafari:
+    type: app-extension
+    platform: macOS
+    sources: *safariSources
+    dependencies:
+      - package: ArchiveBoxCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Safari
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        ENABLE_HARDENED_RUNTIME: YES
+    info:
+      path: SafariWebExtension/Info-macOS.plist
+      properties: *safariInfo
+    entitlements:
+      path: SafariWebExtension/ArchiveBoxMacSafari.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
 schemes:
+  ArchiveBoxMac:
+    build:
+      targets:
+        ArchiveBoxMac: all
   ArchiveBox:
     build:
       targets:

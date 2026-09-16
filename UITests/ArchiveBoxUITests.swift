@@ -26,11 +26,19 @@ final class ArchiveBoxUITests: XCTestCase {
         replace(key, with: token)
         tokenButton.tap()
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20))
+        let picker = app.buttons["defaultPersona"]
+        app.swipeUp()
+        XCTAssertTrue(picker.waitForExistence(timeout: 10), app.debugDescription)
+        picker.tap()
+        app.buttons["AppleAcceptance"].tap()
+        XCTAssertTrue(app.buttons["saveConnection"].isEnabled, app.debugDescription)
         app.buttons["saveConnection"].tap()
-        XCTAssertTrue(app.otherElements["savedConnection"].exists || app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Ready to share.")).firstMatch.waitForExistence(timeout: 5))
+        app.swipeUp()
+        XCTAssertTrue(app.otherElements["savedConnection"].exists || app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Ready to share.")).firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         attach("Configured", app: app)
         app.terminate()
         app.launch()
+        app.swipeUp()
         XCTAssertTrue(app.staticTexts["Your saved connection is ready for the share sheet."].waitForExistence(timeout: 5))
 
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
@@ -58,6 +66,7 @@ final class ArchiveBoxUITests: XCTestCase {
         archiveBox.tap()
         let submit = safari.buttons["submitShare"]
         XCTAssertTrue(submit.waitForExistence(timeout: 10), safari.debugDescription)
+        XCTAssertTrue(safari.staticTexts["AppleAcceptance"].exists, safari.debugDescription)
         attach("Share preview", app: safari)
         submit.tap()
         XCTAssertTrue(safari.staticTexts["Sent to ArchiveBox"].waitForExistence(timeout: 30), safari.debugDescription)

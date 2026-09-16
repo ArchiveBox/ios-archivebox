@@ -1,5 +1,7 @@
 .build/
 build/
+build-device/
+build-mac/
 DerivedData/
 *.xcuserstate
 xcuserdata/
@@ -7,3 +9,4 @@ xcuserdata/
 .env
 *.xcresult
 Local.xcconfig
+SafariWebExtension/Resources/

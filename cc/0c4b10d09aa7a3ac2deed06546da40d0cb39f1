@@ -1,0 +1,73 @@
+.gitignore
+  s_ffefb637465167::t_e00aee9d1b70d4 3-4,12
+App/ArchiveBoxApp.swift
+  s_ffefb637465167::t_63c94d819cafa8 6,8-13
+App/SettingsView.swift
+  s_044c52c0270663::t_027c1b09dc54b9 3-5,17-19,24,32,40,44,71,75-87,91,121,124-125,127-129,148-151,165-186,193-205,213,228-230
+ArchiveBox.xcodeproj/project.pbxproj
+  s_044c52c0270663::t_19c7eef505182f 10-11,13,15-24,26-37,40,42,44-49,53,55-57,59,61-68,79-92,100-106,117-129,138-139,141-143,147,150,152-153,156-157,159,162,164,166-173,175,179-186,195-202,211-226,234-237,244-251,255-259,261-262,264-265,272-281,305-327,333-334,364,374-413,434-456,475-494,508-515,520-523,529-532,555-558,564-591,610-635,657-695,701-702,720-734,738-755,774-848,960,975-1010,1064,1078-1096,1143-1169,1197-1205,1220-1223,1228-1239
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxMac.xcscheme
+  s_044c52c0270663::t_fa372c1e29fbe0 1-89
+MacApp/ArchiveBoxMac.entitlements
+  s_ffefb637465167::t_5e65c2d2639037 1-14
+MacApp/Info.plist
+  s_ffefb637465167::t_dc2837c0511c42 1-35
+MacShareExtension/ArchiveBoxMacShare.entitlements
+  s_ffefb637465167::t_746ca1f72d3420 1-14
+MacShareExtension/Info.plist
+  s_ffefb637465167::t_e471c46b28a098 1-50
+MacShareExtension/MacShareViewController.swift
+  s_ffefb637465167::t_45e9273ba3f08b 1-32
+README.md
+  s_044c52c0270663::t_81463adbb9917d 1,3,7-11,13,15-25,29,32,35-39,42,44,46,48,50-55,57,59,61,65-66,71,74-76,80-86
+SafariWebExtension/ArchiveBoxMacSafari.entitlements
+  s_ffefb637465167::t_385cdf54ee1ade 1-14
+SafariWebExtension/ArchiveBoxSafari.entitlements
+  s_ffefb637465167::t_d5cf78c665c509 1-10
+SafariWebExtension/Info-iOS.plist
+  s_ffefb637465167::t_72df10a233b403 1-33
+SafariWebExtension/Info-macOS.plist
+  s_ffefb637465167::t_c31d7fe589392f 1-33
+SafariWebExtension/SafariWebExtensionHandler.swift
+  s_ffefb637465167::t_da0fec9c51f0f9 1-28
+SafariWebExtension/apple-connection.js
+  s_ffefb637465167::t_439379ebff94a2 1-29
+ShareExtension/ShareModel.swift
+  s_044c52c0270663::t_3def83164a4a1c 1-67
+ShareExtension/ShareView.swift
+  s_044c52c0270663::t_09918682cb9eb7 1-75
+ShareExtension/ShareViewController.swift
+  s_ffefb637465167::t_5c5f3b8c971113 28
+Tests/ArchiveBoxCoreTests/AddressTests.swift
+  s_044c52c0270663::t_fb4bf82c52975f 31-39
+UITests/ArchiveBoxUITests.swift
+  s_044c52c0270663::t_617a1ed740dad6 29-34,36-37,41,69
+project.yml
+  s_ffefb637465167::t_9ddda00bb0ba82 6,37,99-232,234-237
+scripts/prepare-safari.mjs
+  s_044c52c0270663::t_10a2fd512e8b04 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cc0c4b10d09aa7a3ac2deed06546da40d0cb39f1",
+  "prompts": {},
+  "sessions": {
+    "s_044c52c0270663": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0aad5-4c89-7f13-80b0-e718bbd3b43f",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    },
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

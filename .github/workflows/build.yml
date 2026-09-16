@@ -1,0 +1,16 @@
+name: Build
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift package tests
+        run: swift test
+      - name: Build app and share extension
+        run: >-
+          xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build CODE_SIGNING_ALLOWED=NO build

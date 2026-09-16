@@ -1,0 +1,638 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		08CF496446755EE1F61A5B46 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 67C62B2EC4DA84A38EF9E5A7 /* AppIcon.icon */; };
+		0A07F42B02BE8808F0E1B6BB /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99779D6DCD1E0CDAF64EED92 /* ShareViewController.swift */; };
+		2CF6681AF45C951777C38F86 /* ArchiveBoxShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 60A108FCA1936A3321963D9E /* ArchiveBoxShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5FE61C9D9A2578A21250E922 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06F8051E8FD4E6F293429D02 /* Assets.xcassets */; };
+		61993E0DC6606E24A95457A9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE45EBF447663409775DECBA /* SettingsView.swift */; };
+		62CBF5EEE11B21764655808C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */; };
+		65D2AC69EA2BEC5C1C2B113C /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
+		A08F56ECEDF3A9537E7E9FC4 /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC5B1EA1ECF83B6CA12949F /* ArchiveBoxCore */; };
+		A9471D3223421DB739C368C0 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
+		B0FE976378BA828B33A4D0FA /* ArchiveBoxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */; };
+		B90B871600969B03C521AAAF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06F8051E8FD4E6F293429D02 /* Assets.xcassets */; };
+		C3F764B5593F2E050F022735 /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D29C759A2A9C2D4EA55954D /* ArchiveBoxCore */; };
+		CDBF48D4069574C7510D6A7B /* ArchiveBoxUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E9C25C037A0F204B0BDCF38 /* ArchiveBoxUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1D536F0AC9ACDDDA25D67258 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 78742D05FF6332E49FF7A1B7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 50A32FE4A694860FFEBA4276;
+			remoteInfo = ArchiveBoxShare;
+		};
+		79D0EF28121EA6322DBB3481 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 78742D05FF6332E49FF7A1B7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2F354F6B7436080F5267E285;
+			remoteInfo = ArchiveBox;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		01577DFF99719A252CB231EB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				2CF6681AF45C951777C38F86 /* ArchiveBoxShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		06F8051E8FD4E6F293429D02 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0E4B3200B2E823AF61D3814E /* ArchiveBox.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ArchiveBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2E58417FC1E8AADB7CBC6FE2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		3F2D38E2255F27E76EC161AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveBoxApp.swift; sourceTree = "<group>"; };
+		481FA3FA69FE3C31387568BE /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		4B04B3C87B40752E1F9BD222 /* ios-archivebox */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "ios-archivebox"; path = .; sourceTree = SOURCE_ROOT; };
+		60A108FCA1936A3321963D9E /* ArchiveBoxShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ArchiveBoxShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		670CE703145D0F4EDD611457 /* ArchiveBoxShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBoxShare.entitlements; sourceTree = "<group>"; };
+		67C62B2EC4DA84A38EF9E5A7 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		7E9C25C037A0F204B0BDCF38 /* ArchiveBoxUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveBoxUITests.swift; sourceTree = "<group>"; };
+		99779D6DCD1E0CDAF64EED92 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B47DE619CE801A18C34392BA /* ArchiveBox.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBox.entitlements; sourceTree = "<group>"; };
+		BE45EBF447663409775DECBA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FBB84723CF899A5CEA0BD4D7 /* ArchiveBoxUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ArchiveBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		3AA3C545B1BEFD9C66719D3F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3F764B5593F2E050F022735 /* ArchiveBoxCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B76106DBE54AA8A08F69E31 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A08F56ECEDF3A9537E7E9FC4 /* ArchiveBoxCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1D78885BFD891E9906E9C67E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0E4B3200B2E823AF61D3814E /* ArchiveBox.app */,
+				60A108FCA1936A3321963D9E /* ArchiveBoxShare.appex */,
+				FBB84723CF899A5CEA0BD4D7 /* ArchiveBoxUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		50207F96BCDFC85B942E38EA = {
+			isa = PBXGroup;
+			children = (
+				784BE6BF1A8299959A0D69E0 /* App */,
+				D511BB30C6FC27C3B47633C6 /* Packages */,
+				B260911BC92EC950CF46EBA4 /* ShareExtension */,
+				70E99D78A4A6F3672596D179 /* UITests */,
+				1D78885BFD891E9906E9C67E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		70E99D78A4A6F3672596D179 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				7E9C25C037A0F204B0BDCF38 /* ArchiveBoxUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		784BE6BF1A8299959A0D69E0 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				481FA3FA69FE3C31387568BE /* AppEnvironment.swift */,
+				67C62B2EC4DA84A38EF9E5A7 /* AppIcon.icon */,
+				B47DE619CE801A18C34392BA /* ArchiveBox.entitlements */,
+				45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */,
+				06F8051E8FD4E6F293429D02 /* Assets.xcassets */,
+				2E58417FC1E8AADB7CBC6FE2 /* Info.plist */,
+				9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */,
+				BE45EBF447663409775DECBA /* SettingsView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		B260911BC92EC950CF46EBA4 /* ShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				670CE703145D0F4EDD611457 /* ArchiveBoxShare.entitlements */,
+				3F2D38E2255F27E76EC161AF /* Info.plist */,
+				99779D6DCD1E0CDAF64EED92 /* ShareViewController.swift */,
+			);
+			path = ShareExtension;
+			sourceTree = "<group>";
+		};
+		D511BB30C6FC27C3B47633C6 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				4B04B3C87B40752E1F9BD222 /* ios-archivebox */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2F354F6B7436080F5267E285 /* ArchiveBox */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B650AA9510E7AD2D4213C868 /* Build configuration list for PBXNativeTarget "ArchiveBox" */;
+			buildPhases = (
+				34830900E512D9084BFB1555 /* Sources */,
+				BEC7CE719728F2689859EC29 /* Resources */,
+				9B76106DBE54AA8A08F69E31 /* Frameworks */,
+				01577DFF99719A252CB231EB /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				31EFACC29AF5096F0C1FE3C6 /* PBXTargetDependency */,
+			);
+			name = ArchiveBox;
+			packageProductDependencies = (
+				0AC5B1EA1ECF83B6CA12949F /* ArchiveBoxCore */,
+			);
+			productName = ArchiveBox;
+			productReference = 0E4B3200B2E823AF61D3814E /* ArchiveBox.app */;
+			productType = "com.apple.product-type.application";
+		};
+		50A32FE4A694860FFEBA4276 /* ArchiveBoxShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B516C2CED62F57DAB50E7D01 /* Build configuration list for PBXNativeTarget "ArchiveBoxShare" */;
+			buildPhases = (
+				EC295D16B3004070EC3FD96B /* Sources */,
+				9BA963367B90815B7C7DE758 /* Resources */,
+				3AA3C545B1BEFD9C66719D3F /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ArchiveBoxShare;
+			packageProductDependencies = (
+				4D29C759A2A9C2D4EA55954D /* ArchiveBoxCore */,
+			);
+			productName = ArchiveBoxShare;
+			productReference = 60A108FCA1936A3321963D9E /* ArchiveBoxShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		6D491070560A39943EBA4B59 /* ArchiveBoxUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BBE9625B9F94789B1BB0ED1A /* Build configuration list for PBXNativeTarget "ArchiveBoxUITests" */;
+			buildPhases = (
+				3838BCFE3FCF213C5B0DD891 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				09D27DCD10E24BB0B88F778E /* PBXTargetDependency */,
+			);
+			name = ArchiveBoxUITests;
+			packageProductDependencies = (
+			);
+			productName = ArchiveBoxUITests;
+			productReference = FBB84723CF899A5CEA0BD4D7 /* ArchiveBoxUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		78742D05FF6332E49FF7A1B7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					2F354F6B7436080F5267E285 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					50A32FE4A694860FFEBA4276 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					6D491070560A39943EBA4B59 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+						TestTargetID = 2F354F6B7436080F5267E285;
+					};
+				};
+			};
+			buildConfigurationList = 1B20585069B37A0AF5AA52FC /* Build configuration list for PBXProject "ArchiveBox" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 50207F96BCDFC85B942E38EA;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D1B343727B33866307EE2794 /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 1D78885BFD891E9906E9C67E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2F354F6B7436080F5267E285 /* ArchiveBox */,
+				50A32FE4A694860FFEBA4276 /* ArchiveBoxShare */,
+				6D491070560A39943EBA4B59 /* ArchiveBoxUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9BA963367B90815B7C7DE758 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5FE61C9D9A2578A21250E922 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BEC7CE719728F2689859EC29 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				08CF496446755EE1F61A5B46 /* AppIcon.icon in Resources */,
+				B90B871600969B03C521AAAF /* Assets.xcassets in Resources */,
+				62CBF5EEE11B21764655808C /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		34830900E512D9084BFB1555 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A9471D3223421DB739C368C0 /* AppEnvironment.swift in Sources */,
+				B0FE976378BA828B33A4D0FA /* ArchiveBoxApp.swift in Sources */,
+				61993E0DC6606E24A95457A9 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3838BCFE3FCF213C5B0DD891 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CDBF48D4069574C7510D6A7B /* ArchiveBoxUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EC295D16B3004070EC3FD96B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65D2AC69EA2BEC5C1C2B113C /* AppEnvironment.swift in Sources */,
+				0A07F42B02BE8808F0E1B6BB /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		09D27DCD10E24BB0B88F778E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2F354F6B7436080F5267E285 /* ArchiveBox */;
+			targetProxy = 79D0EF28121EA6322DBB3481 /* PBXContainerItemProxy */;
+		};
+		31EFACC29AF5096F0C1FE3C6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 50A32FE4A694860FFEBA4276 /* ArchiveBoxShare */;
+			targetProxy = 1D536F0AC9ACDDDA25D67258 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0F1C41D5152662C77A87AC7F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ArchiveBoxShare.entitlements;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBox.Share;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		8B0ACE1DEB4693B100E7FB7A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBoxUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ArchiveBox;
+			};
+			name = Debug;
+		};
+		9CA7E8A417BF1313A4994E9D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ArchiveBoxShare.entitlements;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBox.Share;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C14177BE99DA04087C6DEB52 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBoxUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ArchiveBox;
+			};
+			name = Release;
+		};
+		C3C0EBC8B6E7284AB0735BF4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHIVEBOX_KEYCHAIN_GROUP = "$(AppIdentifierPrefix)io.archivebox.shared";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E34BCE72072BD7B96F2E8EEF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHIVEBOX_KEYCHAIN_GROUP = "$(AppIdentifierPrefix)io.archivebox.shared";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EFACD3BD9CE8D3656819EA7E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/ArchiveBox.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBox;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		FF48B9164F2D97FE43E3A0A5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/ArchiveBox.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBox;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1B20585069B37A0AF5AA52FC /* Build configuration list for PBXProject "ArchiveBox" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C3C0EBC8B6E7284AB0735BF4 /* Debug */,
+				E34BCE72072BD7B96F2E8EEF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B516C2CED62F57DAB50E7D01 /* Build configuration list for PBXNativeTarget "ArchiveBoxShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9CA7E8A417BF1313A4994E9D /* Debug */,
+				0F1C41D5152662C77A87AC7F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B650AA9510E7AD2D4213C868 /* Build configuration list for PBXNativeTarget "ArchiveBox" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FF48B9164F2D97FE43E3A0A5 /* Debug */,
+				EFACD3BD9CE8D3656819EA7E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BBE9625B9F94789B1BB0ED1A /* Build configuration list for PBXNativeTarget "ArchiveBoxUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8B0ACE1DEB4693B100E7FB7A /* Debug */,
+				C14177BE99DA04087C6DEB52 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D1B343727B33866307EE2794 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0AC5B1EA1ECF83B6CA12949F /* ArchiveBoxCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ArchiveBoxCore;
+		};
+		4D29C759A2A9C2D4EA55954D /* ArchiveBoxCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ArchiveBoxCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 78742D05FF6332E49FF7A1B7 /* Project object */;
+}

@@ -1,0 +1,14 @@
+{
+  "fill": {"solid": "srgb:0.681645,0.262378,0.407330,1.000000"},
+  "groups": [{
+    "layers": [{
+      "image-name": "ArchiveBox.png",
+      "name": "ArchiveBox official logo",
+      "glass": false,
+      "position": {"scale": 2.2755555556, "translation-in-points": [0, 0]}
+    }],
+    "shadow": {"kind": "neutral", "opacity": 0},
+    "translucency": {"enabled": false, "value": 0}
+  }],
+  "supported-platforms": {"squares": "shared"}
+}

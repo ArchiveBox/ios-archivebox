@@ -1,0 +1,138 @@
+import Foundation
+
+// A native client must not forward tokens (including JSON-body tokens) through redirects.
+private final class NoRedirects: NSObject, URLSessionTaskDelegate, Sendable {
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest,
+                    completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
+        completionHandler(nil)
+    }
+}
+
+public final class ArchiveBoxClient: Sendable {
+    private let session: URLSession
+
+    public init() {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 15
+        configuration.timeoutIntervalForResource = 30
+        configuration.httpShouldSetCookies = false
+        configuration.urlCache = nil
+        session = URLSession(configuration: configuration, delegate: NoRedirects(), delegateQueue: nil)
+    }
+
+    deinit { session.invalidateAndCancel() }
+
+    public func discoverServer(_ input: String) async throws -> URL {
+        let candidates = try ServerAddress.candidates(for: input)
+        var failures: [String] = []
+        for server in candidates {
+            try Task.checkCancellation()
+            do {
+                let data = try await request(server, path: "api/v1/openapi.json")
+                let schema = try JSONDecoder().decode(APISchema.self, from: data)
+                guard schema.info.title.localizedCaseInsensitiveContains("archivebox"),
+                      schema.paths.keys.contains(where: { $0.hasSuffix("/cli/add") }),
+                      schema.paths.keys.contains(where: { $0.hasSuffix("/auth/check_api_token") }) else {
+                    throw ArchiveBoxError.message("This address does not expose the ArchiveBox submission API.")
+                }
+                return server
+            } catch is CancellationError { throw CancellationError() }
+            catch {
+                if Task.isCancelled { throw CancellationError() }
+                failures.append("\(server.host() ?? server.absoluteString): \(error.localizedDescription)")
+            }
+        }
+        throw ArchiveBoxError.message("Could not connect to the ArchiveBox API. Check the address and your Wi-Fi or VPN.\n\n" + failures.joined(separator: "\n"))
+    }
+
+    public func testToken(server: URL, token: String) async throws {
+        guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ArchiveBoxError.message("Enter your API key.")
+        }
+        let body = try JSONEncoder().encode(TokenRequest(token: token))
+        let data = try await request(server, path: "api/v1/auth/check_api_token", body: body)
+        let result = try JSONDecoder().decode(TokenResponse.self, from: data)
+        guard result.success == true, result.userID != nil else {
+            throw ArchiveBoxError.message("This API key is invalid or expired. Create a new key in your ArchiveBox server’s admin settings.")
+        }
+    }
+
+    public func submit(urls: [URL], configuration: ServerConfiguration) async throws -> SubmissionReceipt {
+        guard !urls.isEmpty, urls.allSatisfy({ SharedLinks.isWebURL($0) }) else {
+            throw ArchiveBoxError.message("Share an http:// or https:// link to ArchiveBox.")
+        }
+        let body = try JSONEncoder().encode(AddRequest(urls: urls.map(\.absoluteString)))
+        let data = try await request(configuration.server, path: "api/v1/cli/add", body: body, token: configuration.token)
+        let response = try JSONDecoder().decode(AddResponse.self, from: data)
+        guard response.success, response.errors?.isEmpty != false, let result = response.result,
+              result.confirms(urls: urls) else {
+            throw ArchiveBoxError.message("The server did not confirm the submission. Check your ArchiveBox server before trying again.")
+        }
+        return result
+    }
+
+    private func request(_ server: URL, path: String, body: Data? = nil, token: String? = nil) async throws -> Data {
+        var request = URLRequest(url: server.appending(path: path))
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let body {
+            request.httpMethod = "POST"
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw ArchiveBoxError.message("The server returned an invalid response.") }
+        switch http.statusCode {
+        case 200..<300: return data
+        case 300..<400: throw ArchiveBoxError.message("The server redirected this request. Test and save its API address in Settings.")
+        case 401, 403: throw ArchiveBoxError.message("Access denied. Check that your API key belongs to an ArchiveBox administrator.")
+        case 404: throw ArchiveBoxError.message("ArchiveBox API not found at this address.")
+        default: throw ArchiveBoxError.message("The server returned HTTP \(http.statusCode).")
+        }
+    }
+}
+
+private struct APISchema: Decodable {
+    struct Info: Decodable { let title: String }
+    struct Operation: Decodable {}
+    let info: Info
+    let paths: [String: Operation]
+}
+private struct TokenRequest: Encodable { let token: String }
+private struct TokenResponse: Decodable {
+    let success: Bool?
+    let userID: String?
+    enum CodingKeys: String, CodingKey { case success; case userID = "user_id" }
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        success = try values.decodeIfPresent(Bool.self, forKey: .success)
+        if let id = try? values.decode(String.self, forKey: .userID) { userID = id }
+        else if let id = try? values.decode(Int.self, forKey: .userID) { userID = String(id) }
+        else { userID = nil }
+    }
+}
+private struct AddRequest: Encodable { let urls: [String]; let depth = 0 }
+private struct AddResponse: Decodable {
+    let success: Bool
+    let errors: [String]?
+    let result: SubmissionReceipt?
+}
+public struct SubmissionReceipt: Decodable, Sendable {
+    public let snapshotIDs: [String]?
+    public let crawlID: String?
+    public let queuedURLs: [String]?
+    enum CodingKeys: String, CodingKey {
+        case snapshotIDs = "snapshot_ids", crawlID = "crawl_id", queuedURLs = "queued_urls"
+    }
+
+    func confirms(urls: [URL]) -> Bool {
+        // 0.9 creates snapshots asynchronously: the persisted crawl and echoed URLs
+        // confirm acceptance even when no snapshot rows exist yet.
+        if let crawlID, !crawlID.isEmpty, let queuedURLs {
+            return Set(urls.map(\.absoluteString)).isSubset(of: Set(queuedURLs))
+        }
+        return (snapshotIDs?.count ?? 0) >= urls.count
+    }
+}

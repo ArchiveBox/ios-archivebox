@@ -42,6 +42,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Your saved connection is ready for the share sheet."].waitForExistence(timeout: 5))
 
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        safari.terminate()
         safari.launch()
         // Safari's own address field and system sharing UI exercise the real extension host.
         let address = safari.textFields["Address"]
@@ -56,12 +57,13 @@ final class ArchiveBoxUITests: XCTestCase {
         }
         XCTAssertTrue(share.waitForExistence(timeout: 15), safari.debugDescription)
         share.tap()
-        let archiveBox = safari.cells["ArchiveBox"]
-        if !archiveBox.exists {
-            let more = safari.cells["More"]
-            XCTAssertTrue(more.waitForExistence(timeout: 5), safari.debugDescription)
-            more.tap()
-        }
+        // The Apps list avoids an off-screen horizontal share cell and makes the
+        // extension selection unambiguous while the system sheet is animating.
+        let more = safari.cells["More"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5), safari.debugDescription)
+        more.tap()
+        XCTAssertTrue(safari.navigationBars["Apps"].waitForExistence(timeout: 5), safari.debugDescription)
+        let archiveBox = safari.tables.staticTexts["ArchiveBox"]
         XCTAssertTrue(archiveBox.waitForExistence(timeout: 5), safari.debugDescription)
         archiveBox.tap()
         let submit = safari.buttons["submitShare"]

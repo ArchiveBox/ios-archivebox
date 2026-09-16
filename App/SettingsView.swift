@@ -167,7 +167,7 @@ struct SettingsView: View {
                         Text("Server default").tag("")
                         ForEach(model.personas) { persona in Text(persona.name).tag(persona.name) }
                         if !model.persona.isEmpty && !model.personas.contains(where: { $0.name == model.persona }) {
-                            Text("\(model.persona) (unavailable)").tag(model.persona)
+                            Text(model.verifiedToken == nil ? model.persona : "\(model.persona) (unavailable)").tag(model.persona)
                         }
                     }
                     .pickerStyle(.menu)

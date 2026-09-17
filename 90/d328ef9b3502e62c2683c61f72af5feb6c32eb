@@ -1,0 +1,18 @@
+.github/workflows/release.yml
+  h_923c208e183a7b 60
+docs/RELEASES.md
+  h_923c208e183a7b 38-39,49-51
+scripts/release-macos.sh
+  h_923c208e183a7b 3,14-17,39,41-46,49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "90d328ef9b3502e62c2683c61f72af5feb6c32eb",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

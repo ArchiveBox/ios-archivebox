@@ -58,12 +58,13 @@ private struct ServerWebView: View {
                 const responsive = document.createElement('link');
                 responsive.rel = 'stylesheet';
                 responsive.href = base.href.replace('admin/css/base.css', 'admin/css/responsive.css');
-                document.head.append(responsive);
+                // Keep ArchiveBox’s navbar overrides after Django’s responsive defaults.
+                base.after(responsive);
             }
             const style = document.createElement('style');
             style.textContent = `#container { min-width: 0; width: 100%; }
                 #content { min-width: 0; max-width: 100%; box-sizing: border-box; }
-                #header { min-width: 0; flex-wrap: wrap; gap: 12px; }
+                #header { min-width: 0; flex-shrink: 0; height: auto; }
                 #header a { white-space: normal; overflow-wrap: anywhere; }`;
             document.head.append(style);
         }

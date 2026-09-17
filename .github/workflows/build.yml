@@ -27,3 +27,11 @@ jobs:
           xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxMac
           -destination 'generic/platform=macOS' -derivedDataPath build-mac
           CODE_SIGNING_ALLOWED=NO build
+      - name: Build direct-download macOS client
+        run: >-
+          xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxMacDirect
+          -destination 'generic/platform=macOS' -derivedDataPath build-direct
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Build optional server companion code
+        working-directory: ServerApp
+        run: swift build --build-system native -c release

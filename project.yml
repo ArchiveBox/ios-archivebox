@@ -1,4 +1,9 @@
 name: ArchiveBox
+configs:
+  Debug: debug
+  Release: release
+  DebugDirect: debug
+  ReleaseDirect: release
 options:
   bundleIdPrefix: io.archivebox
   deploymentTarget:
@@ -108,6 +113,7 @@ targets:
       - path: App
         excludes: [Info.plist, ArchiveBox.entitlements]
       - MacApp
+      - MacLocalUI
     dependencies:
       - package: ArchiveBoxCore
       - target: ArchiveBoxMacShare
@@ -116,8 +122,16 @@ targets:
       base:
         PRODUCT_NAME: ArchiveBox
         PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox
+        CODE_SIGN_ENTITLEMENTS: MacApp/ArchiveBoxMac.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
+      configs:
+        DebugDirect:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) DIRECT_DOWNLOAD'
+          CODE_SIGN_ENTITLEMENTS: MacApp/ArchiveBoxDirect.entitlements
+        ReleaseDirect:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) DIRECT_DOWNLOAD'
+          CODE_SIGN_ENTITLEMENTS: MacApp/ArchiveBoxDirect.entitlements
     info:
       path: MacApp/Info.plist
       properties:
@@ -127,12 +141,6 @@ targets:
         NSLocalNetworkUsageDescription: Connect to your ArchiveBox server on your local network.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
-    entitlements:
-      path: MacApp/ArchiveBoxMac.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-        com.apple.security.network.client: true
-        keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
   ArchiveBoxMacShare:
     type: app-extension
     platform: macOS
@@ -236,6 +244,14 @@ targets:
         com.apple.security.network.client: true
         keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
 schemes:
+  ArchiveBoxMacDirect:
+    build:
+      targets:
+        ArchiveBoxMac: all
+    run:
+      config: DebugDirect
+    archive:
+      config: ReleaseDirect
   ArchiveBoxMac:
     build:
       targets:

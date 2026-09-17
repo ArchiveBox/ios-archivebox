@@ -86,3 +86,18 @@ See [validation evidence](docs/VALIDATION.md) for tested behavior and remaining 
 No analytics, trackers, or developer-operated service. Shared URLs go to your configured ArchiveBox server. Native share links remain in memory for the operation only; configuration uses device-only Keychain. Safari’s upstream behavior/storage is separate as described above. A privacy manifest is included.
 
 MIT. See [LICENSE](LICENSE) and [branding provenance](docs/BRANDING.md). The bundled upstream extension retains its own license; see `SafariWebExtension/UPSTREAM-LICENSE`.
+
+## Optional local server on Mac
+
+Choose **This Mac → Run server locally** in Settings to launch the separate
+**ArchiveBox Server.app** companion. It runs in the menu bar and provides its own
+Archive web view, Settings, live CPU/RAM/collection size, and SwiftTerm terminal.
+Local and remote connections keep separate credentials; switching does not delete
+collections. Create your local account and API key through ArchiveBox's normal UI.
+
+The companion contains the large Linux runtime/image. It is never bundled in the
+main client or downloaded on ordinary app launch. The direct Mac build downloads
+it only after the button is clicked; the App Store build opens its download page
+for manual installation. Automatic download requires a published, signed and
+notarized companion release. See [ServerApp](ServerApp/README.md) for development,
+storage, packaging, and release instructions. iOS/iPadOS remain remote clients.

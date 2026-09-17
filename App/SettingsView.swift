@@ -21,6 +21,44 @@ final class SettingsModel {
     var busy = false
     private let client = ArchiveBoxClient()
     private var didLoad = false
+    #if os(macOS)
+    enum ConnectionMode: String { case remote, local }
+    var connectionMode = ConnectionMode(rawValue: UserDefaults.standard.string(forKey: "connectionMode") ?? "remote") ?? .remote
+    let localServer = LocalServer()
+
+    func selectConnection(_ mode: ConnectionMode) {
+        guard mode != connectionMode else { return }
+        do {
+            // Preserve the last saved remote connection before selecting the local
+            // profile. Never persist an untested draft as working credentials.
+            if let active = try AppEnvironment.store.load() {
+                try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").save(active)
+            }
+            let config = try AppEnvironment.configurationStore(account: "profile-\(mode.rawValue)").load()
+            serverChanged()
+            connectionMode = mode
+            UserDefaults.standard.set(mode.rawValue, forKey: "connectionMode")
+            serverText = config?.server.absoluteString ?? (mode == .local ? LocalServer.address : "")
+            tokenText = config?.token ?? ""; persona = config?.persona ?? ""
+            // Prevent sharing to the previously selected profile while setting up
+            // the new one. The profile itself remains safely stored in Keychain.
+            try AppEnvironment.store.clear()
+            if mode == .remote, let config {
+                try AppEnvironment.store.save(config)
+                savedMessage = "Remote connection restored for sharing. Test server to open Archive."
+            }
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func localServerReady(_ server: URL) async throws {
+        serverText = server.absoluteString; verifiedServer = server
+        serverMessage = "Connected to ArchiveBox Server on this Mac."
+        if !tokenText.isEmpty {
+            await testToken()
+            if canSave { save() }
+        }
+    }
+    #endif
 
     var canSave: Bool {
         verifiedServer != nil && verifiedToken == tokenText && !tokenText.isEmpty && !busy && (persona.isEmpty || (personasLoaded && personas.contains { $0.name == persona }))
@@ -31,12 +69,23 @@ final class SettingsModel {
         guard !didLoad else { return }
         didLoad = true
         do {
-            if let config = try AppEnvironment.store.load() {
+            #if os(macOS)
+            let profile = try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").load()
+            // Only the remote profile predates connection modes. A new local
+            // profile must never inherit a remote server's URL or API key.
+            let config = try profile ?? (connectionMode == .remote ? AppEnvironment.store.load() : nil)
+            #else
+            let config = try AppEnvironment.store.load()
+            #endif
+            if let config {
                 serverText = config.server.absoluteString
                 tokenText = config.token
                 persona = config.persona ?? ""
                 savedMessage = "Your saved connection is ready for the share sheet."
             }
+            #if os(macOS)
+            if config == nil && connectionMode == .local { serverText = LocalServer.address }
+            #endif
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -101,6 +150,9 @@ final class SettingsModel {
         guard canSave, let server = verifiedServer else { return }
         do {
             try AppEnvironment.store.save(ServerConfiguration(server: server, token: tokenText, persona: persona.isEmpty ? nil : persona))
+            #if os(macOS)
+            try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").save(ServerConfiguration(server: server, token: tokenText, persona: persona.isEmpty ? nil : persona))
+            #endif
             savedMessage = "Ready to share. Open a link in any app, tap Share, then choose ArchiveBox."
             errorMessage = nil
         } catch { errorMessage = error.localizedDescription }
@@ -129,6 +181,10 @@ struct SettingsView: View {
                 }
                 .listRowBackground(Color.clear)
 
+                #if os(macOS)
+                LocalServerSection(model: model)
+                #endif
+
                 Section {
                     TextField("Server URL", text: Binding(
                         get: { model.serverText },
@@ -139,6 +195,9 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                         #endif
                         .autocorrectionDisabled()
+                        #if os(macOS)
+                        .disabled(model.connectionMode == .local)
+                        #endif
                         .focused($focusedField, equals: .server)
                         .accessibilityLabel("Server URL").accessibilityIdentifier("serverURL")
                     Button {

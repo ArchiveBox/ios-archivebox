@@ -2,6 +2,7 @@
 build/
 build-device/
 build-mac/
+build-direct/
 DerivedData/
 *.xcuserstate
 xcuserdata/
@@ -10,3 +11,9 @@ xcuserdata/
 *.xcresult
 Local.xcconfig
 SafariWebExtension/Resources/
+
+# Optional macOS server companion assets
+ServerApp/vendor/
+ServerApp/payload/
+ServerApp/dist/
+ServerApp/.runtime/

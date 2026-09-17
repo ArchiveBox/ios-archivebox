@@ -14,12 +14,15 @@ public struct ServerConfiguration: Codable, Sendable, Equatable {
 /// No submitted URLs, history, pending work, or offline content are persisted.
 public struct ConfigurationStore: Sendable {
     private let accessGroup: String
-    public init(accessGroup: String) { self.accessGroup = accessGroup }
+    private let account: String
+    public init(accessGroup: String, account: String = "server") {
+        self.accessGroup = accessGroup; self.account = account
+    }
 
     private var query: [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: "io.archivebox.configuration",
-         kSecAttrAccount as String: "server",
+         kSecAttrAccount as String: account,
          kSecAttrAccessGroup as String: accessGroup,
          kSecUseDataProtectionKeychain as String: true]
     }
@@ -44,6 +47,11 @@ public struct ConfigurationStore: Sendable {
         if status == errSecItemNotFound {
             try check(SecItemAdd(query.merging(attributes) { _, new in new } as CFDictionary, nil))
         } else { try check(status) }
+    }
+
+    public func clear() throws {
+        let status = SecItemDelete(query as CFDictionary)
+        if status != errSecItemNotFound { try check(status) }
     }
 
     private func check(_ status: OSStatus) throws {

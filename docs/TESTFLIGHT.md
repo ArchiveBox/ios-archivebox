@@ -35,7 +35,10 @@ Configure these secrets in the repository's **testflight** environment:
 
 The workflow uses Apple's cloud distribution signing; it does not store a
 personal Apple ID password or distribution private key. The API key must have
-permission to upload, use cloud signing, and manage internal TestFlight builds.
+the Admin role for cloud signing as well as TestFlight management. An App Manager
+team key can upload builds but was rejected by cloud signing. This dedicated key
+has team-wide access; the GitHub environment restricts releases to `main` and
+`testflight-*` tags.
 Keep it dedicated to this repository and revoke it in App Store Connect if lost.
 The temporary key file is removed even when publishing fails.
 

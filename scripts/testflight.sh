@@ -7,9 +7,11 @@ set -euo pipefail
 # Reruns must not collide with a build still processing at Apple.
 export RELEASE_BUILD="$((100 + GITHUB_RUN_NUMBER)).${GITHUB_RUN_ATTEMPT}"
 export ASC_KEY_PATH="$RUNNER_TEMP/ArchiveBox-AuthKey.p8"
+previous_umask=$(umask)
 umask 077
 printf '%s' "$ASC_PRIVATE_KEY" > "$ASC_KEY_PATH"
 unset ASC_PRIVATE_KEY
+umask "$previous_umask"
 trap 'rm -f "$ASC_KEY_PATH"' EXIT
 # XcodeGen's committed plists have literal versions, so update every product here.
 for plist in App/Info.plist ShareExtension/Info.plist SafariWebExtension/Info-iOS.plist MacApp/Info.plist MacShareExtension/Info.plist SafariWebExtension/Info-macOS.plist; do
@@ -36,7 +38,9 @@ for platform in iOS macOS; do
     # Cloud signing at export keeps distribution private keys on Apple's servers.
     xcodebuild -project ArchiveBox.xcodeproj -scheme "$scheme" -configuration Release \
         -destination "generic/platform=$platform" -archivePath "$archive" \
-        DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGNING_ALLOWED=NO archive
+        DEVELOPMENT_TEAM="$APPLE_TEAM_ID" -allowProvisioningUpdates \
+        -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" \
+        -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive
     # Both rsync processes must use Apple's version during export.
     PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive -archivePath "$archive" \
         -exportPath "$RUNNER_TEMP/$scheme-export" \

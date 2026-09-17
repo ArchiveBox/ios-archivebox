@@ -4,13 +4,32 @@ A small SwiftUI app for iPhone, iPad, and Mac: configure your **ArchiveBox 0.9.x
 
 ## Use
 
-The app opens in **Settings** (gear). **Archive** (building with columns) becomes available after **Test server** successfully connects. It embeds the server’s `/admin/` UI and follows its admin-host redirect when needed. Sign in using your normal server account; the API key is not a web login. Switching screens preserves the current page. Editing the server locks Archive until you connect again. Navigation adapts from a tab bar to a sidebar on larger screens.
+The app opens in **Connection Settings**, alongside **Add URLs**, **Archive**, and
+**Admin** in an adaptive sidebar/tab bar. Archive opens the snapshots grid; Admin
+opens the admin home. Both require a successful server check. The embedded pages
+share normal WebKit login cookies; API keys are never injected into web content.
 
-1. Enter your server address and select **Test server**. Pasted admin/API paths are removed; missing schemes default to HTTPS. The app probes the entered host, its `api.` host, and the base host without sending credentials. The working address appears in the field. Include `http://` explicitly for an HTTP-only server.
-2. Enter an administrator’s API key from ArchiveBox’s admin → API Tokens and select **Test API key**.
-3. Choose a **Default persona** from the live server list, or leave **Server default** to use `Default`. **Refresh personas** reloads the list. Servers without the persona-list endpoint can still use Server default.
-4. Select **Save**. The connection and persona are saved together in device-only Keychain.
-5. Share a URL from Safari or another app, choose **ArchiveBox**, review the server and persona, and select **Save to ArchiveBox**. Keep the sheet open until **Sent to ArchiveBox** appears.
+1. On Mac, choose **Run Server Locally** or **Connect to remote server**. Local mode
+   finds the separate menu-bar companion, displays its port, and opens its Settings.
+   The companion currently uses the existing release/download flow, not an unpublished
+   App Store listing. No large assets download until explicitly requested.
+2. Enter a remote server URL. A cancellable 600 ms debounce checks it automatically
+   and corrects admin/base URLs to the working API origin. Red/green indicators show
+   the result. **Admin** and **Get Key** enable only after a successful server check
+   (no API key needed) and navigate the embedded Admin pane. Get Key goes to the
+   API Keys list; if necessary, the server asks for login with `next` set to that list.
+   Signing in once is shared by Add URLs, Archive, and Admin. Companion-app cookies
+   are separate: the main app does not impersonate a remote administrator or copy
+   another app’s session.
+3. Enter an administrator API key; it is checked automatically. Select **Save** to
+   store the verified connection in device-only Keychain. Editing the URL clears the
+   draft key so it cannot be sent automatically to another server.
+4. **Add URLs** embeds `/add/` with no native URL/navigation bar. Below it are a real
+   iPhone share-sheet screenshot, **Default Persona** (saved when changed), browser
+   extension setup, and links for REST API, CLI, SQL, and supported sources.
+5. Share a URL from any app, choose **ArchiveBox**, then **Save to ArchiveBox**. Keep
+   the sheet open until confirmation. Default Persona applies to native sharing;
+   the web form and browser extensions have their own persona controls.
 
 On Mac, enable ArchiveBox under System Settings → General → Login Items & Extensions → Extensions → ArchiveBox → Sharing if it does not appear in the share menu.
 
@@ -20,7 +39,7 @@ Private servers require the device’s Wi-Fi or VPN connection. `localhost` on a
 
 ## Browser extensions
 
-Settings includes Safari, Chrome, Brave, Firefox, and Source Code shortcuts. Safari
+Add URLs includes Safari, Chrome, Brave, Firefox, and Source Code shortcuts. Safari
 opens its extension settings on macOS and iOS 26.2+; earlier iOS versions show the
 manual setup path. Brave uses the Chrome Web Store listing. Only bundled Safari
 shares the native app connection automatically; configure other browsers separately.

@@ -3,6 +3,56 @@ import XCTest
 /// Run against a real, disposable ArchiveBox 0.9+ server. No intercepted requests or seeded app state.
 @MainActor
 final class ArchiveBoxUITests: XCTestCase {
+    func testAutomaticConnectionAndScreens() throws {
+        continueAfterFailure = false
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let app = XCUIApplication()
+        app.launch()
+        let field = app.textFields["serverURL"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        replace(field, with: "http://127.0.0.1:1")
+        XCTAssertTrue(app.staticTexts["Server unreachable"].waitForExistence(timeout: 20))
+        XCTAssertFalse(app.buttons["openAdmin"].isEnabled)
+        XCTAssertFalse(app.buttons["getAPIKey"].isEnabled)
+        replace(field, with: server + "/admin/")
+        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.buttons["openAdmin"].isEnabled)
+        XCTAssertTrue(app.buttons["getAPIKey"].isEnabled)
+        replace(app.secureTextFields["apiKey"], with: "invalid-test-key")
+        XCTAssertTrue(app.staticTexts["API key rejected"].waitForExistence(timeout: 20))
+        app.secureTextFields["apiKey"].typeText("\n")
+        app.buttons["getAPIKey"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Admin"].isSelected)
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
+        app.tabBars.buttons["Add URLs"].tap()
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["More ways to add"].waitForExistence(timeout: 5))
+        attach("Add URLs guide", app: app)
+        app.tabBars.buttons["Archive"].tap()
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
+        app.tabBars.buttons["Admin"].tap()
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
+    }
+
+    func testShareSheetGuide() throws {
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        safari.launch()
+        let address = safari.textFields["Address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 10))
+        address.tap()
+        address.typeText("https://example.com\n")
+        let share = safari.buttons["Share"]
+        if !share.exists { safari.buttons["Page Menu"].tap() }
+        XCTAssertTrue(share.waitForExistence(timeout: 10))
+        share.tap()
+        let more = safari.cells["More"]
+        XCTAssertTrue(more.waitForExistence(timeout: 10))
+        more.tap()
+        XCTAssertTrue(safari.tables.staticTexts["ArchiveBox"].waitForExistence(timeout: 10))
+        attach("Share sheet guide", app: safari)
+    }
+
     func testConfigureAndShareFromSafari() async throws {
         continueAfterFailure = false
         let environment = ProcessInfo.processInfo.environment
@@ -15,22 +65,19 @@ final class ArchiveBoxUITests: XCTestCase {
         let serverField = app.textFields["serverURL"]
         XCTAssertTrue(serverField.waitForExistence(timeout: 10))
         replace(serverField, with: server + "/admin/api/apitoken/")
-        app.buttons["testServer"].tap()
-        let tokenButton = app.buttons["testAPIKey"]
         let key = app.secureTextFields["apiKey"]
         replace(key, with: "invalid-test-key")
-        XCTAssertTrue(tokenButton.waitForExistence(timeout: 10))
-        XCTAssertTrue(tokenButton.isEnabled)
-        tokenButton.tap()
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "invalid or expired")).firstMatch.waitForExistence(timeout: 20))
         replace(key, with: token)
-        tokenButton.tap()
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20))
+        app.buttons["saveConnection"].tap()
+        app.tabBars.buttons["Add URLs"].tap()
         let picker = app.buttons["defaultPersona"]
         app.swipeUp()
         XCTAssertTrue(picker.waitForExistence(timeout: 10), app.debugDescription)
         picker.tap()
         app.buttons["AppleAcceptance"].tap()
+        app.tabBars.buttons["Connection Settings"].tap()
         XCTAssertTrue(app.buttons["saveConnection"].isEnabled, app.debugDescription)
         app.buttons["saveConnection"].tap()
         app.swipeUp()
@@ -39,7 +86,7 @@ final class ArchiveBoxUITests: XCTestCase {
         app.terminate()
         app.launch()
         app.swipeUp()
-        XCTAssertTrue(app.staticTexts["Your saved connection is ready for the share sheet."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20))
 
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
         safari.terminate()
@@ -81,16 +128,16 @@ final class ArchiveBoxUITests: XCTestCase {
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let app = XCUIApplication()
         app.launch()
-        let settings = app.tabBars.buttons["Settings"]
+        let settings = app.tabBars.buttons["Connection Settings"]
         let archive = app.tabBars.buttons["Archive"]
         XCTAssertTrue(settings.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(settings.isSelected)
+        replace(app.textFields["serverURL"], with: "http://127.0.0.1:1")
         archive.tap()
         XCTAssertTrue(settings.isSelected)
         XCTAssertFalse(app.webViews.firstMatch.exists)
         replace(app.textFields["serverURL"], with: server)
-        app.buttons["testServer"].tap()
-        XCTAssertTrue(app.staticTexts["Connected to ArchiveBox."].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20))
         archive.tap()
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15), app.debugDescription)
         XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 20), app.debugDescription)

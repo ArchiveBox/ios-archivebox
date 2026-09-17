@@ -5,29 +5,32 @@ import AppKit
 struct LocalServerSection: View {
     @Bindable var model: SettingsModel
     var body: some View {
-        Section("Connection") {
-            Picker("Server location", selection: Binding(get: { model.connectionMode }, set: { model.selectConnection($0) })) {
-                Text("Remote server").tag(SettingsModel.ConnectionMode.remote)
-                Text("This Mac").tag(SettingsModel.ConnectionMode.local)
-            }
-            .disabled(model.localServer.busy)
-            if model.connectionMode == .local {
-                Text("ArchiveBox Server runs separately in the menu bar and includes the full archiving toolset. Nothing is downloaded until you choose Run server locally.")
-                    .foregroundStyle(.secondary)
-                if model.localServer.busy {
-                    if let progress = model.localServer.progress { ProgressView(value: progress) }
-                    else { ProgressView() }
-                    Button("Cancel") { model.localServer.cancel() }
-                } else {
-                    Button("Run server locally", systemImage: "desktopcomputer") { model.localServer.launch(settings: model) }
-                        .buttonStyle(.glassProminent)
-                    if let app = model.localServer.installedApp {
-                        Button("Open ArchiveBox Server", systemImage: "menubar.rectangle") { NSWorkspace.shared.open(app) }
-                    }
+        Section("ArchiveBox Server on this Mac") {
+            if let server = model.verifiedServer {
+                HStack {
+                    Text("🟢 Running: port \(String(server.port ?? (server.scheme == "https" ? 443 : 80)))")
+                    Spacer()
+                    Button("Open ArchiveBox Server.app › Settings") {
+                        if let app = model.localServer.installedApp { NSWorkspace.shared.open(app) }
+                    }.disabled(model.localServer.installedApp == nil)
                 }
-                Text(model.localServer.message).font(.callout)
-                if let error = model.localServer.error { Text(error).foregroundStyle(.red).textSelection(.enabled) }
+            } else if model.localServer.installedApp != nil {
+                Text(model.serverError == nil ? "Checking local server…" : "🔴 Server not connected")
+                Button("Start ArchiveBox Server.app", systemImage: "power") { model.localServer.launch(settings: model) }
+                    .disabled(model.localServer.busy)
+            } else {
+                Button("Download ArchiveBox Server.app…", systemImage: "arrow.down.app") { model.localServer.launch(settings: model) }
+                    .disabled(model.localServer.busy)
+                Text("The companion is distributed separately; an App Store listing is not available yet.").font(.footnote).foregroundStyle(.secondary)
             }
+            if model.localServer.busy {
+                if let progress = model.localServer.progress { ProgressView(value: progress) }
+                else { ProgressView() }
+                Button("Cancel") { model.localServer.cancel() }
+            }
+            Text("ArchiveBox Server runs in the menu bar and keeps your archive on this Mac. Open its Settings to create an administrator, then use Get Key below to configure sharing. Closing this app does not stop the server. Nothing is downloaded until you choose Download.")
+                .foregroundStyle(.secondary)
+            if let error = model.localServer.error ?? model.serverError { Text(error).foregroundStyle(.red) }
         }
     }
 }

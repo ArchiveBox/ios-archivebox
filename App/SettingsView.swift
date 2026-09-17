@@ -1,9 +1,15 @@
 import ArchiveBoxCore
 import SwiftUI
-import SafariServices
 
 @MainActor @Observable
 final class SettingsModel {
+    var adminDestination: URL?
+    var adminNavigationID = UUID()
+    func openAdmin(_ url: URL?) {
+        guard let url else { return }
+        adminDestination = url; adminNavigationID = UUID()
+    }
+
     var serverText = ""
     var tokenText = ""
     var verifiedServer: URL?
@@ -19,6 +25,23 @@ final class SettingsModel {
     var busy = false
     private let client = ArchiveBoxClient()
     private var didLoad = false
+    private var validation: Task<Void, Never>?
+    var serverError: String?
+    var tokenError: String?
+
+    var adminURL: URL? { verifiedServer?.appending(path: "admin/") }
+    var apiKeysURL: URL? { verifiedServer?.appending(path: "admin/api/apitoken/") }
+
+    func scheduleValidation() {
+        validation?.cancel()
+        busy = false
+        validation = Task {
+            do { try await Task.sleep(for: .milliseconds(600)) } catch { return }
+            if verifiedServer == nil && !serverText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { await testServer() }
+            guard !Task.isCancelled else { return }
+            if verifiedServer != nil && !tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { await testToken() }
+        }
+    }
     #if os(macOS)
     enum ConnectionMode: String { case remote, local }
     var connectionMode = ConnectionMode(rawValue: UserDefaults.standard.string(forKey: "connectionMode") ?? "remote") ?? .remote
@@ -43,9 +66,10 @@ final class SettingsModel {
             try AppEnvironment.store.clear()
             if mode == .remote, let config {
                 try AppEnvironment.store.save(config)
-                savedMessage = "Remote connection restored for sharing. Test server to open Archive."
+                savedMessage = "Remote connection restored for sharing. Checking server connection…"
             }
         } catch { errorMessage = error.localizedDescription }
+        scheduleValidation()
     }
 
     func localServerReady(_ server: URL) async throws {
@@ -85,62 +109,72 @@ final class SettingsModel {
             if config == nil && connectionMode == .local { serverText = LocalServer.address }
             #endif
         } catch { errorMessage = error.localizedDescription }
+        scheduleValidation()
     }
 
     func serverChanged() {
-        verifiedServer = nil; verifiedToken = nil
+        validation?.cancel(); busy = false; serverError = nil; tokenError = nil
+        // A changed destination must not silently receive the previous server’s key.
+        tokenText = ""
+        verifiedServer = nil; verifiedToken = nil; adminDestination = nil
         personas = []; persona = ""; personaError = nil; personasLoaded = false
         serverMessage = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
     }
     func tokenChanged() {
+        validation?.cancel(); busy = false; tokenError = nil
         personas = []; personaError = nil; personasLoaded = false
         verifiedToken = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
     }
 
     func testServer() async {
-        busy = true; errorMessage = nil; savedMessage = nil
+        busy = true; errorMessage = nil; savedMessage = nil; serverError = nil
         verifiedServer = nil; verifiedToken = nil; tokenMessage = nil
         personasLoaded = false; personaError = nil
-        defer { busy = false }
+        defer { if !Task.isCancelled { busy = false } }
         do {
             let server = try await client.discoverServer(serverText)
+            try Task.checkCancellation()
             let changed = server.absoluteString != serverText
             serverText = server.absoluteString
             verifiedServer = server
             serverMessage = changed ? "Connected. Using \(server.absoluteString)." : "Connected to ArchiveBox."
-        } catch { errorMessage = error.localizedDescription }
+        } catch { if !Task.isCancelled { serverError = error.localizedDescription } }
     }
 
     func testToken() async {
         guard let server = verifiedServer else { return }
-        busy = true; errorMessage = nil; savedMessage = nil; verifiedToken = nil
-        defer { busy = false }
+        busy = true; errorMessage = nil; savedMessage = nil; verifiedToken = nil; tokenError = nil
+        defer { if !Task.isCancelled { busy = false } }
         do {
             let token = tokenText.trimmingCharacters(in: .whitespacesAndNewlines)
             tokenText = token
             try await client.testToken(server: server, token: token)
+            try Task.checkCancellation()
             verifiedToken = token
             tokenMessage = "API key verified."
             await fetchPersonas(server: server, token: token)
-        } catch { errorMessage = error.localizedDescription }
+        } catch { if !Task.isCancelled { tokenError = error.localizedDescription } }
     }
 
     private func fetchPersonas(server: URL, token: String) async {
         personaError = nil; personasLoaded = false; savedMessage = nil
         do {
-            personas = try await client.personas(server: server, token: token)
+            let fetched = try await client.personas(server: server, token: token)
+            try Task.checkCancellation()
+            guard verifiedServer == server, verifiedToken == token else { return }
+            personas = fetched
             personasLoaded = true
         } catch {
             // A failed request says nothing about whether the saved persona exists.
             // Keep the last displayed list, but require a successful refresh before saving it.
-            personaError = error.localizedDescription
+            if !Task.isCancelled { personaError = error.localizedDescription }
         }
     }
 
     func refreshPersonas() async {
         guard let server = verifiedServer, let token = verifiedToken else { return }
         busy = true
-        defer { busy = false }
+        defer { if !Task.isCancelled { busy = false } }
         await fetchPersonas(server: server, token: token)
     }
 
@@ -159,100 +193,68 @@ final class SettingsModel {
 
 struct SettingsView: View {
     @Bindable var model: SettingsModel
-    @Environment(\.openURL) private var openURL
     @FocusState private var focusedField: Field?
     private enum Field { case server, token }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Image("BrandLogo")
-                            .resizable().scaledToFit().frame(width: 48, height: 48)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .accessibilityHidden(true)
-                        Text("Your web, preserved.").font(.title2.bold())
-                        Text("Connect your ArchiveBox server, then save links from the share sheet in any app.")
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 8)
-                }
-                .listRowBackground(Color.clear)
-
                 #if os(macOS)
-                LocalServerSection(model: model)
+                Section {
+                    Picker("Connection", selection: Binding(get: { model.connectionMode }, set: { model.selectConnection($0) })) {
+                        Text("Run Server Locally").tag(SettingsModel.ConnectionMode.local)
+                        Text("Connect to remote server").tag(SettingsModel.ConnectionMode.remote)
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(model.localServer.busy)
+                }
+                if model.connectionMode == .local { LocalServerSection(model: model) }
                 #endif
 
-                Section {
-                    TextField("Server URL", text: Binding(
-                        get: { model.serverText },
-                        set: { model.serverChanged(); model.serverText = $0 }
-                    ), prompt: Text("https://archivebox.example.com"))
-                        #if os(iOS)
-                        .textContentType(.URL).keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                        .autocorrectionDisabled()
-                        #if os(macOS)
-                        .disabled(model.connectionMode == .local)
-                        #endif
-                        .focused($focusedField, equals: .server)
-                        .accessibilityLabel("Server URL").accessibilityIdentifier("serverURL")
-                    Button {
-                        focusedField = nil
-                        Task { await model.testServer() }
-                    } label: { Label("Test server", systemImage: "network") }
-                        .disabled(model.busy || model.serverText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .accessibilityIdentifier("testServer")
-                    if let message = model.serverMessage { status(message) }
-                } header: { Text("Server") } footer: {
-                    Text("ArchiveBox 0.9 or later. Paste your server or admin address; we’ll find its API address. Include http:// for a server without HTTPS.")
-                }
-
-                Section {
-                    SecureField("API key", text: Binding(
-                        get: { model.tokenText },
-                        set: { model.tokenChanged(); model.tokenText = $0 }
-                    ))
-                        #if os(iOS)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                        .autocorrectionDisabled()
-                        .focused($focusedField, equals: .token)
-                        .accessibilityIdentifier("apiKey")
-                    Button {
-                        focusedField = nil
-                        Task { await model.testToken() }
-                    } label: { Label("Test API key", systemImage: "key") }
-                        .disabled(model.busy || model.verifiedServer == nil || model.tokenText.isEmpty)
-                        .accessibilityIdentifier("testAPIKey")
-                    if let message = model.tokenMessage { status(message) }
-                } header: { Text("API key") } footer: {
-                    Text("Create an API key in your server’s admin settings under API Tokens. Test the server first. Your key is stored securely in Keychain.")
-                }
-
-                Section {
-                    Picker("Default persona", selection: Binding(get: { model.persona }, set: { model.persona = $0; model.savedMessage = nil })) {
-                        Text("Server default").tag("")
-                        ForEach(model.personas) { persona in Text(persona.name).tag(persona.name) }
-                        if !model.persona.isEmpty && !model.personas.contains(where: { $0.name == model.persona }) {
-                            Text(model.personasLoaded ? "\(model.persona) (not found on server)" : model.persona).tag(model.persona)
+                if showRemoteFields {
+                    Section {
+                        HStack {
+                            TextField("Server URL", text: Binding(get: { model.serverText }, set: {
+                                model.serverChanged(); model.serverText = $0; model.scheduleValidation()
+                            }), prompt: Text("https://archivebox.example.com"))
+                            #if os(iOS)
+                            .textContentType(.URL).keyboardType(.URL).textInputAutocapitalization(.never)
+                            #endif
+                            .autocorrectionDisabled().focused($focusedField, equals: .server)
+                            .accessibilityIdentifier("serverURL")
+                            if model.verifiedServer != nil { Text("🟢").accessibilityLabel("Server connected") }
+                            else if model.serverError != nil { Text("🔴").accessibilityLabel("Server unreachable") }
+                            else if model.busy { ProgressView().controlSize(.small) }
+                            Button("Admin") { model.openAdmin(model.adminURL) }
+                                .disabled(model.adminURL == nil).accessibilityIdentifier("openAdmin")
                         }
+                        if let message = model.serverMessage { status(message) }
+                        if let error = model.serverError { Text(error).foregroundStyle(.red) }
+                    } header: { Text("Server") } footer: {
+                        Text("ArchiveBox 0.9 or later. Your address is checked automatically. Paste a server or admin URL; we’ll find its API address. Include http:// for a server without HTTPS.")
                     }
-                    .pickerStyle(.menu)
-                    .accessibilityIdentifier("defaultPersona")
-                    .disabled(model.verifiedToken == nil)
-                    Button("Refresh personas", systemImage: "arrow.clockwise") {
-                        Task { await model.refreshPersonas() }
-                    }
-                    .disabled(model.verifiedToken == nil || model.busy)
-                    if let message = model.personaError {
-                        Text("Couldn’t refresh personas: \(message) Your saved persona has not changed.").foregroundStyle(.red)
-                    }
-                } header: { Text("Archiving") } footer: {
-                    Text("Test your API key to load personas from the server. Shared links use your saved choice. Server default uses the server’s Default persona.")
                 }
+                Section {
+                    HStack {
+                        SecureField("API key", text: Binding(get: { model.tokenText }, set: {
+                            model.tokenChanged(); model.tokenText = $0; model.scheduleValidation()
+                        }))
+                        #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        #endif
+                        .autocorrectionDisabled().focused($focusedField, equals: .token)
+                        .accessibilityIdentifier("apiKey")
+                        if model.verifiedToken != nil { Text("🟢").accessibilityLabel("API key verified") }
+                        else if model.tokenError != nil { Text("🔴").accessibilityLabel("API key rejected") }
+                        Button("Get Key") { model.openAdmin(model.apiKeysURL) }
+                            .disabled(model.apiKeysURL == nil).accessibilityIdentifier("getAPIKey")
+                    }
+                    if let message = model.tokenMessage { status(message) }
+                    if let error = model.tokenError { Text(error).foregroundStyle(.red) }
+                } header: { Text("API key") } footer: {
+                    Text("Get an administrator API key from your server. It is checked automatically and saved securely in Keychain when you choose Save.")
+                }
+
 
                 if let message = model.errorMessage {
                     Section { Label(message, systemImage: "exclamationmark.circle").foregroundStyle(.red).accessibilityIdentifier("settingsError") }
@@ -260,57 +262,12 @@ struct SettingsView: View {
                 if let message = model.savedMessage {
                     Section { status(message).accessibilityIdentifier("savedConnection") }
                 }
-                Section("Browser Extension") {
-                    Text("Choose your browser to set up ArchiveBox: enable the bundled Safari extension, or install it from the Chrome, Brave, or Firefox extension store.")
-                    ScrollView(.horizontal) {
-                        HStack(spacing: 8) {
-                            #if os(macOS)
-                            Button("Safari", systemImage: "safari") {
-                                SFSafariApplication.showPreferencesForExtension(withIdentifier: "io.archivebox.ArchiveBox.Safari") { error in
-                                    if let error { Task { @MainActor in model.errorMessage = error.localizedDescription } }
-                                }
-                            }
-                            #else
-                            if #available(iOS 26.2, *) {
-                                Button("Safari", systemImage: "safari") {
-                                    SFSafariSettings.openExtensionsSettings(forIdentifiers: ["io.archivebox.ArchiveBox.Safari"]) { error in
-                                        if let error { model.errorMessage = error.localizedDescription }
-                                    }
-                                }
-                            }
-                            #endif
-                            ForEach([("Chrome", "Chrome", "https://chromewebstore.google.com/detail/archivebox/habonpimjphpdnmcfkaockjnffodikoj"),
-                                     ("Brave", "Brave", "https://chromewebstore.google.com/detail/archivebox/habonpimjphpdnmcfkaockjnffodikoj"),
-                                     ("Firefox", "Firefox", "https://addons.mozilla.org/firefox/addon/archivebox-exporter/"),
-                                     ("Source Code", "GitHubMark", "https://github.com/ArchiveBox/archivebox-browser-extension")], id: \.0) { name, icon, address in
-                                Button { openURL(URL(string: address)!) } label: {
-                                    Label { Text(name) } icon: {
-                                        Image(icon).resizable().scaledToFit().frame(width: 16, height: 16)
-                                    }
-                                }
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                    #if !os(macOS)
-                    if #unavailable(iOS 26.2) {
-                        Text("Safari: Settings → Apps → Safari → Extensions → ArchiveBox")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                    #endif
-                    Text("Safari automatically uses the connection saved here. For Chrome, Brave, and Firefox, enter your server URL and API key in the extension. Brave uses the Chrome Web Store.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-                Section {
-                    Label("Links are sent directly to your server.", systemImage: "arrow.up.right")
-                        .foregroundStyle(.secondary)
-                    Text("Keep the share sheet open until the server confirms. If your server is on a private network, connect to its Wi-Fi or VPN first.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
+
             }
             .formStyle(.grouped)
-            .navigationTitle("Settings")
+            .scrollDismissesKeyboard(.immediately)
+            .onSubmit { focusedField = nil }
+            .navigationTitle("Connection Settings")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", systemImage: "checkmark") { focusedField = nil; model.save() }
@@ -321,11 +278,18 @@ struct SettingsView: View {
                     if model.busy { ProgressView("Testing connection…") }
                 }
             }
-            .disabled(model.busy)
             .task { model.load() }
         }
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 480)
+        #endif
+    }
+
+    private var showRemoteFields: Bool {
+        #if os(macOS)
+        model.connectionMode == .remote
+        #else
+        true
         #endif
     }
 

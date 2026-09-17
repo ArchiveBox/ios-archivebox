@@ -9,7 +9,7 @@ struct ArchiveBoxApp: App {
         WindowGroup { MainView(settings: settings) }
         .defaultSize(width: 800, height: 760)
         .windowResizability(.contentMinSize)
-        Settings { SettingsView(model: settings).frame(width: 560, height: 720) }
+        Settings { MainView(settings: settings).frame(width: 800, height: 760) }
         #else
         WindowGroup { MainView(settings: settings) }
         #endif

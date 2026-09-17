@@ -3,6 +3,27 @@ import XCTest
 /// Run against a real, disposable ArchiveBox 0.9+ server. No intercepted requests or seeded app state.
 @MainActor
 final class ArchiveBoxUITests: XCTestCase {
+    func testVerifiedKeyPersistsWithoutSave() throws {
+        continueAfterFailure = false
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
+        let app = XCUIApplication()
+        app.launch()
+        let field = app.textFields["serverURL"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        replace(field, with: server)
+        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20))
+        replace(app.secureTextFields["apiKey"], with: token)
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
+        // Never tap Save: verification itself must durably store the key.
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.secureTextFields["apiKey"].waitForExistence(timeout: 10))
+        let restored = app.secureTextFields["apiKey"].value as? String ?? ""
+        XCTAssertFalse(restored.isEmpty || restored == "••••••••••••••••")
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
+    }
+
     func testAutomaticConnectionAndScreens() throws {
         continueAfterFailure = false
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
@@ -162,8 +183,56 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(settings.exists)
     }
 
+    func testSidebarReselectionResetsOnlyCurrentPage() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        // Run on a simulator configured through the app's normal connection UI.
+        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20), app.debugDescription)
+        openScreen("Snapshots", app: app)
+        let field = app.webViews.textFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 20), app.debugDescription)
+        let initialValue = field.value as? String
+        field.tap()
+        field.typeText("repeat-click-probe")
+        openScreen("Add URLs", app: app)
+        openScreen("Snapshots", app: app)
+        XCTAssertEqual(field.value as? String, "repeat-click-probe")
+        // Reopen the collapsed sidebar and tap the already selected destination.
+        openScreen("Snapshots", app: app)
+        XCTAssertTrue(field.waitForExistence(timeout: 20), app.debugDescription)
+        let reset = NSPredicate { _, _ in (field.value as? String) == initialValue }
+        expectation(for: reset, evaluatedWith: field)
+        waitForExpectations(timeout: 10)
+        field.tap()
+        field.typeText("after-reset")
+        openScreen("Add URLs", app: app)
+        openScreen("Snapshots", app: app)
+        XCTAssertEqual(field.value as? String, "after-reset")
+    }
+
+    func testWebviewsAuthenticateAfterRelaunch() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        for _ in 0..<2 {
+            app.launch()
+            XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 25), app.debugDescription)
+            openScreen("Snapshots", app: app)
+            XCTAssertTrue(app.navigationBars["Snapshots"].waitForExistence(timeout: 5), app.debugDescription)
+            let logout = app.webViews.descendants(matching: .any).matching(NSPredicate(format: "label ==[c] 'Log out'")).firstMatch
+            XCTAssertTrue(logout.waitForExistence(timeout: 30), app.debugDescription)
+            XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists)
+            XCTAssertLessThan(app.navigationBars.firstMatch.frame.height, 65)
+            openScreen("AI Agent", app: app)
+            XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
+            XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'New session'")).firstMatch.waitForExistence(timeout: 45), app.debugDescription)
+            attach("Authenticated AI Agent", app: app)
+            app.terminate()
+        }
+    }
+
     private func openScreen(_ name: String, app: XCUIApplication) {
-        let identifiers = ["Add URLs": "add", "Snapshots": "snapshots", "Admin": "admin", "Connection Settings": "settings"]
+        let identifiers = ["Add URLs": "add", "AI Agent": "agent", "Snapshots": "snapshots", "Admin": "admin", "Connection Settings": "settings"]
         let item = app.buttons["sidebar." + identifiers[name]!]
         if !item.isHittable {
             let back = app.navigationBars.buttons.firstMatch

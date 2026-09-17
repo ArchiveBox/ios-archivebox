@@ -138,6 +138,13 @@ targets:
         CFBundleDisplayName: ArchiveBox
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         LSApplicationCategoryType: public.app-category.utilities
+        NSServices:
+          - NSMenuItem:
+              default: Add URL to ArchiveBox
+            NSMessage: addURLToArchiveBox
+            NSPortName: ArchiveBox
+            NSSendTypes: [public.url, public.utf8-plain-text, public.rtf]
+            NSRequiredContext: {}
         NSLocalNetworkUsageDescription: Connect to your ArchiveBox server on your local network.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true

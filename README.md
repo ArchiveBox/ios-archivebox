@@ -10,8 +10,7 @@ sections between them. Collection includes Crawls, Scheduled Crawls, Snapshots
 (grid), Archive Results, and Tags. The clickable Admin heading opens admin home;
 its rows include Users, Personas, API Keys, Webhooks, Processes, Machines, Network
 Interfaces, and Binaries. Server screens require a successful connection check.
-Each web screen retains its own page and shares normal WebKit login cookies;
-API keys are never injected into web content.
+Each web screen retains its own page. iOS, macOS, and the server companion exchange a Keychain API key through `/api/v1/auth/browser_session` and share the returned session between their embedded pages. Cookies stay in memory; relaunching restores login from the API key. API keys never enter page URLs or JavaScript. This requires a server build that includes the browser-session endpoint.
 
 1. On Mac, choose **Run Server Locally** or **Connect to remote server**. Local mode
    finds the separate menu-bar companion, displays its port, and opens its Settings.
@@ -22,11 +21,9 @@ API keys are never injected into web content.
    the result. **Admin** and **Get Key** enable only after a successful server check
    (no API key needed) and navigate the embedded Admin pane. Get Key goes to the
    API Keys list; if necessary, the server asks for login with `next` set to that list.
-   Signing in once is shared by Add URLs, Archive, and Admin. Companion-app cookies
-   are separate: the main app does not impersonate a remote administrator or copy
-   another app’s session.
-3. Enter an administrator API key; it is checked automatically. Select **Save** to
-   store the verified connection in device-only Keychain. Editing the URL clears the
+   With a verified API key, embedded screens sign in as that key’s administrator. Without a key, Get Key still opens the normal login page. Each app obtains its own session using the same endpoint.
+3. Enter an administrator API key; successful verification automatically stores
+   the connection in device-only Keychain, even if loading personas fails. Editing the URL clears the
    draft key so it cannot be sent automatically to another server.
 4. **Add URLs** embeds `/add/` with no native URL/navigation bar. Below it are a real
    iPhone share-sheet screenshot, **Default Persona** (saved when changed), browser

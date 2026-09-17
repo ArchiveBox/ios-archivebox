@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 struct ServerUser: Decodable, Identifiable, Sendable {
     let id: Int
@@ -11,51 +12,68 @@ struct ServerUser: Decodable, Identifiable, Sendable {
 }
 
 struct ServerDetails: Decodable, Sendable {
-    struct Session: Decodable, Sendable { let name: String; let value: String; let expires: Double; let secure: Bool }
     struct Shortcuts: Decodable, Sendable { let host: URL; let personas: URL; let api: URL; let logs: URL }
     let base: URL
     let admin: URL
     let api: URL
     let users: [ServerUser]
+    let activeSnapshots: Int?
     let shortcuts: Shortcuts
-    let session: Session?
     let securityMode: String
     let securityModes: [String]
     var hasAdmin: Bool { users.contains { $0.is_superuser && $0.is_active && $0.has_password } }
-    var loginCookie: HTTPCookie? {
-        guard let session, let host = admin.host else { return nil }
-        var properties: [HTTPCookiePropertyKey: Any] = [.name: session.name, .value: session.value,
-            .domain: host, .path: "/", .expires: Date(timeIntervalSince1970: session.expires),
-            HTTPCookiePropertyKey("HttpOnly"): "TRUE"]
-        // Foundation treats the presence of .secure as true, even for "FALSE".
-        // Omit it for our explicitly HTTP local server, matching Django's policy.
-        if session.secure { properties[.secure] = "TRUE" }
-        return HTTPCookie(properties: properties)
-    }
+
 }
 
 extension Runtime {
+    @discardableResult
+    func browserAPIKey(save token: String? = nil) throws -> String? {
+        // Scope credentials to the collection, not its editable hostname/port.
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "io.archivebox.Server.browser-api-key",
+            kSecAttrAccount as String: collectionDirectory.standardizedFileURL.path]
+        if let token {
+            let data = Data(token.utf8)
+            var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+            if status == errSecItemNotFound {
+                status = SecItemAdd(query.merging([kSecValueData as String: data,
+                    kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly]) { _, new in new } as CFDictionary, nil)
+            }
+            guard status == errSecSuccess else { throw CommandFailure(message: "Could not save the server API key in Keychain (\(status)).") }
+            return token
+        }
+        var lookup = query
+        lookup[kSecReturnData as String] = true
+        lookup[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(lookup as CFDictionary, &result)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess, let data = result as? Data else {
+            throw CommandFailure(message: "Could not read the server API key from Keychain (\(status)).")
+        }
+        return String(data: data, encoding: .utf8)
+    }
+
     func management(username: String? = nil, email: String = "", password: String = "") throws -> ServerDetails {
         // Run inside the real ArchiveBox environment: its configured user model,
         // validators, transactions and password hasher own all account writes.
         // Only explicitly selected public user fields leave the container.
         let script = #"""
         import json, sys, os
-        from django.contrib.auth import get_user_model, authenticate, login
-        from django.conf import settings
-        from django.http import HttpRequest
+        from django.contrib.auth import get_user_model
         from django.urls import reverse
-        from importlib import import_module
         from django.contrib.auth.password_validation import validate_password
         from django.core.exceptions import ValidationError
         from django.db import IntegrityError, transaction
         from archivebox.core.routes_util import get_base_url, get_admin_base_url, get_api_base_url
+        from archivebox.core.models import Snapshot
+        from archivebox.crawls.models import Crawl
         from archivebox.machine.models import Machine
         from archivebox.config.common import ServerConfig
         request = json.load(sys.stdin)
         User = get_user_model()
         try:
-            session = None
+            token = None
             if 'username' in request:
                 user = User(username=request['username'], email=request['email'], is_staff=True, is_superuser=True, is_active=True)
                 user.full_clean(exclude=['password'])
@@ -63,22 +81,12 @@ extension Runtime {
                     raise ValidationError('Enter a password.')
                 validate_password(request['password'], user)
                 with transaction.atomic():
-                    # CLI archiving may create a passwordless system superuser;
-                    # it must not suppress first-run setup or receive a session.
-                    first_admin = not any(u.has_usable_password() for u in User.objects.filter(is_superuser=True, is_active=True))
                     User.objects.create_superuser(username=user.username, email=user.email, password=request['password'])
-                    if first_admin:
-                        # Authenticate the supplied credentials through Django's actual
-                        # backend, then share its normal host-only session with WebKit.
-                        authenticated = authenticate(username=user.username, password=request['password'])
-                        if authenticated is None:
-                            raise ValidationError('The new account could not authenticate.')
-                        http = HttpRequest()
-                        http.session = import_module(settings.SESSION_ENGINE).SessionStore()
-                        login(http, authenticated)
-                        http.session.save()
-                        session = dict(name=settings.SESSION_COOKIE_NAME, value=http.session.session_key,
-                                       expires=http.session.get_expiry_date().timestamp(), secure=settings.SESSION_COOKIE_SECURE)
+            if request.get('issue_api_key'):
+                from archivebox.api.models import APIToken
+                owner = next((u for u in User.objects.filter(is_superuser=True, is_active=True).order_by('date_joined', 'pk') if u.has_usable_password()), None)
+                if owner:
+                    token = APIToken.objects.create(created_by=owner, expires=None).token
             admin = get_admin_base_url()
             machine = Machine.current()
             result = dict(base=get_base_url(), admin=get_admin_base_url() + '/admin/', api=get_api_base_url(),
@@ -86,10 +94,11 @@ extension Runtime {
                           # configured choice in the editor, not that derived mode.
                           securityMode=os.environ.get('SERVER_SECURITY_MODE') or machine.config.get('SERVER_SECURITY_MODE') or 'auto',
                           securityModes=list(ServerConfig.SERVER_SECURITY_MODES),
+                          activeSnapshots=Snapshot.objects.filter(status=Snapshot.StatusChoices.STARTED, crawl__status__in=Crawl.RUNNABLE_STATES).count(),
                           users=[dict(id=u.pk, username=u.username, email=u.email, is_superuser=u.is_superuser,
                                       is_staff=u.is_staff, is_active=u.is_active, has_password=u.has_usable_password())
                                  for u in User.objects.order_by('username')],
-                          session=session, shortcuts=dict(
+                          token=token, shortcuts=dict(
                               host=admin + reverse('admin:machine_machine_change', args=[machine.pk]) + '#id_config',
                               personas=admin + reverse('admin:personas_persona_changelist'),
                               api=admin + reverse('admin:app_list', kwargs={'app_label': 'api'}),
@@ -100,8 +109,8 @@ extension Runtime {
             result = dict(error='A user with that username already exists.')
         print('ARCHIVEBOX_SETTINGS_JSON:' + json.dumps(result))
         """#
-        var request: [String: String] = [:]
-        if let username { request = ["username": username, "email": email, "password": password] }
+        var request: [String: Any] = ["issue_api_key": try browserAPIKey() == nil]
+        if let username { request.merge(["username": username, "email": email, "password": password]) { _, new in new } }
         let output = try command(["exec", "--interactive", "--workdir", "/data", name,
                                   "/app/bin/docker_entrypoint.sh", "archivebox", "manage", "shell", "-c", script],
                                  logOutput: false, input: JSONSerialization.data(withJSONObject: request))
@@ -113,6 +122,9 @@ extension Runtime {
         let data = Data(line.dropFirst(prefix.count).utf8)
         if let result = try JSONSerialization.jsonObject(with: data) as? [String: Any], let error = result["error"] as? String {
             throw CommandFailure(message: error)
+        }
+        if let result = try JSONSerialization.jsonObject(with: data) as? [String: Any], let token = result["token"] as? String {
+            try browserAPIKey(save: token)
         }
         return try JSONDecoder().decode(ServerDetails.self, from: data)
     }

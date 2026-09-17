@@ -72,9 +72,9 @@ final class SettingsModel {
             // Prevent sharing to the previously selected profile while setting up
             // the new one. The profile itself remains safely stored in Keychain.
             try AppEnvironment.store.clear()
-            if mode == .remote, let config {
+            if let config {
                 try AppEnvironment.store.save(config)
-                savedMessage = "Remote connection restored for sharing. Checking server connection…"
+                savedMessage = "Saved connection restored for sharing. Checking server connection…"
             }
         } catch { errorMessage = error.localizedDescription }
         scheduleValidation()
@@ -161,6 +161,10 @@ final class SettingsModel {
             try Task.checkCancellation()
             verifiedToken = token
             tokenMessage = "API key verified."
+            // Persist before fetching personas: an unavailable persona endpoint
+            // must not lose a valid key when the app closes or is rebuilt.
+            do { try persistConnection() }
+            catch { errorMessage = error.localizedDescription; return }
             await fetchPersonas(server: server, token: token)
         } catch { if !Task.isCancelled { tokenError = error.localizedDescription } }
     }
@@ -188,16 +192,23 @@ final class SettingsModel {
     }
 
     func save() {
-        guard canSave, let server = verifiedServer else { return }
+        guard canSave else { return }
         do {
-            try AppEnvironment.store.save(ServerConfiguration(server: server, token: tokenText, persona: persona.isEmpty ? nil : persona))
-            #if os(macOS)
-            try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").save(ServerConfiguration(server: server, token: tokenText, persona: persona.isEmpty ? nil : persona))
-            #endif
+            try persistConnection()
             savedMessage = "Ready to share. Open a link in any app, tap Share, then choose ArchiveBox."
             errorMessage = nil
         } catch { errorMessage = error.localizedDescription }
     }
+
+    private func persistConnection() throws {
+        guard let server = verifiedServer, let token = verifiedToken, token == tokenText else { return }
+        let configuration = ServerConfiguration(server: server, token: token, persona: persona.isEmpty ? nil : persona)
+        #if os(macOS)
+        try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").save(configuration)
+        #endif
+        try AppEnvironment.store.save(configuration)
+    }
+
 }
 
 struct SettingsView: View {
@@ -206,8 +217,7 @@ struct SettingsView: View {
     private enum Field { case server, token }
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Form {
                 Section {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         if let url = model.displayedBaseURL {
@@ -270,7 +280,7 @@ struct SettingsView: View {
                     HStack {
                         SecureField("API key", text: Binding(get: { model.tokenText }, set: {
                             model.tokenChanged(); model.tokenText = $0; model.scheduleValidation()
-                        }))
+                        }), prompt: Text("••••••••••••••••").foregroundStyle(.tertiary))
                         #if os(iOS)
                         .textInputAutocapitalization(.never)
                         #endif
@@ -284,7 +294,7 @@ struct SettingsView: View {
                     if let message = model.tokenMessage { status(message) }
                     if let error = model.tokenError { Text(error).foregroundStyle(.red) }
                 } header: { Text("API key") } footer: {
-                    Text("Get an administrator API key from your server. It is checked automatically and saved securely in Keychain when you choose Save.")
+                    Text("Get an administrator API key from your server. It is checked automatically and saved securely in Keychain as soon as verification succeeds.")
                 }
 
 
@@ -311,7 +321,6 @@ struct SettingsView: View {
                 }
             }
             .task { model.load() }
-        }
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 480)
         #endif

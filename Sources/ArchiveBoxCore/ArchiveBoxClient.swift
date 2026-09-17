@@ -59,6 +59,11 @@ public final class ArchiveBoxClient: Sendable {
         }
     }
 
+    public func browserSession(server: URL, token: String) async throws -> BrowserSession {
+        let data = try await request(server, path: "api/v1/auth/browser_session", body: Data("{}".utf8), token: token)
+        return try JSONDecoder().decode(BrowserSession.self, from: data)
+    }
+
     public func personas(server: URL, token: String) async throws -> [ServerPersona] {
         var personas: [ServerPersona] = []
         while true {
@@ -71,6 +76,11 @@ public final class ArchiveBoxClient: Sendable {
                 throw ArchiveBoxError.message("The server returned an incomplete persona list. Refresh to try again.")
             }
         }
+    }
+
+    public func sidebarProgress(server: URL, cookie: String) async throws -> SidebarProgress {
+        let data = try await request(server, path: "progress.json", query: [URLQueryItem(name: "collection", value: "1")], cookie: cookie)
+        return try JSONDecoder().decode(SidebarProgress.self, from: data)
     }
 
     public func submit(urls: [URL], configuration: ServerConfiguration) async throws -> SubmissionReceipt {
@@ -93,7 +103,7 @@ public final class ArchiveBoxClient: Sendable {
         return result
     }
 
-    private func request(_ server: URL, path: String, body: Data? = nil, token: String? = nil, query: [URLQueryItem] = []) async throws -> Data {
+    private func request(_ server: URL, path: String, body: Data? = nil, token: String? = nil, query: [URLQueryItem] = [], cookie: String? = nil) async throws -> Data {
         var request = URLRequest(url: server.appending(path: path).appending(queryItems: query))
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
@@ -102,6 +112,7 @@ public final class ArchiveBoxClient: Sendable {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        if let cookie { request.setValue(cookie, forHTTPHeaderField: "Cookie") }
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ArchiveBoxError.message("The server returned an invalid response.") }
         switch http.statusCode {
@@ -163,4 +174,15 @@ public struct SubmissionReceipt: Decodable, Sendable {
         }
         return (snapshotIDs?.count ?? 0) >= urls.count
     }
+}
+
+public struct BrowserSession: Decodable, Sendable {
+    public struct Cookie: Decodable, Sendable {
+        public let name: String
+        public let value: String
+        public let expires: Double
+        public let secure: Bool
+    }
+    public let admin_url: URL
+    public let cookie: Cookie
 }

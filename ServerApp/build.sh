@@ -2,16 +2,31 @@
 # Large payload belongs only in the optional companion, never the client bundle.
 set -euo pipefail
 cd "$(dirname "$0")"
+# Hardened runtime requires a shared Team ID for the host and its framework.
+# Ad-hoc signatures can verify successfully but still fail dyld library validation.
+signing_identity="${ARCHIVEBOX_SIGNING_IDENTITY:-$(security find-identity -v -p codesigning | awk '/"Apple Development:/ {print $2; exit}')}"
+if [[ -z "$signing_identity" || "$signing_identity" == "-" ]]; then
+    echo 'Set ARCHIVEBOX_SIGNING_IDENTITY to an Apple Development or Developer ID Application identity; ad-hoc signing cannot load Sparkle.' >&2
+    exit 1
+fi
 assets="${ARCHIVEBOX_SERVER_ASSETS:-$PWD}"
 app="${1:-$PWD/dist/ArchiveBox Server.app}"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 ditto "$assets/vendor/package/Payload" "$app/Contents/Resources/runtime"
 cp "$assets/payload/images.tar" "$assets/payload/vmlinux" "$app/Contents/Resources/"
 cp "$assets/vendor/container/LICENSE" "$app/Contents/Resources/APPLE-CONTAINER-LICENSE"
-swift build --build-system native -c release
+swift build --build-system native -c release -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 cp .build/release/ArchiveBox "$app/Contents/MacOS/ArchiveBoxServer"
 ditto .build/release/SwiftTerm_SwiftTerm.bundle "$app/Contents/Resources/SwiftTerm_SwiftTerm.bundle"
 cp -f .build/checkouts/SwiftTerm/LICENSE "$app/Contents/Resources/SWIFTTERM-LICENSE"
+sparkle="$PWD/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+mkdir -p "$app/Contents/Frameworks"
+ditto "$sparkle" "$app/Contents/Frameworks/Sparkle.framework"
+# Sign Sparkle's nested executable bundles from the inside out with our identity.
+for component in XPCServices/Downloader.xpc XPCServices/Installer.xpc Autoupdate Updater.app; do
+    codesign --force --options runtime --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework/Versions/B/$component"
+done
+codesign --force --options runtime --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework"
 # Reuse the client's branding without depending on an Xcode client build.
 iconset="$PWD/.build/ArchiveBox.iconset"
 mkdir -p "$iconset"
@@ -31,6 +46,10 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>CFBundleVersion</key><string>1</string>
+<key>SUFeedURL</key><string>https://github.com/ArchiveBox/ios-archivebox/releases/download/server-updates/appcast.xml</string>
+<key>SUEnableAutomaticChecks</key><false/>
+<key>SUAutomaticallyUpdate</key><false/>
+<key>SUVerifyUpdateBeforeExtraction</key><true/>
 <key>LSMinimumSystemVersion</key><string>26.0</string>
 <key>LSUIElement</key><true/>
 <key>NSLocalNetworkUsageDescription</key><string>Connect to your local ArchiveBox server.</string>
@@ -43,8 +62,9 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 </dict></dict></dict>
 </dict></plist>
 PLIST
+uv run --no-project python bundle-metadata.py "$app"
 # Preserve Apple's nested signatures; only sign our executable/bundle.
 # Public downloads require Developer ID signing, notarization, and stapling.
-codesign --force --options runtime --sign "${ARCHIVEBOX_SIGNING_IDENTITY:--}" "$app"
+codesign --force --options runtime --sign "${signing_identity}" "$app"
 codesign --verify --deep --strict "$app"
 printf '%s\n' "$app"

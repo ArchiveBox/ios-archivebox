@@ -31,5 +31,27 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Connect to your ArchiveBox server on your local network.</string>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Add URL to ArchiveBox</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>addURLToArchiveBox</string>
+			<key>NSPortName</key>
+			<string>ArchiveBox</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendTypes</key>
+			<array>
+				<string>public.url</string>
+				<string>public.utf8-plain-text</string>
+				<string>public.rtf</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

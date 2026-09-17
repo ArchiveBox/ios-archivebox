@@ -1,21 +1,25 @@
 import AppKit
+import ArchiveBoxCore
 import WebKit
 import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSWindowDelegate, WKNavigationDelegate, NSMenuDelegate {
-    enum Screen: String, CaseIterable { case archive = "Archive", activity = "Activity", settings = "Settings" }
+    enum Screen: String, CaseIterable { case archive = "Admin", activity = "Activity", shell = "Shell", users = "Users", settings = "Settings" }
     let runtime = Runtime()
+    let browserAuthentication = BrowserAuthentication()
     var window: NSWindow!
     var web: WKWebView!
     var activity: WKWebView!
     var settingsView: NSHostingView<SettingsView>!
+    var shellView: NSHostingView<ShellView>!
+    var usersView: NSHostingView<UsersView>!
     var settings: SettingsModel!
     var tabs: NSSegmentedControl!
     var startup: Task<Void, Never>?
     var menuBarItem: NSStatusItem!
-    var baseURLLabel: NSTextField?
     var displayedAdmin: URL?
+    var allowSetupShell = false
     var selectedScreen = Screen.settings
     var screens: [Screen] = [.settings]
     var menuStatus = NSMenuItem()
@@ -26,6 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
     var crawlActivity: CrawlActivity?
     var menuError: String?
     var changingArchiving = false
+    var renewingBrowserSession = false
+    var lastRenewedLogin: URL?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = SettingsModel(runtime: runtime)
@@ -42,9 +48,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         menu.addItem(item)
         let viewItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
         let viewMenu = NSMenu(title: "View")
-        viewMenu.addItem(withTitle: "Archive", action: #selector(showArchive), keyEquivalent: "1")
-        viewMenu.addItem(withTitle: "Settings", action: #selector(showSettings), keyEquivalent: "2")
-        viewMenu.addItem(withTitle: "Activity", action: #selector(showActivity), keyEquivalent: "3")
+        viewMenu.addItem(withTitle: "Admin", action: #selector(showArchive), keyEquivalent: "1")
+        viewMenu.addItem(withTitle: "Activity", action: #selector(showActivity), keyEquivalent: "2")
+        viewMenu.addItem(withTitle: "Shell", action: #selector(showShell), keyEquivalent: "3")
+        viewMenu.addItem(withTitle: "Users", action: #selector(showUsers), keyEquivalent: "4")
+        viewMenu.addItem(withTitle: "Settings", action: #selector(showSettings), keyEquivalent: "5")
         viewMenu.addItem(withTitle: "Back", action: #selector(goBack), keyEquivalent: "[")
         viewMenu.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "r")
         viewMenu.addItem(withTitle: "Open Data Folder", action: #selector(openData), keyEquivalent: "")
@@ -71,7 +79,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         toolbar.centeredItemIdentifiers = [.init("tabs")]
         window.toolbar = toolbar
         window.center()
-        web = WKWebView(frame: window.contentView!.bounds)
+        let webConfiguration = WKWebViewConfiguration()
+        webConfiguration.websiteDataStore = browserAuthentication.dataStore
+        web = WKWebView(frame: window.contentView!.bounds, configuration: webConfiguration)
+        web.navigationDelegate = self
         web.autoresizingMask = [.width, .height]
         let activityConfiguration = WKWebViewConfiguration()
         activityConfiguration.websiteDataStore = web.configuration.websiteDataStore
@@ -100,38 +111,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         activity.autoresizingMask = [.width, .height]
         activity.navigationDelegate = self
         settingsView = NSHostingView(rootView: SettingsView(model: settings))
+        shellView = NSHostingView(rootView: ShellView(model: settings))
+        usersView = NSHostingView(rootView: UsersView(model: settings))
         settings.openAdmin = { [weak self] url in self?.openArchive(url) }
+        settings.showCollectionShell = { [weak self] in
+            guard let self else { return }
+            allowSetupShell = true
+            // A different collection can reuse the same admin hostname and user IDs.
+            // Clear the old collection's browser session before opening the new one.
+            web.load(URLRequest(url: URL(string: "about:blank")!))
+            activity.load(URLRequest(url: URL(string: "about:blank")!))
+            await web.configuration.websiteDataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+            displayedAdmin = nil
+            screens = [.shell, .settings]
+            tabs.segmentCount = screens.count
+            for (index, screen) in screens.enumerated() { tabs.setLabel(screen.rawValue, forSegment: index); tabs.setWidth(0, forSegment: index) }
+            tabs.sizeToFit()
+            showShell()
+        }
         settings.didUpdateDetails = { [weak self] details in
             guard let self else { return }
-            baseURLLabel?.attributedStringValue = NSAttributedString(string: details.base.absoluteString,
-                attributes: [.link: details.base, .foregroundColor: NSColor.linkColor, .font: NSFont.systemFont(ofSize: 12)])
-            if settings.restarting || (displayedAdmin != nil && displayedAdmin != details.admin) {
-                // A host/mode change needs fresh destinations, not a reload of the
-                // old hostname. Do not move authenticated cookies across origins.
-                web.load(URLRequest(url: details.admin))
-                if activity.url != nil { activity.load(URLRequest(url: details.admin)) }
+            do {
+                if details.hasAdmin, let token = try runtime.browserAPIKey() {
+                    try await browserAuthentication.authenticate(server: details.api, token: token)
+                }
+                if settings.restarting || displayedAdmin != details.admin || web.url?.path.contains("/login") == true {
+                    web.load(URLRequest(url: details.admin))
+                    if activity.url != nil { activity.load(URLRequest(url: details.admin)) }
+                }
+                displayedAdmin = details.admin
+            } catch {
+                settings.detail = "Could not sign in to the server: \(error.localizedDescription)"
             }
-            displayedAdmin = details.admin
-            if let cookie = details.loginCookie {
-                // Keep Django's admin session scoped to the exact admin host;
-                // never share it with replay/API subdomains or persist a password.
-                await web.configuration.websiteDataStore.httpCookieStore.setCookie(cookie)
-                web.load(URLRequest(url: details.admin))
-            }
-            screens = details.hasAdmin ? Screen.allCases : [.settings]
+            screens = details.hasAdmin ? Screen.allCases : allowSetupShell ? [.shell, .settings] : [.settings]
             tabs.segmentCount = screens.count
             for (index, screen) in screens.enumerated() {
                 tabs.setLabel(screen.rawValue, forSegment: index)
-                tabs.setWidth(115, forSegment: index)
+                tabs.setWidth(0, forSegment: index)
             }
-            tabs.sizeToFit()
-            if !details.hasAdmin { selectedScreen = .settings }
+            updateTabBadges(details)
+            if !screens.contains(selectedScreen) { selectedScreen = .settings }
             tabs.selectedSegment = screens.firstIndex(of: selectedScreen) ?? 0
-            if !details.hasAdmin { selectTab(.settings) }
+            if !details.hasAdmin { selectTab(selectedScreen) }
             if details.hasAdmin, web.url == nil { web.load(URLRequest(url: details.admin)) }
-            for menu in [menuBarItem.menu, viewMenu] {
-                menu?.items.filter { $0.title == "Archive" || $0.title == "Activity" }.forEach { $0.isHidden = !details.hasAdmin }
-            }
+            viewMenu.items.filter { ["Admin", "Activity", "Shell", "Users"].contains($0.title) }.forEach { $0.isHidden = !details.hasAdmin }
         }
         window.contentView = settingsView
         selectTab(.settings)
@@ -151,25 +174,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         }
     }
 
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .init("baseURL")] }
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .flexibleSpace, .init("baseURL")] }
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .init("status"), .init("baseURL"), .init("metrics")] }
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .flexibleSpace, .init("status"), .init("baseURL"), .init("metrics")] }
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier id: NSToolbarItem.Identifier, willBeInsertedIntoToolbar: Bool) -> NSToolbarItem? {
         let item = NSToolbarItem(itemIdentifier: id)
-        if id.rawValue == "baseURL" {
-            let label = NSTextField(labelWithString: "")
-            label.isSelectable = true; label.allowsEditingTextAttributes = true
-            label.lineBreakMode = .byTruncatingMiddle
-            label.setAccessibilityLabel("BASE_URL — open in default browser")
-            label.widthAnchor.constraint(equalToConstant: 290).isActive = true
-            baseURLLabel = label; item.view = label; item.label = "BASE_URL"
-            item.toolTip = "Open in your default browser, or select and copy the address."
+        switch id.rawValue {
+        case "status":
+            item.view = NSHostingView(rootView: ServerToolbarStatus(model: settings))
+            item.label = "Server status"
+        case "baseURL":
+            item.view = NSHostingView(rootView: ServerToolbarURL(model: settings))
+            item.label = "Copy server URL"
+        case "metrics":
+            item.view = NSHostingView(rootView: ServerToolbarMetrics(model: settings))
+            item.label = "CPU and RAM"
+        default: break
+        }
+        if item.view != nil {
+            // AppKit adds shared glass even around custom views; only the URL draws its own pill.
+            item.isBordered = false
             return item
         }
         guard id.rawValue == "tabs" else { return nil }
         tabs = NSSegmentedControl(labels: ["Settings"], trackingMode: .selectOne, target: self, action: #selector(changeTab))
         tabs.segmentStyle = .automatic
         tabs.selectedSegment = 0
-        tabs.setWidth(115, forSegment: 0)
+        tabs.setWidth(0, forSegment: 0)
         item.view = tabs
         item.label = "Screen"
         return item
@@ -179,10 +209,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         selectedScreen = screens.contains(screen) ? screen : .settings
         tabs.selectedSegment = screens.firstIndex(of: selectedScreen) ?? 0
         let size = window.contentView!.frame.size
-        let view: NSView = selectedScreen == .archive ? web : selectedScreen == .activity ? activity : settingsView
+        let view: NSView
+        switch selectedScreen {
+        case .archive: view = web
+        case .activity: view = activity
+        case .shell: view = shellView
+        case .users: view = usersView
+        case .settings: view = settingsView
+        }
         view.frame = NSRect(origin: .zero, size: size)
         window.contentView = view
-        if selectedScreen == .settings { settings.monitor() } else { settings.pauseMonitoring() }
+        // Toolbar metrics remain visible on every tab; closing the window stops polling.
+        settings.monitor()
+        if selectedScreen == .users { settings.refreshDetails() }
         if selectedScreen == .activity, let url = settings.serverDetails?.admin {
             activity.load(URLRequest(url: url))
         }
@@ -193,11 +232,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         selectTab(.activity)
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
+    @objc func showShell() { selectTab(.shell); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
+    @objc func showUsers() { selectTab(.users); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
     @objc func showSettings() { selectTab(.settings); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
     func openArchive(_ url: URL) { guard settings.hasAdmin else { return }; showArchive(); web.load(URLRequest(url: url)) }
     @objc func goBack() { if selectedScreen == .archive { web.goBack() } }
     @objc func reload() { (selectedScreen == .activity ? activity : web)?.reload() }
-    @objc func openData() { NSWorkspace.shared.open(runtime.home.appendingPathComponent("data")) }
+    @objc func openData() { NSWorkspace.shared.open(runtime.collectionDirectory) }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func windowWillClose(_ notification: Notification) { settings.pauseMonitoring() }
@@ -205,18 +246,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         showSettings(); return true
     }
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        if action.navigationType == .linkActivated, let url = action.request.url {
+        if webView === activity, action.navigationType == .linkActivated, let url = action.request.url {
             openArchive(url); decisionHandler(.cancel)
         } else { decisionHandler(.allow) }
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if selectedScreen == .activity, let url = webView.url, url.path.contains("/login/") { openArchive(url) }
+        guard let url = webView.url else { return }
+        if !url.path.contains("/login/") { lastRenewedLogin = nil; return }
+        guard !renewingBrowserSession, lastRenewedLogin != url,
+              let details = settings.serverDetails, details.hasAdmin else { return }
+        renewingBrowserSession = true
+        lastRenewedLogin = url
+        Task {
+            defer { renewingBrowserSession = false }
+            do {
+                guard let token = try runtime.browserAPIKey() else { return }
+                try await browserAuthentication.authenticate(server: details.api, token: token, force: true)
+                // Retry the intended admin page once after a server-side session expiry.
+                let next = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "next" }?.value
+                let destination = next.flatMap { URL(string: $0, relativeTo: details.admin)?.absoluteURL }
+                webView.load(URLRequest(url: destination?.host == details.admin.host ? destination! : details.admin))
+            } catch { settings.detail = "Could not renew browser login: \(error.localizedDescription)" }
+        }
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         settings.shutdown()
         Task {
             await startup?.value
             await settings.finishHTTPChange()
+            await settings.finishCollectionChange()
             await menuRefresh?.value
             await Task.detached { [runtime] in runtime.stop() }.value
             NSApp.reply(toApplicationShouldTerminate: true)

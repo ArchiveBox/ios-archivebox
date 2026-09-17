@@ -37,7 +37,7 @@ extension Runtime {
     func collectionSize() throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/du")
-        process.arguments = ["-sk", home.appendingPathComponent("data").path]
+        process.arguments = ["-sk", collectionDirectory.path]
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
@@ -53,9 +53,17 @@ extension Runtime {
 
 @MainActor
 final class SettingsModel: ObservableObject {
+    @Published var collectionDirectory: URL
+    @Published var changingCollection = false
+    @Published var collectionError: String?
+    var showCollectionShell: (() async -> Void)?
+    var terminalCompletion: CheckedContinuation<Int32?, Never>?
+    private var changingCollectionTask: Task<Void, Never>?
+    private var shuttingDown = false
     @Published var state = "Starting"
     @Published var cpu = "—"
     @Published var ram = "—"
+    @Published var memory = MemoryBreakdown()
     @Published var processes = "—"
     @Published var disk = "Calculating…"
     @Published var detail = ""
@@ -90,6 +98,7 @@ final class SettingsModel: ObservableObject {
 
     init(runtime: Runtime) {
         self.runtime = runtime
+        collectionDirectory = runtime.collectionDirectory
         terminal.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
         terminal.nativeForegroundColor = .textColor
         terminal.nativeBackgroundColor = .textBackgroundColor
@@ -119,8 +128,13 @@ final class SettingsModel: ObservableObject {
                     let value = await Task.detached { [runtime] in runtime.sample() }.value
                     if Task.isCancelled { return }
                     apply(value)
+                    // Only the Settings screen requests this extra lightweight read;
+                    // toolbar/menu summaries keep using the existing container total.
+                    let breakdown = await Task.detached { [runtime] in runtime.memoryBreakdown() }.value
+                    if Task.isCancelled { return }
+                    memory = breakdown
                 }
-                try? await Task.sleep(for: .seconds(3))
+                try? await Task.sleep(for: .seconds(10))
             }
         }
     }
@@ -132,7 +146,7 @@ final class SettingsModel: ObservableObject {
         ready = sample.state == "running"
         if ready {
             state = "Running"
-            detail = sample.error ?? "CPU: 100% = one core · RAM is container usage, not total host VM memory."
+            detail = sample.error ?? ""
         } else if expectedRunning {
             state = "Crashed / stopped unexpectedly"
             detail = sample.error ?? "The container was running but is now \(sample.state). The runtime does not report an exit reason."
@@ -143,9 +157,9 @@ final class SettingsModel: ObservableObject {
         cpu = "—"
         if ready, let before = previous, before.state == "running",
            let old = before.cpuUsec, let now = sample.cpuUsec, now >= old, sample.time > before.time {
-            cpu = String(format: "%.1f%%", (now - old) / 1_000_000 / (sample.time - before.time) * 100)
+            cpu = String(format: "%.0f%%", (now - old) / 1_000_000 / (sample.time - before.time) * 100)
         }
-        ram = sample.memory.map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .memory) } ?? "—"
+        ram = sample.memory.map { String(format: "%.0f MB", Double($0) / 1_048_576) } ?? "—"
         processes = sample.processes.map(String.init) ?? "—"
         previous = sample
     }
@@ -221,20 +235,81 @@ final class SettingsModel: ObservableObject {
 
     func finishHTTPChange() async { await applyingHTTP?.value }
 
-    func connectTerminal() {
-        guard ready, !terminalConnected else { return }
+    func chooseCollection() {
+        guard runtime.ownsService, !managementBusy, !restarting, changingCollectionTask == nil else { return }
+        let picker = NSOpenPanel()
+        picker.canChooseDirectories = true; picker.canChooseFiles = false; picker.canCreateDirectories = true
+        picker.allowsMultipleSelection = false; picker.directoryURL = collectionDirectory
+        picker.prompt = "Use this folder"
+        guard picker.runModal() == .OK, let directory = picker.url else { return }
+        restarting = true; changingCollection = true; collectionError = nil
+        pauseMonitoring()
+        changingCollectionTask = Task {
+            defer { changingCollection = false; restarting = false; changingCollectionTask = nil }
+            await loadingDetails?.value
+            await sizing?.value
+            guard !shuttingDown else { return }
+            do {
+                try await Task.detached { [runtime] in try runtime.prepareCollection(directory) }.value
+                guard !shuttingDown else { return }
+                // Stopping the container ends its shell. Drain that exit before
+                // attaching init: SwiftTerm.terminate() cancels the exit monitor,
+                // and signalling the CLI alone can leave interactive Bash running.
+                if terminalConnected, terminal.process.shellPid > 0 {
+                    _ = await withCheckedContinuation { terminalCompletion = $0 }
+                }
+                collectionDirectory = runtime.collectionDirectory
+                ready = false; state = "Initializing collection"; serverDetails = nil
+                disk = "Calculating…"; baseURLDraft = ""; securityModeDraft = "auto"; tailscaleURL = nil
+                await showCollectionShell?()
+                guard !shuttingDown else { return }
+                terminalConnected = true
+                let status = await withCheckedContinuation { terminalCompletion = $0
+                    terminal.startProcess(executable: runtime.cli.path, args: runtime.initializeCollectionArguments,
+                        environment: ProcessInfo.processInfo.environment.map { "\($0.key)=\($0.value)" })
+                }
+                guard !shuttingDown else { return }
+                guard status == 0 else { throw CommandFailure(message: "archivebox init exited with status \(status.map(String.init) ?? "unknown"). Choose the folder again to retry; see Shell for details.") }
+                state = "Starting server"
+                try await Task.detached { [runtime] in try await runtime.startCollection() }.value
+                ready = true; state = "Running"; restarting = false
+                _ = await updateUsers()
+                refreshSize()
+                connectTerminal(focus: false)
+            } catch {
+                restarting = false
+                let sample = await Task.detached { [runtime] in runtime.sample() }.value
+                apply(sample)
+                if !ready { state = "Collection setup failed" }
+                collectionError = error.localizedDescription
+                terminal.feed(text: "\r\n\(error.localizedDescription)\r\n")
+            }
+        }
+    }
+
+    func finishCollectionChange() async { await changingCollectionTask?.value }
+
+    func connectTerminal(focus: Bool = true) {
+        guard ready, !restarting, !terminalConnected else { return }
         terminalConnected = true
         // The existing image entrypoint selects its writable unprivileged user and
         // environment. A PTY on both sides preserves password prompts and signals.
         terminal.startProcess(executable: runtime.cli.path,
             args: ["exec", "--interactive", "--tty", "--env", "TERM=xterm-256color",
                    "--workdir", "/data", runtime.name, "/app/bin/docker_entrypoint.sh",
-                   "/bin/bash", "--noprofile", "--norc", "-i"],
+                   // Run help before replacing this process with the interactive
+                   // shell, so startup output cannot race PTY input or get lost.
+                   "/bin/bash", "--noprofile", "--norc", "-c",
+                   "printf '$ archivebox help\\n'; archivebox help; exec /bin/bash --noprofile --norc -i"],
             environment: ProcessInfo.processInfo.environment.map { "\($0.key)=\($0.value)" })
-        terminal.window?.makeFirstResponder(terminal)
+        if focus { terminal.window?.makeFirstResponder(terminal) }
     }
 
-    func shutdown() { pauseMonitoring(); sizing?.cancel(); terminal.terminate() }
+    func shutdown() {
+        shuttingDown = true; pauseMonitoring(); sizing?.cancel()
+        terminalCompletion?.resume(returning: nil); terminalCompletion = nil
+        terminal.terminate()
+    }
 }
 
 final class TerminalDelegate: LocalProcessTerminalViewDelegate {
@@ -244,7 +319,14 @@ final class TerminalDelegate: LocalProcessTerminalViewDelegate {
     func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
     func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
     func processTerminated(source: TerminalView, exitCode: Int32?) {
-        Task { @MainActor [weak self] in self?.model?.terminalConnected = false }
+        Task { @MainActor [weak self] in
+            guard let model = self?.model else { return }
+            model.terminalConnected = false
+            if let completion = model.terminalCompletion {
+                model.terminalCompletion = nil; completion.resume(returning: exitCode); return
+            }
+            model.terminal.feed(text: "\r\n[Shell exited\(exitCode.map { " (status \($0))" } ?? ""). Click Connect to open a new shell.]\r\n")
+        }
     }
 }
 
@@ -256,7 +338,6 @@ struct EmbeddedTerminal: NSViewRepresentable {
 
 struct SettingsView: View {
     @ObservedObject var model: SettingsModel
-    @State private var addingUser = false
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -264,14 +345,6 @@ struct SettingsView: View {
                 if model.serverDetails != nil && !model.hasAdmin {
                     AddSuperuserView(model: model, onboarding: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                if model.hasAdmin, let shortcuts = model.serverDetails?.shortcuts {
-                    HStack {
-                        Button("🏛️ Server Settings") { model.openAdmin?(shortcuts.host) }
-                        Button("👤 Personas") { model.openAdmin?(shortcuts.personas) }
-                        Button("🔐 API Keys & Webhooks") { model.openAdmin?(shortcuts.api) }
-                        Button("📜 Debug Logs") { model.openAdmin?(shortcuts.logs) }
-                    }.buttonStyle(.glass)
                 }
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
@@ -281,11 +354,20 @@ struct SettingsView: View {
                             Spacer()
                             metric("CPU", model.cpu)
                             Spacer()
-                            metric("RAM", model.ram)
-                            Spacer()
                             metric("Processes", model.processes)
                         }
-                        Text(model.detail).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                        Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 4) {
+                            memoryRow("macOS App", model.memory.app)
+                            memoryRow("Server memory", model.memory.container)
+                            memoryRow("File cache (reclaimable)", model.memory.cache, muted: true)
+                                .help("Linux can reclaim most file cache when other processes need memory.")
+                        }
+                        if let error = model.memory.error { Text(error).font(.caption).foregroundStyle(.secondary) }
+                        if !model.detail.isEmpty {
+                            Text(model.detail).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                        }
+                        Divider()
+                        ServerUpdateView()
                     }.padding(8)
                 } label: { Label("Container", systemImage: "shippingbox") }
                 GroupBox {
@@ -295,11 +377,17 @@ struct SettingsView: View {
                             Button("Refresh", systemImage: "arrow.clockwise") { model.refreshSize() }
                                 .labelStyle(.iconOnly).help("Refresh collection disk usage")
                             Spacer()
-                            Button("Open in Finder", systemImage: "folder") {
-                                NSWorkspace.shared.open(model.runtime.home.appendingPathComponent("data"))
+                            if model.hasAdmin, let shortcuts = model.serverDetails?.shortcuts {
+                                Button("Personas", systemImage: "person.crop.circle") { model.openAdmin?(shortcuts.personas) }
                             }
+                            Button("Open in Finder", systemImage: "folder") {
+                                NSWorkspace.shared.open(model.collectionDirectory)
+                            }
+                            Button("Choose a path…", systemImage: "folder.badge.plus") { model.chooseCollection() }
+                                .disabled(!model.runtime.ownsService || model.managementBusy || model.restarting)
                         }
-                        Text(model.runtime.home.appendingPathComponent("data").path)
+                        if let error = model.collectionError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
+                        Text(model.collectionDirectory.path)
                             .font(.system(.body, design: .monospaced)).textSelection(.enabled)
                     }.padding(8)
                 } label: { Label("Collection", systemImage: "externaldrive") }
@@ -316,36 +404,130 @@ struct SettingsView: View {
                         if let url = model.tailscaleURL {
                             Divider()
                             connection("Tailscale", url)
-                            Text("Tailscale is connected. This server listens only on localhost; this address needs a Tailscale proxy before other devices can use it.")
-                                .font(.caption).foregroundStyle(.secondary)
                         }
                         if let error = model.tailscaleError { Text(error).font(.caption).foregroundStyle(.secondary) }
+                        Divider()
+                        GroupBox {
+                            VStack(alignment: .leading, spacing: 12) {
+                                TextField("BASE_URL", text: $model.baseURLDraft, prompt: Text("http://archivebox.localhost:18080"))
+                                    .textFieldStyle(.roundedBorder)
+                                Picker("SERVER_SECURITY_MODE", selection: $model.securityModeDraft) {
+                                    ForEach(model.serverDetails?.securityModes ?? ["auto"], id: \.self) { Text($0).tag($0) }
+                                }
+                                if model.securityModeDraft == "unsafe-onedomain-noadmin" {
+                                    Text("This mode disables the web admin UI, including Archive’s admin shortcuts and Activity.").font(.caption).foregroundStyle(.secondary)
+                                } else if model.securityModeDraft == "danger-onedomain-fullreplay" {
+                                    Text("Archived pages can execute scripts on the same origin as the admin UI in this mode.").font(.caption).foregroundStyle(.secondary)
+                                }
+                                Text("Use the URL clients will visit. HTTPS requires a TLS proxy; custom hostnames require DNS. This does not change the local listener at 127.0.0.1:18080. Subdomain mode also requires admin, api, web and snapshot subdomains.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                HStack {
+                                    Button("Apply & Restart") { model.applyHTTPSettings() }
+                                        .disabled(!model.ready || model.managementBusy || model.restarting || !model.httpChanged)
+                                    if model.restarting { ProgressView().controlSize(.small) }
+                                    if let message = model.httpMessage { Text(message).font(.callout).foregroundStyle(.secondary) }
+                                }
+                                if let error = model.httpError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
+                            }.padding(8)
+                                .disabled(model.restarting)
+                        } label: { Label("HTTP, TLS, and DNS", systemImage: "network.badge.shield.half.filled") }
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
-                } label: { Label("Connection", systemImage: "network") }
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 12) {
-                        TextField("BASE_URL", text: $model.baseURLDraft, prompt: Text("http://archivebox.localhost:18080"))
-                            .textFieldStyle(.roundedBorder)
-                        Picker("SERVER_SECURITY_MODE", selection: $model.securityModeDraft) {
-                            ForEach(model.serverDetails?.securityModes ?? ["auto"], id: \.self) { Text($0).tag($0) }
+                } label: {
+                    HStack {
+                        Label("Connection", systemImage: "network")
+                        Spacer()
+                        if model.hasAdmin, let shortcuts = model.serverDetails?.shortcuts {
+                            Button("Server Settings", systemImage: "building.columns") { model.openAdmin?(shortcuts.host) }
+                                .buttonStyle(.glass)
                         }
-                        if model.securityModeDraft == "unsafe-onedomain-noadmin" {
-                            Text("This mode disables the web admin UI, including Archive’s admin shortcuts and Activity.").font(.caption).foregroundStyle(.secondary)
-                        } else if model.securityModeDraft == "danger-onedomain-fullreplay" {
-                            Text("Archived pages can execute scripts on the same origin as the admin UI in this mode.").font(.caption).foregroundStyle(.secondary)
-                        }
-                        Text("Use the URL clients will visit. HTTPS requires a TLS proxy; custom hostnames require DNS. This does not change the local listener at 127.0.0.1:18080. Subdomain mode also requires admin, api, web and snapshot subdomains.")
-                            .font(.caption).foregroundStyle(.secondary)
-                        HStack {
-                            Button("Apply & Restart") { model.applyHTTPSettings() }
-                                .disabled(!model.ready || model.managementBusy || model.restarting || !model.httpChanged)
-                            if model.restarting { ProgressView().controlSize(.small) }
-                            if let message = model.httpMessage { Text(message).font(.callout).foregroundStyle(.secondary) }
-                        }
-                        if let error = model.httpError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
-                    }.padding(8)
-                        .disabled(model.restarting)
-                } label: { Label("HTTP, TLS, and DNS", systemImage: "network.badge.shield.half.filled") }
+                    }
+                }
+            }
+            .padding(24)
+        }
+        .frame(minWidth: 760, minHeight: 650)
+        .disabled(model.restarting)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+    private func connection(_ label: String, _ url: URL) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label).foregroundStyle(.secondary).frame(width: 90, alignment: .leading)
+            Link(url.absoluteString, destination: url).textSelection(.enabled)
+            Spacer()
+            Button("Copy \(label)", systemImage: "doc.on.doc") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(url.absoluteString, forType: .string)
+            }.labelStyle(.iconOnly).buttonStyle(.borderless)
+        }
+    }
+    private func memoryRow(_ label: String, _ bytes: Int64?, muted: Bool = false) -> some View {
+        GridRow {
+            Text(label)
+            Text(memorySize(bytes)).monospacedDigit().gridColumnAlignment(.trailing)
+        }.foregroundStyle(muted ? .secondary : .primary)
+    }
+
+    private func memorySize(_ bytes: Int64?) -> String {
+        bytes.map { String(format: "%.0f MB", Double($0) / 1_048_576) } ?? "—"
+    }
+
+    private func metric(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(value).font(.system(.title3, design: .monospaced)).monospacedDigit()
+        }
+    }
+}
+
+struct ShellView: View {
+    @ObservedObject var model: SettingsModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Label("Container Terminal", systemImage: "terminal").font(.headline)
+                Spacer()
+                if !model.terminalConnected {
+                    Text("Disconnected").foregroundStyle(.secondary)
+                    Button("Connect") { model.connectTerminal() }.disabled(!model.ready)
+                }
+                if model.hasAdmin, let shortcuts = model.serverDetails?.shortcuts {
+                    Button("Debug Logs", systemImage: "doc.text") { model.openAdmin?(shortcuts.logs) }
+                }
+            }
+            if let error = model.collectionError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
+            Text("cd \(collectionShellPath); archivebox help")
+                .font(.system(.callout, design: .monospaced)).textSelection(.enabled)
+            EmbeddedTerminal(terminal: model.terminal)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(nsColor: .textBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator, lineWidth: 1))
+                .accessibilityLabel("Container terminal")
+                // Mounting SwiftTerm only draws a cursor; it does not launch a
+                // shell. Connect once ready, without stealing form focus.
+                .onChange(of: model.ready && !model.restarting, initial: true) { _, available in
+                    if available { model.connectTerminal(focus: false) }
+                }
+        }
+        .padding(24)
+        .frame(minWidth: 760, minHeight: 650)
+        .disabled(model.restarting && !model.changingCollection)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+    private var collectionShellPath: String {
+        // The macOS collection path contains spaces; quote it for a pasted shell command.
+        "'" + model.collectionDirectory.path.replacingOccurrences(of: "'", with: "'\"'\"'") + "'"
+    }
+
+}
+
+struct UsersView: View {
+    @ObservedObject var model: SettingsModel
+    @State private var addingUser = false
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Users").font(.largeTitle.bold())
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -357,6 +539,9 @@ struct SettingsView: View {
                             if model.hasAdmin { Button("Add superuser", systemImage: "person.badge.plus") {
                                 model.managementError = nil; addingUser = true
                             }.disabled(!model.ready || model.managementBusy) }
+                            if model.hasAdmin, let shortcuts = model.serverDetails?.shortcuts {
+                                Button("API Keys", systemImage: "key") { model.openAdmin?(shortcuts.api) }
+                            }
                         }
                         if let users = model.serverDetails?.users, !users.isEmpty {
                             Table(users) {
@@ -371,45 +556,12 @@ struct SettingsView: View {
                         if let error = model.managementError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
                     }.padding(8)
                 } label: { Label("Users", systemImage: "person.2") }
-                HStack {
-                    Label("Container Terminal", systemImage: "terminal").font(.headline)
-                    Spacer()
-                    Text(model.terminalConnected ? "Connected" : "Disconnected").foregroundStyle(.secondary)
-                    Button(model.terminalConnected ? "Connected" : "Connect") { model.connectTerminal() }
-                        .disabled(!model.ready || model.terminalConnected)
-                }
-                Text("Create an admin: archivebox manage createsuperuser")
-                    .font(.system(.callout, design: .monospaced)).textSelection(.enabled)
-                EmbeddedTerminal(terminal: model.terminal)
-                    .frame(maxWidth: .infinity).frame(height: 350)
-                    .background(Color(nsColor: .textBackgroundColor))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator, lineWidth: 1))
-                    .accessibilityLabel("Container terminal")
-            }
-            .padding(24)
+            }.padding(24)
         }
         .frame(minWidth: 760, minHeight: 650)
         .disabled(model.restarting)
         .background(Color(nsColor: .windowBackgroundColor))
         .sheet(isPresented: $addingUser) { AddSuperuserView(model: model) }
-    }
-    private func connection(_ label: String, _ url: URL) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label).foregroundStyle(.secondary).frame(width: 90, alignment: .leading)
-            Link(url.absoluteString, destination: url).textSelection(.enabled)
-            Spacer()
-            Button("Copy \(label)", systemImage: "doc.on.doc") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(url.absoluteString, forType: .string)
-            }.labelStyle(.iconOnly).buttonStyle(.borderless)
-        }
-    }
-    private func metric(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.system(.title3, design: .monospaced)).monospacedDigit()
-        }
     }
 }
 

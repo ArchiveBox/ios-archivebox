@@ -1,6 +1,7 @@
 import ArchiveBoxCore
 import Foundation
 import Observation
+import UserNotifications
 import UniformTypeIdentifiers
 
 @MainActor @Observable
@@ -58,6 +59,20 @@ final class ShareModel {
         do {
             _ = try await ArchiveBoxClient().submit(urls: urls, configuration: configuration)
             state = .sent(urls.count)
+            // Notify only after server acceptance. A notification failure must not
+            // turn a successful POST into a retryable submission error.
+            let center = UNUserNotificationCenter.current()
+            let permission = await center.notificationSettings().authorizationStatus
+            if permission == .authorized || permission == .provisional {
+                let content = UNMutableNotificationContent()
+                content.title = "Added to ArchiveBox"
+                content.body = urls.count == 1 ? "Your server queued \(urls[0].absoluteString)" : "Your server queued \(urls.count) URLs for archiving."
+                do {
+                    try await center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+                } catch {
+                    NSLog("ArchiveBox share notification failed: %@", error.localizedDescription)
+                }
+            }
         } catch {
             // Deliberately no automatic retry: a timed-out POST might already have been accepted.
             state = .failed("\(error.localizedDescription)\n\nSubmission could not be confirmed. Check your server before sharing again.")

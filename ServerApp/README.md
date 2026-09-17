@@ -22,12 +22,19 @@ does not stop the companion.
 - Runtime: `~/Library/Application Support/ArchiveBox Server/runtime`
 - Logs: `~/Library/Application Support/ArchiveBox Server/desktop.log`
 
+The bundled container always sets `OPENCODE_ENABLED=true`, including during
+initialization. Older app containers are recreated once to apply this immutable
+launch environment, preserving the mounted collection. Each newly created server container resolves
+the declared agent dependencies at runtime, without changing the bundled image. The client’s **AI Agent** screen
+opens `/admin/agent/`. Configure a model/provider in OpenCode if required; its
+credentials and sessions persist in the collection’s `opencode/` directory.
+
 On first launch, Settings is the only tab and focuses the built-in **Create your
 first admin** form. ArchiveBox's passwordless internal `system` account does not
-complete setup. Creating an active admin unlocks **Archive**, **Activity**, and
-**Settings**, and signs both webviews in with a normal Django session scoped to the
-admin host. Existing sessions persist in WebKit; expired sessions use Archive's
-normal login page. Additional superusers can be created above the terminal.
+complete setup. Creating an active admin unlocks **Admin**, **Activity**, **Shell**,
+**Users**, and **Settings**, in that order, and signs both webviews in with a normal
+Django session scoped to the admin host. The companion stores an API key for the first active administrator in Keychain, scoped to the collection. It uses the same `/api/v1/auth/browser_session` exchange as the iOS/macOS client; browser cookies stay in memory and login is restored after relaunch. Revoked keys produce an authentication error rather than silently selecting another account. Additional superusers can be created in **Users**. **Shell** keeps the same terminal
+session and scrollback while switching tabs, and expands to fill the window.
 
 Settings shows the server's actual BASE_URL, admin and API URLs with copy buttons,
 plus its Tailscale DNS name (or IP) when connected. The Tailscale row is detection
@@ -35,8 +42,10 @@ only: the server remains bound to localhost, so remote access needs a proxy.
 Shortcuts open the current machine's config editor, Personas, API Keys & Webhooks,
 and Debug Logs inside Archive. The machine config editor syncs with ArchiveBox.conf.
 
-The upper-right toolbar shows the current BASE_URL as selectable linked text;
-click it to open your default browser. **HTTP, TLS, and DNS** provides BASE_URL and
+The upper-right toolbar shows server status, a BASE_URL glass button (click once
+to copy), and plain CPU/RAM readings. Activity and Users show active snapshot and
+superuser counts. Resource readings refresh every 10 seconds while the window is
+open; CPU needs two samples. **HTTP, TLS, and DNS** provides BASE_URL and
 SERVER_SECURITY_MODE fields. **Apply & Restart** validates and saves both using
 ArchiveBox's config CLI, then recreates the container with the same data mount.
 This also removes old environment overrides that would mask saved config values.
@@ -60,23 +69,57 @@ image's normal entrypoint and a real PTY, so commands run as ArchiveBox's normal
 Terminal input and output are not logged. Configure an API key in the main app for
 native/Safari sharing. Local and remote keys remain separate in Keychain.
 
+**Choose a path…** beside **Open in Finder** selects a different collection folder.
+The default stays `~/Library/Application Support/ArchiveBox Server/data` until a
+folder is chosen. The old collection stays where it is; switching does not move or
+delete its files. The choice persists across launches and drives the container
+mount, disk usage, Finder shortcut, and Shell path display.
+
+Choosing a folder opens **Shell** and runs `archivebox init` in a temporary container
+with that folder mounted at `/data`, showing real command output. Only after init
+succeeds does the app start the server and reconnect the interactive shell. Existing
+collections also run init; their configuration is preserved. New collections receive
+the default local BASE_URL and need their own admin account. Browser sessions are
+cleared when switching collections. Failed init stays visible in Shell; choose the
+folder again to retry. A missing custom folder on later launches reports an error.
+
 The collection survives application updates, quitting, and switching the client to
 a remote server. No prototype data is migrated or reset. Port 18080 must be free.
 Apple Container's service labels are global: another active installation must be
 stopped before this one starts. The app does not take over someone else's runtime.
+
+## App updates
+
+Settings links to the bundled image on Docker Hub and displays its version, build
+date, and bundled Linux kernel version. These values come from the actual packaged
+OCI archive and kernel, so they do not change when the remote `dev` tag moves.
+
+**Check for Updates** uses Sparkle 2.10.0. When a release is found, the button becomes
+**Install Newer Version v…**, opening Sparkle's standard download/install dialog.
+The update replaces the whole signed app, including its image, runtime and kernel.
+There are no background update checks or independent image downloads. After relaunch,
+a changed bundle build imports its payload and recreates only this app's container,
+preserving the collection. Updating runtime helpers requires other containers to
+be stopped first. The existing graceful quit path stops the server before replacement.
+
+Local builds without a Sparkle public key show that updates require a release build.
+Publishing needs a Developer ID identity, notarization, a Sparkle signing key and an
+appcast; adding the framework alone does not publish an update service.
 
 ## Build
 
 ```sh
 cd ServerApp
 bash prepare.sh   # large downloads; build-machine step only
-bash build.sh
+bash build.sh   # requires uv for reading the packaged image metadata
 ```
 
 For an existing verified preparation directory, use
 `ARCHIVEBOX_SERVER_ASSETS=/absolute/path/to/prepared/assets bash build.sh`.
-Build output is `dist/ArchiveBox Server.app`. The default local signature is ad-hoc,
-for development on the build machine. It is **not a public downloadable release**.
+Build output is `dist/ArchiveBox Server.app`. Local builds select an installed
+Apple Development identity; set `ARCHIVEBOX_SIGNING_IDENTITY` to override it.
+The app and Sparkle must share a real signing Team ID for hardened-runtime library
+validation. Ad-hoc signing is rejected. This local build is **not a public downloadable release**.
 
 Pinned components:
 
@@ -99,13 +142,20 @@ has not been verified.
 ```sh
 export ARCHIVEBOX_SIGNING_IDENTITY='Developer ID Application: ...'
 export ARCHIVEBOX_NOTARY_PROFILE='your-existing-notarytool-profile'
+# Generate once using .build/artifacts/sparkle/Sparkle/bin/generate_keys.
+# Keep its private key in Keychain; publish only the public key below.
+export ARCHIVEBOX_SPARKLE_PUBLIC_KEY='your-public-EdDSA-key'
+export ARCHIVEBOX_BUILD_NUMBER=2  # increase for every app release
 bash release.sh
 ```
 
 This signs our app (preserving Apple's nested runtime signatures), submits it for
 notarization, staples the ticket, assesses it with Gatekeeper, and produces
 `dist/ArchiveBox-Server-arm64.zip` plus a SHA-256 file. Attach the ZIP to a stable
-GitHub release in **ArchiveBox/ios-archivebox**. The direct client reads GitHub's
+GitHub release `server-<build number>` in **ArchiveBox/ios-archivebox**. The release
+script also generates/signs `dist/server-<build number>/appcast.xml` with Sparkle's
+own tool. Upload that file to the stable `server-updates` release (replacing its
+previous appcast). Do not overwrite ZIPs on versioned releases. The direct client reads GitHub's
 asset digest, verifies the ZIP and the ArchiveBox signing team, and requires a
 successful Gatekeeper assessment before installing into `~/Applications`.
 It never strips quarantine or bypasses a security warning. Existing installations

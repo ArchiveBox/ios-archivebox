@@ -1,0 +1,26 @@
+ServerApp/README.md
+  h_923c208e183a7b 19-39,101-117
+ServerApp/Sources/ArchiveBox.swift
+  h_923c208e183a7b 6-7,11,17-18,26,44,71,73-98,100-125,132,147,156-158,160,163-172,174-177,183-191
+ServerApp/Sources/Management.swift
+  h_923c208e183a7b 1-129
+ServerApp/Sources/Runtime.swift
+  h_923c208e183a7b 11-12,21-22,24,29-30,32-37
+ServerApp/Sources/Settings.swift
+  h_923c208e183a7b 64-71,76,100,106,110,155-187,223,225-232,234-250,252-328,330,334-345,354-400
+ServerApp/Tests/ManagementAcceptance.swift
+  h_923c208e183a7b 1-81
+docs/VALIDATION.md
+  h_923c208e183a7b 69-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1667579950cbc5407e286286692904ba00e89546",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

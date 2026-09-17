@@ -18,3 +18,34 @@ Use the existing App Store Connect app `6769185501` (`io.archivebox.ArchiveBox`)
 On this Mac, Xcode's export invokes Apple's rsync, whose subprocess can accidentally resolve Homebrew rsync and reject `--extended-attributes`. Export with `PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive ...` to keep both processes on the system implementation.
 
 The generated Info.plists currently contain version `1.0` / build `1`; inspect the archive's actual version before uploading. Xcode can increment the distribution build number. A public App Store release remains a separate review/submission step.
+
+## GitHub Actions publishing
+
+The **TestFlight** workflow (`.github/workflows/testflight.yml`) supports manual
+runs with an iOS/macOS/both selector and app version, plus `testflight-*` tags.
+Ordinary pushes and pull requests continue to run the unsigned Build workflow.
+Release jobs are serialized and use build number `100 + run_number.run_attempt`
+so reruns cannot collide with a build still processing at Apple.
+
+Configure these secrets in the repository's **testflight** environment:
+
+- `ASC_KEY_ID`: the dedicated App Store Connect team API key ID.
+- `ASC_ISSUER_ID`: the team's API issuer ID.
+- `ASC_PRIVATE_KEY`: the complete downloaded `.p8` key, including its PEM headers.
+
+The workflow uses Apple's cloud distribution signing; it does not store a
+personal Apple ID password or distribution private key. The API key must have
+permission to upload, use cloud signing, and manage internal TestFlight builds.
+Keep it dedicated to this repository and revoke it in App Store Connect if lost.
+The temporary key file is removed even when publishing fails.
+
+After upload, `scripts/testflight-distribute.mjs` waits up to an hour for Apple,
+checks for failed/invalid builds, records the platform-TLS-only encryption answer,
+and assigns the matching version/build/platform to **ArchiveBox Internal**. It
+verifies the group belongs to this app and confirms assignment before succeeding.
+It does not submit a public App Store release or enable external testing.
+
+If Apple processing exceeds the timeout, inspect App Store Connect before
+rerunning: the binary may already have been accepted. The workflow summary lists
+confirmed internal-group assignments. Never include the API key in build logs or
+artifacts.

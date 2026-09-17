@@ -1,0 +1,22 @@
+.github/workflows/release.yml
+  h_923c208e183a7b 46,57-63
+README.md
+  h_923c208e183a7b 1-13,15,17,19-23,25,27-30,32,34,36,38,40,42-45,47,49,51-52,54-55,57,59,61,63,65-70,72,74,76-80,82-84,86,88-89,91-94,96,98-113,115-138,141-145,148-151,153,155,157,159-163,165
+ServerApp/build.sh
+  h_923c208e183a7b 36-37
+ServerApp/install-local.sh
+  h_923c208e183a7b 18
+docs/DEVELOPMENT.md
+  h_923c208e183a7b 1-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "736485eded096991357787dd5d1377a794ee98f0",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

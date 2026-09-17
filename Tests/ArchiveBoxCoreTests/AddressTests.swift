@@ -19,6 +19,10 @@ import Testing
             == ["https://api.archive.example", "https://archive.example"])
     #expect(try ServerAddress.candidates(for: "http://127.0.0.1:8000").count == 1)
     #expect(try ServerAddress.candidates(for: "http://[::1]:8000").count == 1)
+    #expect(try ServerAddress.candidates(for: "http://localhost:8947").map(\.absoluteString)
+            == ["http://localhost:8947", "http://api.archivebox.localhost:8947", "http://archivebox.localhost:8947"])
+    #expect(try ServerAddress.candidates(for: "http://api.localhost:8947").map(\.absoluteString)
+            == ["http://api.localhost:8947", "http://api.archivebox.localhost:8947", "http://archivebox.localhost:8947"])
 }
 @Test func extractsLinksAcrossShareFormats() {
     #expect(SharedLinks.extract(from: "An article: https://example.com/a?q=1 and https://example.org/b").count == 2)

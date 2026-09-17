@@ -20,11 +20,11 @@ Private servers require the device’s Wi-Fi or VPN connection. `localhost` on a
 
 ## Safari extension
 
-Enable ArchiveBox in Safari’s Extensions settings (on iOS: Settings → Apps → Safari → Extensions). In the extension popup/options, select **Use app connection** to import the native app’s saved server and API key. Repeat the import after changing them. The native default persona applies to the system share sheet; the browser extension retains its own persona controls and existing behavior.
+Enable ArchiveBox in Safari’s Extensions settings (on iOS: Settings → Apps → Safari → Extensions). Safari automatically reads the server and API key saved in the native app whenever it loads settings or saves a URL. Configure and save changes in the app; there is no import button or separate Safari connection to maintain. The native default persona applies to the system share sheet; the browser extension retains its own persona controls and existing behavior.
 
-Apple packaging lives entirely here. `scripts/prepare-safari.mjs` builds a pinned revision of [archivebox-browser-extension](https://github.com/ArchiveBox/archivebox-browser-extension) in an ignored build directory. It adds only native messaging permission and a small explicit connection-import button to the generated assets. The upstream repository is unchanged and remains extension-focused. There is no automatic two-way settings synchronization or fork of its application code.
+Apple packaging lives entirely here. `scripts/prepare-safari.mjs` builds a pinned revision of [archivebox-browser-extension](https://github.com/ArchiveBox/archivebox-browser-extension) in an ignored build directory. A small checked build patch connects its settings reader to native messaging and makes connection fields read-only. The upstream repository is unchanged and remains extension-focused.
 
-The native app, share extension, and Safari native handler share one Keychain access group. Importing into Safari explicitly copies the server/key into the browser extension’s normal local settings storage, as required by its existing API client. Native sharing continues to use Keychain directly.
+The native app, share extension, and Safari native handler share one Keychain access group. Safari reads the current connection through its native handler without persisting a second copy of the token. Missing or locked app settings stop the operation instead of falling back to old browser credentials.
 
 ## Build
 
@@ -53,7 +53,7 @@ Both platform apps use `io.archivebox.ArchiveBox`, with `.Share` and `.Safari` e
 - `App`: shared SwiftUI Settings/Archive screens, using system forms, adaptive tabs/sidebar, glass controls, and the native WebKit `WebView`/`WebPage` APIs.
 - `ShareExtension`: shared SwiftUI sheet/model plus thin UIKit host.
 - `MacShareExtension`: thin AppKit host for the same sheet/model.
-- `SafariWebExtension`: native messaging handler and packaging-only connection-import UI; generated WXT resources are ignored.
+- `SafariWebExtension`: native messaging handler and automatic connection reader; generated WXT resources are ignored.
 - `project.yml`: reproducible platform targets, entitlements, and bundle identifiers.
 
 Native API requests stay on the verified origin; all redirects are rejected, including token-validation JSON bodies. The API client uses no persistent cookies/caches, tokens in URLs/logs, automatic HTTPS downgrade, or certificate-validation bypass. The Archive web view uses normal website navigation and persistent WebKit cookies/storage, separately from the native API key. ATS permits explicitly configured HTTP self-hosted servers; HTTPS is the default. Review this justification for App Store submission.

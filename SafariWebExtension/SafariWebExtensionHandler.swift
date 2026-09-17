@@ -14,7 +14,7 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             guard let configuration = try AppEnvironment.store.load() else {
                 throw ArchiveBoxError.message("Test and save a connection in the ArchiveBox app first.")
             }
-            // Only this bundled extension can call its native handler. Import is user-initiated;
+            // Only this bundled extension can call its native handler;
             // web content cannot read Keychain or invoke sendNativeMessage directly.
             response.userInfo = [SFExtensionMessageKey: ["connection": [
                 "server": configuration.server.absoluteString,

@@ -30,11 +30,12 @@ public enum ServerAddress {
         guard var parts = URLComponents(url: original, resolvingAgainstBaseURL: false), let host = parts.host else {
             return [original]
         }
-        if host.contains(":") || host.split(separator: ".").allSatisfy({ UInt8($0) != nil }) || host == "localhost" {
+        if host.contains(":") || host.split(separator: ".").allSatisfy({ UInt8($0) != nil }) {
             return [original]
         }
         let prefixes = ["api.", "admin.", "web."]
-        let base = prefixes.first(where: { host.hasPrefix($0) }).map { String(host.dropFirst($0.count)) } ?? host
+        let stripped = prefixes.first(where: { host.hasPrefix($0) }).map { String(host.dropFirst($0.count)) } ?? host
+        let base = stripped == "localhost" ? "archivebox.localhost" : stripped
         var result = [original]
         for candidate in ["api." + base, base] {
             parts.host = candidate

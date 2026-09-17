@@ -16,6 +16,32 @@ if (!existsSync(resolve(source, '.git'))) {
 }
 run('git', ['fetch', 'origin', revision], source);
 run('git', ['checkout', '--detach', revision], source);
+// Reset only files this packaging step owns so repeated builds apply the patch once.
+const patchedFiles = ['src/lib/storage.ts', 'src/lib/archivebox.ts', 'src/options/OptionsApp.tsx'];
+run('git', ['restore', '--source', revision, '--', ...patchedFiles], source);
+const replace = (file, before, after) => {
+  const path = resolve(source, file);
+  const text = readFileSync(path, 'utf8');
+  if (!text.includes(before)) throw new Error(`Safari integration no longer matches upstream: ${file}`);
+  writeFileSync(path, text.replace(before, after));
+};
+cpSync(resolve(root, 'SafariWebExtension/apple-connection.ts'), resolve(source, 'src/lib/apple-connection.ts'));
+replace('src/lib/storage.ts', "import type", "import { appConnection } from './apple-connection';\nimport type");
+replace('src/lib/storage.ts', '  const sync = await browser.storage.sync.get([\'config_archiveBoxBaseUrl\']);',
+  '  const connection = await appConnection();');
+replace('src/lib/storage.ts', `archivebox_server_url: String(
+      local.archivebox_server_url || sync.config_archiveBoxBaseUrl || '',
+    ),
+    archivebox_api_key: String(local.archivebox_api_key || ''),`,
+  'archivebox_server_url: connection.server,\n    archivebox_api_key: connection.token,');
+replace('src/lib/archivebox.ts', "  alternate.hostname = alternate.hostname.startsWith('api.') ? alternate.hostname.slice(4) : `api.${alternate.hostname}`;",
+  "  alternate.hostname = ['localhost', 'api.localhost'].includes(alternate.hostname) ? 'api.archivebox.localhost' : alternate.hostname.startsWith('api.') ? alternate.hostname.slice(4) : `api.${alternate.hostname}`;");
+replace('src/options/OptionsApp.tsx', '<input value={config.archivebox_server_url} onChange={(event) => saveConfig({ archivebox_server_url: event.currentTarget.value })}',
+  '<input readOnly title="Managed in the ArchiveBox app" value={config.archivebox_server_url}');
+replace('src/options/OptionsApp.tsx', '<input value={config.archivebox_api_key} onChange={(event) => saveConfig({ archivebox_api_key: event.currentTarget.value.trim() })}',
+  '<input readOnly type="password" title="Managed in the ArchiveBox app" value={config.archivebox_api_key}');
+replace('src/options/OptionsApp.tsx', '<Field label={t("ArchiveBox Server URL")}>',
+  '<p className="help-text">Server and API key are managed in the ArchiveBox app and read automatically.</p><Field label={t("ArchiveBox Server URL")}>');
 run('pnpm', ['install', '--frozen-lockfile'], source);
 run('pnpm', ['build:safari'], source);
 // This directory contains only this script's generated build output.
@@ -26,11 +52,4 @@ const manifestPath = resolve(output, 'manifest.json');
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 manifest.permissions = [...new Set([...manifest.permissions, 'nativeMessaging'])];
 writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
-for (const page of ['popup.html', 'options.html']) {
-  const path = resolve(output, page);
-  const html = readFileSync(path, 'utf8');
-  if (!html.includes('</head>')) throw new Error(`Unexpected WXT HTML: ${page}`);
-  writeFileSync(path, html.replace('</head>', '<script defer src="/apple-connection.js"></script></head>'));
-}
-cpSync(resolve(root, 'SafariWebExtension/apple-connection.js'), resolve(output, 'apple-connection.js'));
 console.log(`Prepared Safari extension ${manifest.version} from ${revision}.`);

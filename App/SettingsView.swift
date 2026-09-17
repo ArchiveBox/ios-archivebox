@@ -203,7 +203,7 @@ struct SettingsView: View {
                     Section { status(message).accessibilityIdentifier("savedConnection") }
                 }
                 Section("Safari extension") {
-                    Text("Enable ArchiveBox in Safari’s Extensions settings, then choose Use app connection in the extension to import this server and API key.")
+                    Text("Enable ArchiveBox in Safari’s Extensions settings. The extension automatically uses the server and API key saved here.")
                     #if os(macOS)
                     Button("Open Safari settings", systemImage: "safari") {
                         SFSafariApplication.showPreferencesForExtension(withIdentifier: "io.archivebox.ArchiveBox.Safari") { error in

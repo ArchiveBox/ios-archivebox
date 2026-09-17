@@ -48,3 +48,10 @@ Only the installed iPhone simulator and native Mac were run. iPad uses the same 
 ![Archive admin UI on Mac](screenshots/archive-mac.png)
 
 ![Archive login on iPhone](screenshots/archive-iphone.png)
+
+## Automatic Safari connection (2026-09-17)
+
+- Removed manual connection import. The packaged WXT settings reader now asks the native Keychain handler on every read; Safari connection fields are read-only and tokens are not copied to browser storage. Missing/locked native configuration fails closed.
+- Swift tests and the patched WXT TypeScript check pass. Signed macOS build and physical-device iOS Release archive succeed.
+- Live Safari popup used the app's saved connection. After changing and saving it from `localhost:8947` to `api.archivebox.localhost:8947` through the native Settings UI, opening the extension on a fresh URL showed **Server Archived / Saved to ArchiveBox Server at depth 0**, without an import action or another Safari restart. Independent SQLite verification found snapshot `01a0b058919373549da1074217909cda` for `https://example.com/?archivebox-auto-connection=20260917`.
+- The earlier failure combined a stopped acceptance server with a subsequent 403 on the wrong host. The running acceptance server now uses `BASE_URL=http://archivebox.localhost:8947`. Native discovery and the packaged extension's error suggestion use `api.archivebox.localhost`, not `api.localhost`.

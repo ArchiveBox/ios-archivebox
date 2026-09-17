@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		002B3D75BC727B9856F2AE60 /* apple-connection.js in Resources */ = {isa = PBXBuildFile; fileRef = 0AC98043D4246025B6A8ACC7 /* apple-connection.js */; };
 		026056B5D84F86BE619609D0 /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = FDD644D4A77BA2C5BB937B46 /* _locales */; };
 		08CF496446755EE1F61A5B46 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 67C62B2EC4DA84A38EF9E5A7 /* AppIcon.icon */; };
 		090FE8F2C3D9AE9B0550CF26 /* ArchiveBoxMacShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4804FCEBC939FCE6C41C93E1 /* ArchiveBoxMacShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -23,7 +22,6 @@
 		27E690C9BFA8B6ADFB8FAA92 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
 		2B478FA873656A2AA4F97377 /* content-scripts in Resources */ = {isa = PBXBuildFile; fileRef = F17AFF5065DB2022281D7DA8 /* content-scripts */; };
 		2CF6681AF45C951777C38F86 /* ArchiveBoxShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 60A108FCA1936A3321963D9E /* ArchiveBoxShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		353A74C9A4FAD76E459E0761 /* apple-connection.js in Resources */ = {isa = PBXBuildFile; fileRef = 0AC98043D4246025B6A8ACC7 /* apple-connection.js */; };
 		3C06BBDB333F0F25D342F611 /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9C7D1080D879852987592696 /* ArchiveBoxCore */; };
 		3FB18E652C02A60C0A57C975 /* UPSTREAM-LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = F8D4293A9356D86C9E8027ED /* UPSTREAM-LICENSE */; };
 		40C4A0D17BEBB299348E0DB1 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7622B497ECDB8771E3D9E02 /* ShareView.swift */; };
@@ -138,7 +136,6 @@
 /* Begin PBXFileReference section */
 		06F8051E8FD4E6F293429D02 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0A375E50F1CA716143843802 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
-		0AC98043D4246025B6A8ACC7 /* apple-connection.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "apple-connection.js"; sourceTree = "<group>"; };
 		0E4B3200B2E823AF61D3814E /* ArchiveBox.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ArchiveBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1146D1C3A69EAFEE61E80547 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		16007692ED14738E81221067 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = background.js; sourceTree = "<group>"; };
@@ -309,7 +306,6 @@
 		8803382AB21247B36619CE24 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				0AC98043D4246025B6A8ACC7 /* apple-connection.js */,
 				16007692ED14738E81221067 /* background.js */,
 				0A375E50F1CA716143843802 /* manifest.json */,
 				92E8F186372A4E02E08177BB /* options.html */,
@@ -581,7 +577,6 @@
 			files = (
 				8BC10DF439FDD9435F9B954D /* UPSTREAM-LICENSE in Resources */,
 				026056B5D84F86BE619609D0 /* _locales in Resources */,
-				353A74C9A4FAD76E459E0761 /* apple-connection.js in Resources */,
 				0D70CFF96AEC2EF116B9F30A /* assets in Resources */,
 				8A9221ACA79A17D5B2E21616 /* background.js in Resources */,
 				172FB23D038018B6A6CAD2CF /* chunks in Resources */,
@@ -617,7 +612,6 @@
 			files = (
 				3FB18E652C02A60C0A57C975 /* UPSTREAM-LICENSE in Resources */,
 				62470585441B48C32967C3ED /* _locales in Resources */,
-				002B3D75BC727B9856F2AE60 /* apple-connection.js in Resources */,
 				C762FEE56C423D2748B3D520 /* assets in Resources */,
 				4AEA89771CE1AF960555109D /* background.js in Resources */,
 				C30245C01B779BBBD663B6AC /* chunks in Resources */,

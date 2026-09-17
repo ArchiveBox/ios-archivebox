@@ -15,10 +15,10 @@
 		0C85A003C2E9091718B1E168 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2E79F448FC2AC534236C8D /* SafariWebExtensionHandler.swift */; };
 		0D70CFF96AEC2EF116B9F30A /* assets in Resources */ = {isa = PBXBuildFile; fileRef = C3256103DC5A80A8AD540B97 /* assets */; };
 		0E3C58B58371085727B8502F /* LocalServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADE639C9D4C39FAB269C1890 /* LocalServer.swift */; };
+		145256114BA1C89B39CC60FC /* AddURLsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6FFAFC4E7B7DE68C6E3AA4D /* AddURLsView.swift */; };
 		16C42C0D526520E94B065FEE /* ShareModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA994EC8E1863D30F98F5DF0 /* ShareModel.swift */; };
 		172FB23D038018B6A6CAD2CF /* chunks in Resources */ = {isa = PBXBuildFile; fileRef = 700EC0793913808E6B0A775D /* chunks */; };
 		1975E82F4F9F9C01D9B31347 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
-		2632F25035480C98DC24FA88 /* EngineCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4CE4CAF55E425240B124D05 /* EngineCommand.swift */; };
 		278968F1B897252967362CE7 /* MacShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B79EA74D933530383C6CAEC3 /* MacShareViewController.swift */; };
 		27A5B1EC1DC952B955E3BBDA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06F8051E8FD4E6F293429D02 /* Assets.xcassets */; };
 		27E690C9BFA8B6ADFB8FAA92 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
@@ -28,6 +28,7 @@
 		3FB18E652C02A60C0A57C975 /* UPSTREAM-LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = F8D4293A9356D86C9E8027ED /* UPSTREAM-LICENSE */; };
 		40C4A0D17BEBB299348E0DB1 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7622B497ECDB8771E3D9E02 /* ShareView.swift */; };
 		4675EE9F7878E54B4C075B09 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06F8051E8FD4E6F293429D02 /* Assets.xcassets */; };
+		47235BE8DA69795376081DB1 /* SidebarSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7057DAB07211675BE79ABD7F /* SidebarSummary.swift */; };
 		49B7F131EE82C8A4B01B25C0 /* ArchiveBoxSafari.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 64A998C41FA84FA2DF5C07B9 /* ArchiveBoxSafari.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4AEA89771CE1AF960555109D /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 16007692ED14738E81221067 /* background.js */; };
 		4BAE4F89A18FF22BD15E47E5 /* options.html in Resources */ = {isa = PBXBuildFile; fileRef = 92E8F186372A4E02E08177BB /* options.html */; };
@@ -35,6 +36,7 @@
 		4D643A9D6846CEA7B4FBD315 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 0A375E50F1CA716143843802 /* manifest.json */; };
 		53F946923FBCF8A0BF70562A /* icon in Resources */ = {isa = PBXBuildFile; fileRef = E2E03A230BA381FB0FFF529C /* icon */; };
 		55838DD4DB9A24F5DFBB40A9 /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = EFF02EE6D13AD0A4F7430DBB /* ArchiveBoxCore */; };
+		5B881B8DB2AD829ABA2EC5D3 /* SidebarSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7057DAB07211675BE79ABD7F /* SidebarSummary.swift */; };
 		5FE61C9D9A2578A21250E922 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06F8051E8FD4E6F293429D02 /* Assets.xcassets */; };
 		60982E3F0D1D32C620815D79 /* LocalServerSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6D6D87022C828E6A0A3470A /* LocalServerSection.swift */; };
 		61993E0DC6606E24A95457A9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE45EBF447663409775DECBA /* SettingsView.swift */; };
@@ -49,6 +51,7 @@
 		88DC73A38B41EB557E9C4BDC /* ArchiveBoxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */; };
 		8A9221ACA79A17D5B2E21616 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 16007692ED14738E81221067 /* background.js */; };
 		8BC10DF439FDD9435F9B954D /* UPSTREAM-LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = F8D4293A9356D86C9E8027ED /* UPSTREAM-LICENSE */; };
+		93551632034456AC4111E3A8 /* AddURLsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6FFAFC4E7B7DE68C6E3AA4D /* AddURLsView.swift */; };
 		A08F56ECEDF3A9537E7E9FC4 /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC5B1EA1ECF83B6CA12949F /* ArchiveBoxCore */; };
 		A9471D3223421DB739C368C0 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
 		B0FE976378BA828B33A4D0FA /* ArchiveBoxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */; };
@@ -59,6 +62,7 @@
 		C30245C01B779BBBD663B6AC /* chunks in Resources */ = {isa = PBXBuildFile; fileRef = 700EC0793913808E6B0A775D /* chunks */; };
 		C3F764B5593F2E050F022735 /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D29C759A2A9C2D4EA55954D /* ArchiveBoxCore */; };
 		C762FEE56C423D2748B3D520 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = C3256103DC5A80A8AD540B97 /* assets */; };
+		CD23055FB0FEE64BC2236B6D /* EmbeddedBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */; };
 		CDBF48D4069574C7510D6A7B /* ArchiveBoxUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E9C25C037A0F204B0BDCF38 /* ArchiveBoxUITests.swift */; };
 		D094B25C1CCD70DBF206BE6D /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 556C1F956DBFCD7A35C71C4A /* ArchiveBoxCore */; };
 		D6F26885583F5A08B2DB7A06 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 67C62B2EC4DA84A38EF9E5A7 /* AppIcon.icon */; };
@@ -67,6 +71,7 @@
 		E25563AC0CB0DDDE51D1B49F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 0A375E50F1CA716143843802 /* manifest.json */; };
 		E3E17DDB49D45B7E663F0361 /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 64DF0D9729FE1DDD1A9901C7 /* popup.html */; };
 		E6BA134DC3B681B72F04F1C8 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E6DEFA1F8FE0EA95C84DBE /* MainView.swift */; };
+		EF3FB9C1948F2E787434F622 /* EmbeddedBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */; };
 		F01CE36160D577C892777BDA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */; };
 		FF3FF97F86C7CF66F057A90D /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3A614EEE696BEEF4D8A4877D /* ArchiveBoxCore */; };
 /* End PBXBuildFile section */
@@ -137,6 +142,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedBrowser.swift; sourceTree = "<group>"; };
 		06F8051E8FD4E6F293429D02 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0A375E50F1CA716143843802 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		0E4B3200B2E823AF61D3814E /* ArchiveBox.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ArchiveBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -156,6 +162,7 @@
 		670CE703145D0F4EDD611457 /* ArchiveBoxShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBoxShare.entitlements; sourceTree = "<group>"; };
 		67C62B2EC4DA84A38EF9E5A7 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		700EC0793913808E6B0A775D /* chunks */ = {isa = PBXFileReference; lastKnownFileType = folder; name = chunks; path = SafariWebExtension/Resources/chunks; sourceTree = SOURCE_ROOT; };
+		7057DAB07211675BE79ABD7F /* SidebarSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSummary.swift; sourceTree = "<group>"; };
 		73226E2BE9753E460B4E1BEA /* ArchiveBoxMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ArchiveBoxMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E9C25C037A0F204B0BDCF38 /* ArchiveBoxUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveBoxUITests.swift; sourceTree = "<group>"; };
 		92E8F186372A4E02E08177BB /* options.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = options.html; sourceTree = "<group>"; };
@@ -165,7 +172,6 @@
 		A2ED54AF5CBA782B38156D97 /* ArchiveBoxMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBoxMac.entitlements; sourceTree = "<group>"; };
 		ADE639C9D4C39FAB269C1890 /* LocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServer.swift; sourceTree = "<group>"; };
 		B47DE619CE801A18C34392BA /* ArchiveBox.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBox.entitlements; sourceTree = "<group>"; };
-		B4CE4CAF55E425240B124D05 /* EngineCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineCommand.swift; sourceTree = "<group>"; };
 		B79EA74D933530383C6CAEC3 /* MacShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacShareViewController.swift; sourceTree = "<group>"; };
 		BE45EBF447663409775DECBA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BF2E79F448FC2AC534236C8D /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
@@ -176,6 +182,7 @@
 		D6D6D87022C828E6A0A3470A /* LocalServerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServerSection.swift; sourceTree = "<group>"; };
 		E2E03A230BA381FB0FFF529C /* icon */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icon; path = SafariWebExtension/Resources/icon; sourceTree = SOURCE_ROOT; };
 		F17AFF5065DB2022281D7DA8 /* content-scripts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "content-scripts"; path = "SafariWebExtension/Resources/content-scripts"; sourceTree = SOURCE_ROOT; };
+		F6FFAFC4E7B7DE68C6E3AA4D /* AddURLsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddURLsView.swift; sourceTree = "<group>"; };
 		F8D4293A9356D86C9E8027ED /* UPSTREAM-LICENSE */ = {isa = PBXFileReference; path = "UPSTREAM-LICENSE"; sourceTree = "<group>"; };
 		FBB84723CF899A5CEA0BD4D7 /* ArchiveBoxUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ArchiveBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD4ACAAB038FDAB8C799888D /* ArchiveBoxDirect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBoxDirect.entitlements; sourceTree = "<group>"; };
@@ -259,7 +266,6 @@
 		353E4A4E732A53CCF25A10F3 /* MacLocalUI */ = {
 			isa = PBXGroup;
 			children = (
-				B4CE4CAF55E425240B124D05 /* EngineCommand.swift */,
 				ADE639C9D4C39FAB269C1890 /* LocalServer.swift */,
 				D6D6D87022C828E6A0A3470A /* LocalServerSection.swift */,
 			);
@@ -308,15 +314,18 @@
 		784BE6BF1A8299959A0D69E0 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				F6FFAFC4E7B7DE68C6E3AA4D /* AddURLsView.swift */,
 				481FA3FA69FE3C31387568BE /* AppEnvironment.swift */,
 				67C62B2EC4DA84A38EF9E5A7 /* AppIcon.icon */,
 				B47DE619CE801A18C34392BA /* ArchiveBox.entitlements */,
 				45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */,
 				06F8051E8FD4E6F293429D02 /* Assets.xcassets */,
+				06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */,
 				2E58417FC1E8AADB7CBC6FE2 /* Info.plist */,
 				99E6DEFA1F8FE0EA95C84DBE /* MainView.swift */,
 				9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */,
 				BE45EBF447663409775DECBA /* SettingsView.swift */,
+				7057DAB07211675BE79ABD7F /* SidebarSummary.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -657,10 +666,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				145256114BA1C89B39CC60FC /* AddURLsView.swift in Sources */,
 				A9471D3223421DB739C368C0 /* AppEnvironment.swift in Sources */,
 				B0FE976378BA828B33A4D0FA /* ArchiveBoxApp.swift in Sources */,
+				CD23055FB0FEE64BC2236B6D /* EmbeddedBrowser.swift in Sources */,
 				70BE6D3D37E544D5520E512B /* MainView.swift in Sources */,
 				61993E0DC6606E24A95457A9 /* SettingsView.swift in Sources */,
+				47235BE8DA69795376081DB1 /* SidebarSummary.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -687,13 +699,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				93551632034456AC4111E3A8 /* AddURLsView.swift in Sources */,
 				DB8083BDE0D9F292E4564360 /* AppEnvironment.swift in Sources */,
 				88DC73A38B41EB557E9C4BDC /* ArchiveBoxApp.swift in Sources */,
-				2632F25035480C98DC24FA88 /* EngineCommand.swift in Sources */,
+				EF3FB9C1948F2E787434F622 /* EmbeddedBrowser.swift in Sources */,
 				0E3C58B58371085727B8502F /* LocalServer.swift in Sources */,
 				60982E3F0D1D32C620815D79 /* LocalServerSection.swift in Sources */,
 				E6BA134DC3B681B72F04F1C8 /* MainView.swift in Sources */,
 				70DAF88A8D9F4EB1A02CD8B4 /* SettingsView.swift in Sources */,
+				5B881B8DB2AD829ABA2EC5D3 /* SidebarSummary.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -927,6 +941,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHIVEBOX_KEYCHAIN_GROUP = "$(AppIdentifierPrefix)io.archivebox.shared";
+				"ARCHS[sdk=macosx*]" = arm64;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -991,7 +1006,6 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				"ARCHS[sdk=macosx*]" = arm64;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1183,6 +1197,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHIVEBOX_KEYCHAIN_GROUP = "$(AppIdentifierPrefix)io.archivebox.shared";
+				"ARCHS[sdk=macosx*]" = arm64;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1240,7 +1255,6 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				"ARCHS[sdk=macosx*]" = arm64;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1251,6 +1265,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHIVEBOX_KEYCHAIN_GROUP = "$(AppIdentifierPrefix)io.archivebox.shared";
+				"ARCHS[sdk=macosx*]" = arm64;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1315,7 +1330,6 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				"ARCHS[sdk=macosx*]" = arm64;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1433,6 +1447,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHIVEBOX_KEYCHAIN_GROUP = "$(AppIdentifierPrefix)io.archivebox.shared";
+				"ARCHS[sdk=macosx*]" = arm64;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1490,7 +1505,6 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				"ARCHS[sdk=macosx*]" = arm64;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

@@ -1,10 +1,11 @@
+import ArchiveBoxCore
 import Foundation
 
 // Real CLI-created crawls in an idle companion collection. Never pause or resume
 // someone else's work: refuse to run when any active/paused crawl already exists.
 @main struct ArchivingAcceptance {
     static func check(_ condition: Bool, line: Int = #line) throws {
-        if !condition { throw CommandFailure(message: "Archiving assertion failed at line \(line)") }
+        if !condition { throw ArchiveBoxError.message("Archiving assertion failed at line \(line)") }
     }
     static func main() throws {
         let runtime = Runtime(resources: URL(fileURLWithPath: CommandLine.arguments[1]).appending(path: "Contents/Resources"))

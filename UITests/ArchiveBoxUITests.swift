@@ -3,6 +3,27 @@ import XCTest
 /// Run against a real, disposable ArchiveBox 0.9+ server. No intercepted requests or seeded app state.
 @MainActor
 final class ArchiveBoxUITests: XCTestCase {
+    func testSafariButtonOpensExtensionSettings() throws {
+        continueAfterFailure = false
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settings.terminate()
+        let app = XCUIApplication()
+        app.launch()
+        openScreen("Add URLs", app: app)
+        let safari = app.buttons["Safari"]
+        for _ in 0..<8 where !safari.isHittable { app.swipeUp() }
+        XCTAssertTrue(safari.isHittable, app.debugDescription)
+        safari.tap()
+        let instructions = app.alerts["Enable ArchiveBox in Safari"]
+        XCTAssertTrue(instructions.waitForExistence(timeout: 5))
+        XCTAssertTrue(instructions.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Settings → Apps → Safari → Extensions → ArchiveBox")).firstMatch.exists)
+        instructions.buttons["OK"].tap()
+        XCTAssertTrue(settings.wait(for: .runningForeground, timeout: 10), app.debugDescription)
+        XCTAssertTrue(settings.navigationBars["ArchiveBox"].waitForExistence(timeout: 10), settings.debugDescription)
+        XCTAssertTrue(settings.switches.firstMatch.exists, settings.debugDescription)
+        attach("ArchiveBox Safari extension settings", app: settings)
+    }
+
     func testVerifiedKeyPersistsWithoutSave() throws {
         continueAfterFailure = false
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
@@ -188,6 +209,7 @@ final class ArchiveBoxUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         // Run on a simulator configured through the app's normal connection UI.
+        openScreen("Connection Settings", app: app)
         XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20), app.debugDescription)
         openScreen("Snapshots", app: app)
         let field = app.webViews.textFields.firstMatch
@@ -216,11 +238,15 @@ final class ArchiveBoxUITests: XCTestCase {
         let app = XCUIApplication()
         for _ in 0..<2 {
             app.launch()
+            openScreen("Connection Settings", app: app)
             XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 25), app.debugDescription)
             openScreen("Snapshots", app: app)
             XCTAssertTrue(app.navigationBars["Snapshots"].waitForExistence(timeout: 5), app.debugDescription)
-            let logout = app.webViews.descendants(matching: .any).matching(NSPredicate(format: "label ==[c] 'Log out'")).firstMatch
-            XCTAssertTrue(logout.waitForExistence(timeout: 30), app.debugDescription)
+            XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 30), app.debugDescription)
+            // The compact header intentionally hides Logout. Verify a protected
+            // administrator capability instead of depending on hidden chrome.
+            openScreen("Users", app: app)
+            XCTAssertTrue(app.webViews.links.matching(NSPredicate(format: "label ==[c] 'Add user'")).firstMatch.waitForExistence(timeout: 20), app.debugDescription)
             XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists)
             XCTAssertLessThan(app.navigationBars.firstMatch.frame.height, 65)
             openScreen("AI Agent", app: app)
@@ -232,14 +258,16 @@ final class ArchiveBoxUITests: XCTestCase {
     }
 
     private func openScreen(_ name: String, app: XCUIApplication) {
-        let identifiers = ["Add URLs": "add", "AI Agent": "agent", "Snapshots": "snapshots", "Admin": "admin", "Connection Settings": "settings"]
+        let identifiers = ["Add URLs": "add", "AI Agent": "agent", "Snapshots": "snapshots", "Admin": "admin", "Users": "users", "Connection Settings": "settings"]
         let item = app.buttons["sidebar." + identifiers[name]!]
         if !item.isHittable {
             let back = app.navigationBars.buttons.firstMatch
-            XCTAssertTrue(back.waitForExistence(timeout: 5), app.debugDescription)
-            back.tap()
+            if back.exists { back.tap() }
         }
-        for _ in 0..<5 where !item.isHittable { app.swipeUp() }
+        // The connected app starts on its menu; returning from a detail keeps
+        // the sidebar's scroll position. Search from the top in either case.
+        for _ in 0..<5 where !item.isHittable { app.swipeDown() }
+        for _ in 0..<8 where !item.isHittable { app.swipeUp() }
         XCTAssertTrue(item.waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(item.isHittable, app.debugDescription)
         XCTAssertTrue(item.isEnabled, app.debugDescription)

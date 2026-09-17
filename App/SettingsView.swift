@@ -23,6 +23,9 @@ final class SettingsModel {
     var personaError: String?
     var personasLoaded = false
     var busy = false
+    // Keep the last successful sample beyond the sidebar view's lifetime. Sleep,
+    // background cancellation and temporary network failures do not erase it.
+    var sidebarStatus: (progress: SidebarProgress, latency: Int)?
     private let client = ArchiveBoxClient()
     private var didLoad = false
     private var validation: Task<Void, Never>?
@@ -100,10 +103,9 @@ final class SettingsModel {
         didLoad = true
         do {
             #if os(macOS)
-            let profile = try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").load()
-            // Only the remote profile predates connection modes. A new local
-            // profile must never inherit a remote server's URL or API key.
-            let config = try profile ?? (connectionMode == .remote ? AppEnvironment.store.load() : nil)
+            // Each connection mode owns its credentials; a local profile must
+            // never inherit a remote server's URL or API key.
+            let config = try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").load()
             #else
             let config = try AppEnvironment.store.load()
             #endif
@@ -121,6 +123,7 @@ final class SettingsModel {
     }
 
     func serverChanged() {
+        sidebarStatus = nil
         validation?.cancel(); busy = false; serverError = nil; tokenError = nil
         // A changed destination must not silently receive the previous server’s key.
         tokenText = ""
@@ -129,6 +132,7 @@ final class SettingsModel {
         serverMessage = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
     }
     func tokenChanged() {
+        sidebarStatus = nil
         validation?.cancel(); busy = false; tokenError = nil
         personas = []; personaError = nil; personasLoaded = false
         verifiedToken = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
@@ -239,6 +243,7 @@ struct SettingsView: View {
                         Spacer(minLength: 8)
                         Text(model.verifiedServer == nil ? "🔴 NOT CONNECTED" : "🟢 CONNECTED")
                             .font(.caption.weight(.semibold))
+                            .accessibilityLabel(model.verifiedServer == nil ? "Server not connected" : "Server connected")
                     }
                 }
                 #if os(macOS)

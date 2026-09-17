@@ -10,9 +10,8 @@ extension AppDelegate {
         menu.addItem(menuStatus); menu.addItem(menuMetrics); menu.addItem(.separator())
         for (title, symbol, action) in [
             ("Add URL…", "plus", #selector(addURLInBrowser)),
-            ("Open ArchiveBox", "puzzlepiece.extension", #selector(openArchiveBoxClient)),
-            ("Admin", "person.crop.circle", #selector(adminInBrowser)),
-            ("Settings", "gearshape", #selector(showSettings))
+            ("Open ArchiveBox", "archivebox", #selector(openArchiveBoxClient)),
+            ("Admin", "person.crop.circle", #selector(adminInBrowser))
         ] {
             let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
             item.target = self; item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
@@ -21,9 +20,18 @@ extension AppDelegate {
         menu.addItem(.separator())
         pauseItem = NSMenuItem(title: "Pause Archiving", action: #selector(toggleArchiving), keyEquivalent: "")
         pauseItem.target = self; menu.addItem(pauseItem)
+        menu.addItem(.separator())
+        let preferences = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: "")
+        preferences.target = self
+        preferences.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
+        menu.addItem(preferences)
         let quit = NSMenuItem(title: "Shut Down Server & Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         quit.image = NSImage(systemSymbolName: "power", accessibilityDescription: "Shut down")
         menu.addItem(quit)
+        // macOS 27 hides menu images by default, including explicitly supplied SF Symbols.
+        if #available(macOS 27.0, *) {
+            for item in menu.items { item.preferredImageVisibility = .visible }
+        }
         menuBarItem.menu = menu
         renderServerMenu()
     }
@@ -45,6 +53,7 @@ extension AppDelegate {
         }
         metrics.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: NSRange(location: 0, length: metrics.length))
         menuMetrics.attributedTitle = metrics
+        menuMetrics.setAccessibilityLabel("Active downloads: \(running ? crawlActivity.map { String($0.downloads) } ?? "Unavailable" : "Unavailable"); CPU: \(running ? settings.cpu : "Unavailable"); memory: \(running ? settings.ram : "Unavailable")")
         menuMetrics.toolTip = menuError ?? "Active downloads · CPU (100% = one core) · container RAM. Refreshed on opening, at most once per 30 seconds."
         let resume = (crawlActivity?.paused ?? 0) > 0
         pauseItem.title = changingArchiving ? "Updating archiving…" : resume ? "Unpause Archiving" : "Pause Archiving"
@@ -80,13 +89,24 @@ extension AppDelegate {
         if let admin = settings.serverDetails?.admin ?? crawlActivity?.admin,
            let url = URL(string: "/add/", relativeTo: admin)?.absoluteURL { NSWorkspace.shared.open(url) }
     }
-    @objc func adminInBrowser() {
-        if let url = settings.serverDetails?.admin ?? crawlActivity?.admin { NSWorkspace.shared.open(url) }
-    }
-    @objc func openArchiveBoxClient() {
-        if let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "io.archivebox.ArchiveBox"),
-           FileManager.default.fileExists(atPath: app.path) { NSWorkspace.shared.open(app) }
-        else { NSWorkspace.shared.open(URL(string: "https://apps.apple.com/app/id6769185501")!) }
+    @objc func adminInBrowser() { openClientOrBrowser(admin: true) }
+    @objc func openArchiveBoxClient() { openClientOrBrowser(admin: false) }
+
+    private func openClientOrBrowser(admin: Bool) {
+        let workspace = NSWorkspace.shared
+        // Prefer the installed copy over development builds registered with Launch Services.
+        let installed = [FileManager.default.homeDirectoryForCurrentUser.appending(path: "Applications/ArchiveBox.app"),
+                         URL(fileURLWithPath: "/Applications/ArchiveBox.app")]
+        let app = installed.first { FileManager.default.fileExists(atPath: $0.path) }
+            ?? workspace.urlForApplication(withBundleIdentifier: "io.archivebox.ArchiveBox")
+        if let app, FileManager.default.fileExists(atPath: app.path) {
+            if admin {
+                workspace.open([URL(string: "archivebox://admin")!], withApplicationAt: app,
+                               configuration: NSWorkspace.OpenConfiguration())
+            } else { workspace.open(app) }
+        } else if let url = settings.serverDetails?.admin ?? crawlActivity?.admin {
+            workspace.open(url)
+        } else { workspace.open(runtime.address) }
     }
     @objc func toggleArchiving() {
         guard menuRefresh == nil, !changingArchiving, !settings.managementBusy, !settings.restarting, settings.ready else { return }

@@ -28,5 +28,6 @@ info.update(ArchiveBoxImageVersion=config['config']['Labels']['org.opencontainer
             ArchiveBoxImageDigest=image['digest'], ArchiveBoxKernelVersion=kernel_version,
             CFBundleVersion=os.environ.get('ARCHIVEBOX_BUILD_NUMBER', '1'),
             SUPublicEDKey=os.environ.get('ARCHIVEBOX_SPARKLE_PUBLIC_KEY', ''))
-info['CFBundleShortVersionString'] = info['ArchiveBoxImageVersion']
+# App releases advance independently of the pinned ArchiveBox engine image.
+info['CFBundleShortVersionString'] = os.environ.get('ARCHIVEBOX_APP_VERSION', info['ArchiveBoxImageVersion'])
 plist.write_bytes(plistlib.dumps(info))

@@ -33,7 +33,7 @@ import Testing
     #expect(SharedLinks.extract(from: "https://example.com https://example.com").count == 1)
 }
 
-@Test func existingConnectionsRemainReadableWhenAddingPersonas() throws {
+@Test func configurationsRoundTripWithAnOptionalPersona() throws {
     let stored = Data(#"{"server":"https://archive.example","token":"test-only"}"#.utf8)
     let configuration = try JSONDecoder().decode(ServerConfiguration.self, from: stored)
     #expect(configuration.persona == nil)

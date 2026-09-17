@@ -1,4 +1,6 @@
+import ArchiveBoxCore
 import Foundation
+import WebKit
 
 // Integration check against an installed, running companion and its real collection.
 // No fixture users or substitute processes: create one temporary account, check
@@ -6,20 +8,22 @@ import Foundation
 @main struct ManagementAcceptance {
     enum Failure: Error { case assertion }
     static func check(_ condition: Bool, line: Int = #line) throws {
-        if !condition { throw CommandFailure(message: "Acceptance assertion failed at line \(line)") }
+        if !condition { throw ArchiveBoxError.message("Acceptance assertion failed at line \(line)") }
     }
-    static func main() async throws {
+    @MainActor static func main() async throws {
         guard CommandLine.arguments.count == 2 else {
             fatalError("Pass the installed ArchiveBox Server.app path")
         }
         let runtime = Runtime(resources: URL(fileURLWithPath: CommandLine.arguments[1]).appending(path: "Contents/Resources"))
         let before = try runtime.management()
-        guard !before.hasAdmin else { throw CommandFailure(message: "Run this first-admin acceptance check on a collection without an admin.") }
+        guard !before.hasAdmin else { throw ArchiveBoxError.message("Run this first-admin acceptance check on a collection without an admin.") }
         try check(before.base.absoluteString == "http://archivebox.localhost:18080")
         try check(before.admin.absoluteString == "http://admin.archivebox.localhost:18080/admin/")
         try check(before.api.absoluteString == "http://api.archivebox.localhost:18080")
         let name = "settings-acceptance-" + UUID().uuidString
         let password = UUID().uuidString + UUID().uuidString
+        let originalKey = try runtime.browserAPIKey()
+        var sessionKey = ""
         let created = try runtime.management(username: name, email: "acceptance@example.invalid", password: password)
         let user = created.users.first { $0.username == name }!
         defer {
@@ -28,7 +32,12 @@ import Foundation
             let cleanup = "import sys,json; from django.contrib.auth import get_user_model; from django.contrib.sessions.models import Session; get_user_model().objects.filter(pk=\(user.id), username='\(name)').delete(); Session.objects.filter(session_key=json.load(sys.stdin)['session']).delete()"
             do {
                 _ = try runtime.command(["exec", "--interactive", runtime.name, "/app/bin/docker_entrypoint.sh", "archivebox", "manage", "shell", "-c", cleanup], logOutput: false,
-                                        input: JSONSerialization.data(withJSONObject: ["session": created.session?.value ?? ""]))
+                                        input: JSONSerialization.data(withJSONObject: ["session": sessionKey]))
+                if let originalKey { try runtime.browserAPIKey(save: originalKey) }
+                else {
+                    try KeychainItem(service: "io.archivebox.Server.browser-api-key",
+                                     account: runtime.collectionDirectory.standardizedFileURL.path).clear()
+                }
                 let after = try runtime.management()
                 try check(after.users.count == before.users.count)
             } catch { fatalError("Test account cleanup failed: \(error)") }
@@ -49,16 +58,22 @@ import Foundation
                                          input: JSONSerialization.data(withJSONObject: ["username": name, "password": password]))
         try check(result.contains("AUTHENTICATION_OK"))
         try check(created.hasAdmin)
-        guard let cookie = created.loginCookie else { throw Failure.assertion }
+        guard let token = try runtime.browserAPIKey() else { throw Failure.assertion }
+        let authentication = BrowserAuthentication()
+        try await authentication.authenticate(server: created.api, token: token)
+        guard let cookie = await authentication.dataStore.httpCookieStore.allCookies().first(where: {
+            $0.name.hasPrefix("archivebox_sessionid_")
+        }) else { throw Failure.assertion }
+        sessionKey = cookie.value
         try check(cookie.isHTTPOnly)
         try check(!cookie.isSecure)
         try check(cookie.domain == created.admin.host)
         let http = URLSession(configuration: .ephemeral)
-        http.configuration.httpCookieStorage?.setCookie(cookie)
         defer { http.invalidateAndCancel() }
         for url in [created.admin, created.shortcuts.host, created.shortcuts.personas, created.shortcuts.api, created.shortcuts.logs,
                     URL(string: "/progress.json", relativeTo: created.admin)!.absoluteURL] {
-            let request = URLRequest(url: url)
+            var request = URLRequest(url: url)
+            request.setValue("\(cookie.name)=\(cookie.value)", forHTTPHeaderField: "Cookie")
             let (data, response) = try await http.data(for: request)
             try check((response as? HTTPURLResponse)?.statusCode == 200)
             try check(response.url?.path.contains("/login/") == false)
@@ -67,11 +82,11 @@ import Foundation
         do {
             _ = try runtime.management(username: name, password: password)
             throw Failure.assertion
-        } catch let error as CommandFailure { try check(error.message.lowercased().contains("already exists")) }
+        } catch let error as ArchiveBoxError { try check(error.localizedDescription.lowercased().contains("already exists")) }
         do {
             _ = try runtime.management(username: "invalid user name", password: password)
             throw Failure.assertion
-        } catch is CommandFailure { }
+        } catch is ArchiveBoxError { }
         let log = try String(contentsOf: runtime.home.appending(path: "desktop.log"), encoding: .utf8)
         try check(!log.contains(password))
         try check(!log.contains(cookie.value))

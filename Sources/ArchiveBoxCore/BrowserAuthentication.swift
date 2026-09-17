@@ -53,6 +53,16 @@ import WebKit
         try await task.value
     }
 
+    public func sidebarProgress(server: URL, token: String) async throws -> SidebarProgress {
+        try await authenticate(server: server, token: token)
+        guard let session else { throw ArchiveBoxError.message("The admin session is unavailable.") }
+        let origin = try ServerAddress.normalize(session.admin_url.absoluteString)
+        guard !session.cookie.secure || origin.scheme == "https" else {
+            throw ArchiveBoxError.message("The admin session requires HTTPS.")
+        }
+        return try await client.sidebarProgress(server: origin, cookie: "\(session.cookie.name)=\(session.cookie.value)")
+    }
+
     public func clear() async {
         generation = UUID()
         pending?.cancel(); pending = nil; credentials = nil; session = nil

@@ -5,7 +5,9 @@ set -euo pipefail
 [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo 'Invalid app version'; exit 1; }
 [[ "$RELEASE_PLATFORM" =~ ^(both|iOS|macOS)$ ]] || { echo 'Invalid platform'; exit 1; }
 # Reruns must not collide with a build still processing at Apple.
-export RELEASE_BUILD="$((100 + GITHUB_RUN_NUMBER)).${GITHUB_RUN_ATTEMPT}"
+build_base="$((100 + GITHUB_RUN_NUMBER))"
+if [[ -n "${RELEASE_REF:-}" ]]; then build_base=$(node -p 'require("./release.json").build'); fi
+export RELEASE_BUILD="$build_base.${GITHUB_RUN_ATTEMPT}"
 export ASC_KEY_PATH="$RUNNER_TEMP/ArchiveBox-AuthKey.p8"
 previous_umask=$(umask)
 umask 077

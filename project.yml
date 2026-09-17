@@ -45,7 +45,6 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: ArchiveBox
-        ArchiveBoxTeamIdentifier: '$(DEVELOPMENT_TEAM)'
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         UILaunchScreen: {}
         UIApplicationSceneManifest:
@@ -139,6 +138,9 @@ targets:
       properties:
         CFBundleDisplayName: ArchiveBox
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
+        CFBundleURLTypes:
+          - CFBundleURLName: io.archivebox.navigation
+            CFBundleURLSchemes: [archivebox]
         LSApplicationCategoryType: public.app-category.utilities
         NSServices:
           - NSMenuItem:

@@ -1,6 +1,10 @@
 import Foundation
 
 public enum ServerAddress {
+    // Client discovery and the optional companion must agree on the local origins.
+    public static let localServer = URL(string: "http://archivebox.localhost:18080")!
+    public static let localAPI = URL(string: "http://api.archivebox.localhost:18080")!
+
     /// Pasted admin/API links are normalized to the server origin, as in the browser extension.
     public static func normalize(_ input: String) throws -> URL {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)

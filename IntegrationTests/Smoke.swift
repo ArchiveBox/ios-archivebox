@@ -20,6 +20,13 @@ struct IntegrationChecks {
         print("PASS: invalid key rejected")
         try await client.testToken(server: server, token: token)
         print("PASS: real API key validated")
+        let session = try await client.browserSession(server: server, token: token)
+        guard !session.cookie.value.isEmpty, session.cookie.expires > Date().timeIntervalSince1970 else {
+            fatalError("Server returned an invalid browser session")
+        }
+        let admin = try ServerAddress.normalize(session.admin_url.absoluteString)
+        _ = try await client.sidebarProgress(server: admin, cookie: "\(session.cookie.name)=\(session.cookie.value)")
+        print("PASS: API key exchanged for a working admin session and collection activity")
         let personas = try await client.personas(server: server, token: token)
         let selectedPersona = env["ARCHIVEBOX_TEST_PERSONA"]
         if let selectedPersona {

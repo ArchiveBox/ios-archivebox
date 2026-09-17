@@ -28,7 +28,7 @@ struct LocalServerSection: View {
                 else { ProgressView() }
                 Button("Cancel") { model.localServer.cancel() }
             }
-            Text("ArchiveBox Server runs in the menu bar and keeps your archive on this Mac. Open its Settings to create an administrator, then use Get Key below to configure sharing. Closing this app does not stop the server. Nothing is downloaded until you choose Download.")
+            Text("ArchiveBox Server runs in the menu bar and keeps your archive on this Mac. Open its Settings to create an administrator, then use Get Key below to configure sharing. Closing this app does not stop the server.")
                 .foregroundStyle(.secondary)
             if let error = model.localServer.error ?? model.serverError { Text(error).foregroundStyle(.red) }
         }

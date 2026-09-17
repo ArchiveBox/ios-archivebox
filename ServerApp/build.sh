@@ -11,12 +11,17 @@ if [[ -z "$signing_identity" || "$signing_identity" == "-" ]]; then
 fi
 assets="${ARCHIVEBOX_SERVER_ASSETS:-$PWD}"
 app="${1:-$PWD/dist/ArchiveBox Server.app}"
+case "$app" in
+    "$HOME/Applications/"*|/Applications/*)
+        echo 'Build into dist; use install-local.sh to safely update an installed companion.' >&2
+        exit 1 ;;
+esac
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 ditto "$assets/vendor/package/Payload" "$app/Contents/Resources/runtime"
 cp "$assets/payload/images.tar" "$assets/payload/vmlinux" "$app/Contents/Resources/"
 cp "$assets/vendor/container/LICENSE" "$app/Contents/Resources/APPLE-CONTAINER-LICENSE"
 swift build --build-system native --arch arm64 -c release -Xlinker -rpath -Xlinker @executable_path/../Frameworks
-cp .build/release/ArchiveBox "$app/Contents/MacOS/ArchiveBoxServer"
+cp .build/release/ArchiveBoxServer "$app/Contents/MacOS/ArchiveBoxServer"
 ditto .build/release/SwiftTerm_SwiftTerm.bundle "$app/Contents/Resources/SwiftTerm_SwiftTerm.bundle"
 cp -f .build/checkouts/SwiftTerm/LICENSE "$app/Contents/Resources/SWIFTTERM-LICENSE"
 sparkle="$PWD/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
@@ -27,6 +32,8 @@ for component in XPCServices/Downloader.xpc XPCServices/Installer.xpc Autoupdate
     codesign --force --options runtime --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework/Versions/B/$component"
 done
 codesign --force --options runtime --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework"
+# Share the client's browser logos and branding with the companion's Clients section.
+xcrun actool ../App/Assets.xcassets --compile "$app/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --output-format human-readable-text
 # Reuse the client's branding without depending on an Xcode client build.
 iconset="$PWD/.build/ArchiveBox.iconset"
 mkdir -p "$iconset"

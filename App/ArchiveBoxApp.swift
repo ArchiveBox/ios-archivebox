@@ -1,8 +1,6 @@
 import SwiftUI
 import UserNotifications
-#if os(macOS)
 import ArchiveBoxCore
-#endif
 
 @main
 struct ArchiveBoxApp: App {
@@ -11,18 +9,29 @@ struct ArchiveBoxApp: App {
     #endif
     @State private var settings = SettingsModel()
     @State private var settingsNavigationID = UUID()
+    @State private var addNavigationID = UUID()
 
     var body: some Scene {
         #if os(macOS)
         // A Window scene has one identity; openWindow focuses it instead of creating another.
         Window("ArchiveBox", id: "main") {
-            MainView(settings: settings, settingsNavigationID: settingsNavigationID)
+            MainView(settings: settings, settingsNavigationID: settingsNavigationID, addNavigationID: addNavigationID)
                 .task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) }
         }
         .defaultSize(width: 800, height: 760)
         .windowResizability(.contentMinSize)
         .commands {
-            CommandGroup(replacing: .newItem) {}
+            CommandGroup(replacing: .newItem) {
+                OpenAddURLs(navigationID: $addNavigationID)
+            }
+            CommandGroup(replacing: .appInfo) {
+                Button("About ArchiveBox") { AppInformation.showAbout() }
+            }
+            CommandGroup(replacing: .help) {
+                ForEach(AppInformation.links, id: \.url) { link in
+                    Link(link.title, destination: link.url)
+                }
+            }
             CommandGroup(replacing: .appSettings) {
                 OpenConnectionSettings(navigationID: $settingsNavigationID)
             }
@@ -108,6 +117,21 @@ final class ArchiveBoxServices: NSObject, NSApplicationDelegate, UNUserNotificat
                 }
             }
         }
+    }
+}
+#endif
+
+#if os(macOS)
+private struct OpenAddURLs: View {
+    @Environment(\.openWindow) private var openWindow
+    @Binding var navigationID: UUID
+    var body: some View {
+        Button("Add New URLs…", systemImage: "plus") {
+            navigationID = UUID()
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        .keyboardShortcut("n", modifiers: .command)
     }
 }
 #endif

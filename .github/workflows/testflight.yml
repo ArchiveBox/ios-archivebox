@@ -1,5 +1,16 @@
 name: TestFlight
 on:
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        default: both
+      version:
+        type: string
+        required: true
+      ref:
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       platform:
@@ -30,10 +41,14 @@ jobs:
       APPLE_TEAM_ID: Q3VA4FKRSA
       ASC_APP_ID: '6769185501'
       ASC_GROUP_ID: b81f9549-9f73-4e34-8204-14589fd2f58a
+      ASC_PUBLIC_GROUP_ID: ${{ vars.ASC_PUBLIC_GROUP_ID }}
+      RELEASE_REF: ${{ inputs.ref }}
       RELEASE_PLATFORM: ${{ inputs.platform || 'both' }}
       RELEASE_VERSION: ${{ inputs.version || '1.0' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

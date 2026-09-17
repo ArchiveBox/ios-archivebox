@@ -17,13 +17,13 @@ struct ShareView: View {
                     } description: {
                         Text(count == 1 ? "Your server accepted the link for archiving." : "Your server accepted \(count) links for archiving.")
                     } actions: {
-                        Button("Done", action: finish).buttonStyle(.glassProminent)
+                        Button("Done", action: finish).buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
                     }
                 case .failed(let message):
                     ContentUnavailableView {
                         Label("Couldn’t save link", systemImage: "exclamationmark.circle")
                     } description: { Text(message) } actions: {
-                        Button("Close", action: finish).buttonStyle(.glass)
+                        Button("Close", action: finish).buttonStyle(.glass).keyboardShortcut(.cancelAction)
                     }
                 case .ready, .sending:
                     Form {
@@ -34,7 +34,9 @@ struct ShareView: View {
                         }
                         Section("Save to") {
                             Label(model.configuration?.server.absoluteString ?? "ArchiveBox", systemImage: "server.rack")
+                                .accessibilityLabel("Server: \(model.configuration?.server.absoluteString ?? "ArchiveBox")")
                             Label(model.configuration?.persona ?? "Server default", systemImage: "person.crop.circle")
+                                .accessibilityLabel("Persona: \(model.configuration?.persona ?? "Server default")")
                         }
                         Section {
                             if model.state == .sending { ProgressView("Sending to your server…") }

@@ -136,13 +136,6 @@ private struct TokenResponse: Decodable {
     let success: Bool?
     let userID: String?
     enum CodingKeys: String, CodingKey { case success; case userID = "user_id" }
-    init(from decoder: any Decoder) throws {
-        let values = try decoder.container(keyedBy: CodingKeys.self)
-        success = try values.decodeIfPresent(Bool.self, forKey: .success)
-        if let id = try? values.decode(String.self, forKey: .userID) { userID = id }
-        else if let id = try? values.decode(Int.self, forKey: .userID) { userID = String(id) }
-        else { userID = nil }
-    }
 }
 public struct ServerPersona: Decodable, Sendable, Identifiable {
     public let id: String
@@ -159,11 +152,10 @@ private struct AddResponse: Decodable {
     let result: SubmissionReceipt?
 }
 public struct SubmissionReceipt: Decodable, Sendable {
-    public let snapshotIDs: [String]?
     public let crawlID: String?
     public let queuedURLs: [String]?
     enum CodingKeys: String, CodingKey {
-        case snapshotIDs = "snapshot_ids", crawlID = "crawl_id", queuedURLs = "queued_urls"
+        case crawlID = "crawl_id", queuedURLs = "queued_urls"
     }
 
     func confirms(urls: [URL]) -> Bool {
@@ -172,7 +164,7 @@ public struct SubmissionReceipt: Decodable, Sendable {
         if let crawlID, !crawlID.isEmpty, let queuedURLs {
             return Set(urls.map(\.absoluteString)).isSubset(of: Set(queuedURLs))
         }
-        return (snapshotIDs?.count ?? 0) >= urls.count
+        return false
     }
 }
 

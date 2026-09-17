@@ -5,7 +5,7 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSWindowDelegate, WKNavigationDelegate, NSMenuDelegate {
-    enum Screen: String, CaseIterable { case archive = "Admin", activity = "Activity", shell = "Shell", users = "Users", settings = "Settings" }
+    enum Screen: String, CaseIterable { case users = "Clients", activity = "Activity", archive = "Admin", shell = "Shell", settings = "Settings" }
     let runtime = Runtime()
     let browserAuthentication = BrowserAuthentication()
     var window: NSWindow!
@@ -38,37 +38,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         menuBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         menuBarItem.button?.image = NSImage(systemSymbolName: "archivebox", accessibilityDescription: "ArchiveBox Server")
         configureServerMenu()
-        let menu = NSMenu()
-        let item = NSMenuItem()
-        let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
-        appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit ArchiveBox Server", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        item.submenu = appMenu
-        menu.addItem(item)
-        let viewItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
-        let viewMenu = NSMenu(title: "View")
-        viewMenu.addItem(withTitle: "Admin", action: #selector(showArchive), keyEquivalent: "1")
-        viewMenu.addItem(withTitle: "Activity", action: #selector(showActivity), keyEquivalent: "2")
-        viewMenu.addItem(withTitle: "Shell", action: #selector(showShell), keyEquivalent: "3")
-        viewMenu.addItem(withTitle: "Users", action: #selector(showUsers), keyEquivalent: "4")
-        viewMenu.addItem(withTitle: "Settings", action: #selector(showSettings), keyEquivalent: "5")
-        viewMenu.addItem(withTitle: "Back", action: #selector(goBack), keyEquivalent: "[")
-        viewMenu.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "r")
-        viewMenu.addItem(withTitle: "Open Data Folder", action: #selector(openData), keyEquivalent: "")
-        viewItem.submenu = viewMenu
-        menu.addItem(viewItem)
-        let editItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
-        let editMenu = NSMenu(title: "Edit")
-        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
-        editItem.submenu = editMenu
-        menu.addItem(editItem)
-        NSApp.mainMenu = menu
+        configureNativeMenus()
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1180, height: 850),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "ArchiveBox Server"
+        window.titleVisibility = .hidden
         window.delegate = self
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 820, height: 760)
@@ -82,33 +56,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         let webConfiguration = WKWebViewConfiguration()
         webConfiguration.websiteDataStore = browserAuthentication.dataStore
         web = WKWebView(frame: window.contentView!.bounds, configuration: webConfiguration)
+        web.setAccessibilityLabel("ArchiveBox administration")
         web.navigationDelegate = self
         web.autoresizingMask = [.width, .height]
         let activityConfiguration = WKWebViewConfiguration()
         activityConfiguration.websiteDataStore = web.configuration.websiteDataStore
-        // The bundled server renders this component inside its admin page, not
-        // at a standalone /live-progress/ route. Preserve the original component,
-        // styles and polling code while removing the surrounding page chrome.
-        activityConfiguration.userContentController.addUserScript(WKUserScript(source: #"""
-        const monitor = document.getElementById('progress-monitor');
-        if (monitor) {
-            document.querySelectorAll('body style').forEach(style => document.head.append(style));
-            const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]');
-            if (monitor.classList.contains('collapsed')) document.getElementById('progress-collapse')?.click();
-            document.body.replaceChildren(monitor);
-            if (csrf) document.body.append(csrf);
-            const style = document.createElement('style');
-            style.textContent = `html,body{margin:0!important;padding:0!important;background:#0d1117!important}
-                #progress-monitor{display:block!important;min-height:100vh}
-                #progress-monitor .progress-content{display:flex!important}
-                #progress-monitor .tree-container{max-height:calc(100vh - 80px)!important}
-                #progress-monitor .header-bar{pointer-events:none}
-                #progress-collapse{display:none!important}`;
-            document.head.append(style);
-        }
-        """#, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        activityConfiguration.userContentController.addUserScript(EmbeddedPage.script(activity: true))
         activity = WKWebView(frame: web.frame, configuration: activityConfiguration)
         activity.autoresizingMask = [.width, .height]
+        activity.setAccessibilityLabel("Archiving activity")
         activity.navigationDelegate = self
         settingsView = NSHostingView(rootView: SettingsView(model: settings))
         shellView = NSHostingView(rootView: ShellView(model: settings))
@@ -154,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
             tabs.selectedSegment = screens.firstIndex(of: selectedScreen) ?? 0
             if !details.hasAdmin { selectTab(selectedScreen) }
             if details.hasAdmin, web.url == nil { web.load(URLRequest(url: details.admin)) }
-            viewMenu.items.filter { ["Admin", "Activity", "Shell", "Users"].contains($0.title) }.forEach { $0.isHidden = !details.hasAdmin }
+            NSApp.mainMenu?.item(withTitle: "View")?.submenu?.items.filter { ["Admin", "Activity", "Shell", "Clients"].contains($0.title) }.forEach { $0.isHidden = !details.hasAdmin }
         }
         window.contentView = settingsView
         selectTab(.settings)
@@ -174,11 +130,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         }
     }
 
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .init("status"), .init("baseURL"), .init("metrics")] }
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .flexibleSpace, .init("status"), .init("baseURL"), .init("metrics")] }
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.init("brand"), .flexibleSpace, .init("tabs"), .init("status"), .init("baseURL"), .init("metrics")] }
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.init("brand"), .flexibleSpace, .init("tabs"), .flexibleSpace, .init("status"), .init("baseURL"), .init("metrics")] }
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier id: NSToolbarItem.Identifier, willBeInsertedIntoToolbar: Bool) -> NSToolbarItem? {
         let item = NSToolbarItem(itemIdentifier: id)
         switch id.rawValue {
+        case "brand":
+            item.view = NSHostingView(rootView: ServerToolbarBrand())
+            item.label = "ArchiveBox Server"
         case "status":
             item.view = NSHostingView(rootView: ServerToolbarStatus(model: settings))
             item.label = "Server status"
@@ -197,6 +156,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         }
         guard id.rawValue == "tabs" else { return nil }
         tabs = NSSegmentedControl(labels: ["Settings"], trackingMode: .selectOne, target: self, action: #selector(changeTab))
+        tabs.setAccessibilityLabel("Server screens")
         tabs.segmentStyle = .automatic
         tabs.selectedSegment = 0
         tabs.setWidth(0, forSegment: 0)
@@ -245,7 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showSettings(); return true
     }
-    func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
         if webView === activity, action.navigationType == .linkActivated, let url = action.request.url {
             openArchive(url); decisionHandler(.cancel)
         } else { decisionHandler(.allow) }

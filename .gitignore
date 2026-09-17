@@ -1,9 +1,6 @@
 .build/
 build-*/
 build/
-build-device/
-build-mac/
-build-direct/
 DerivedData/
 *.xcuserstate
 xcuserdata/

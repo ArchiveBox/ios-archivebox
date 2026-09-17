@@ -2,6 +2,14 @@
 
 A small SwiftUI app for iPhone, iPad, and Mac: configure your **ArchiveBox 0.9.x+** server, browse its admin UI, and save links through the system share sheet. Uses Swift 6 and standard Liquid Glass controls on iOS/iPadOS/macOS 26+. The same project also bundles the existing WXT Safari extension.
 
+## Downloads and beta testing
+
+Download both notarized Mac apps from [GitHub Releases](https://github.com/ArchiveBox/ios-archivebox/releases).
+For iPhone, iPad or Mac, [join the public TestFlight beta](https://testflight.apple.com/join/wUG6DS6z)
+(builds appear after Apple's external beta review).
+Significant pushes to `main` automatically bump, build and publish both apps;
+see [release automation](docs/RELEASES.md).
+
 ## Use
 
 The app opens in **Connection Settings**. The adaptive sidebar keeps **Add URLs**
@@ -51,7 +59,7 @@ Browser/GitHub SVG marks are from Font Awesome Free 6.7.2 (CC BY 4.0; see
 
 Enable ArchiveBox in Safari’s Extensions settings (on iOS: Settings → Apps → Safari → Extensions). Configure the server and API key either in extension options or the native app. An extension-configured connection takes precedence; with its server field cleared, Safari automatically reads the app connection. Server/key pairs are never mixed. An unavailable app connection does not block extension options. The native default persona applies to the system share sheet; the browser extension retains its own persona controls and existing behavior.
 
-Apple packaging lives entirely here. `scripts/prepare-safari.mjs` builds a pinned revision of [archivebox-browser-extension](https://github.com/ArchiveBox/archivebox-browser-extension) in an ignored build directory. A small checked build patch connects its settings reader to native messaging and leaves the shared extension options editable. The upstream repository remains extension-focused; its options button uses the standard runtime API on every browser.
+Apple packaging lives entirely here. `scripts/prepare-safari.mjs` builds a pinned revision of [archivebox-browser-extension](https://github.com/ArchiveBox/archivebox-browser-extension) from its separate sibling checkout. The sibling extension checkout owns all WXT/JavaScript and manifest permissions; packaging copies its unmodified Safari output. It never patches extension source. Set `ARCHIVEBOX_EXTENSION_SOURCE=/path/to/checkout` explicitly for local extension development; otherwise the checkout must match the pinned clean revision. A missing checkout is cloned beside this repo, never inside it.
 
 The native app, share extension, and Safari native handler share one Keychain access group. Safari reads the current connection through its native handler without persisting a second copy of the token. App credentials are optional; explicit extension settings work independently. Changing the extension server clears its key to prevent sending credentials to a different host.
 
@@ -78,14 +86,28 @@ Both platform apps use `io.archivebox.ArchiveBox`, with `.Share` and `.Safari` e
 
 ## Architecture
 
-- `Sources/ArchiveBoxCore`: shared API discovery, authentication, persona listing, submission, link parsing, and Keychain configuration.
-- `App`: shared SwiftUI Settings/Archive screens, using system forms, adaptive tabs/sidebar, glass controls, and the native WebKit `WebView`/`WebPage` APIs.
+- `Sources/ArchiveBoxCore`: shared API discovery/submission, browser authentication/presentation, Keychain storage, process execution, links, and app information.
+- `App`: client navigation (`MainView`), connection settings, Add URLs, sidebar status, and cached embedded pages (`EmbeddedBrowser`). Uses system forms, adaptive sidebar, glass controls, and native WebKit APIs.
+- `MacLocalUI`: client-only companion discovery/download UI.
+- `ServerApp`: the independent menu-bar companion; runtime/management/inspection are separate from settings state and views. Both apps compile in Swift 6 mode.
 - `ShareExtension`: shared SwiftUI sheet/model plus thin UIKit host.
 - `MacShareExtension`: thin AppKit host for the same sheet/model.
-- `SafariWebExtension`: native messaging handler and automatic connection reader; generated WXT resources are ignored.
+- `SafariWebExtension`: native Swift messaging handler and Apple entitlements; generated WXT resources are ignored. The JavaScript reader lives only in the extension repo.
 - `project.yml`: reproducible platform targets, entitlements, and bundle identifiers.
 
-Native API requests stay on the verified origin; all redirects are rejected, including token-validation JSON bodies. The API client uses no persistent cookies/caches, tokens in URLs/logs, automatic HTTPS downgrade, or certificate-validation bypass. The Archive web view uses normal website navigation and persistent WebKit cookies/storage, separately from the native API key. ATS permits explicitly configured HTTP self-hosted servers; HTTPS is the default. Review this justification for App Store submission.
+Native API requests stay on the verified origin; all redirects are rejected, including token-validation JSON bodies. The API client uses no persistent cookies/caches, tokens in URLs/logs, automatic HTTPS downgrade, or certificate-validation bypass. Embedded pages and sidebar activity share the in-memory browser session returned for the API key; browser cookies/storage are not persisted. ATS permits explicitly configured HTTP self-hosted servers; HTTPS is the default. Review this justification for App Store submission.
+
+There are exactly two shipping apps: ArchiveBox and ArchiveBox Server. iOS/macOS
+client targets and the direct-download scheme are platform/distribution variants,
+not separate products. Share/Safari targets are embedded extensions. `UITests`,
+`Tests`, `IntegrationTests`, and `ServerApp/Tests` are verification code, never
+bundled app entrypoints. Xcode may install an `ArchiveBoxUITests-Runner` during UI
+testing; remove it afterward with `xcrun simctl uninstall DEVICE_ID io.archivebox.ArchiveBoxUITests.xctrunner`.
+
+Canonical local outputs are `build` (iOS), `build-direct` (Mac client), `.build`
+(Swift package checks), and `ServerApp/dist` (companion). Do not retain ad-hoc
+`build-*` copies after their checks finish. Server payload/vendor directories are
+prepared dependencies, not legacy builds or collection data.
 
 ## Verification
 

@@ -1,5 +1,5 @@
+import ArchiveBoxCore
 import Foundation
-import Security
 
 struct ServerUser: Decodable, Identifiable, Sendable {
     let id: Int
@@ -29,29 +29,10 @@ extension Runtime {
     @discardableResult
     func browserAPIKey(save token: String? = nil) throws -> String? {
         // Scope credentials to the collection, not its editable hostname/port.
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "io.archivebox.Server.browser-api-key",
-            kSecAttrAccount as String: collectionDirectory.standardizedFileURL.path]
-        if let token {
-            let data = Data(token.utf8)
-            var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-            if status == errSecItemNotFound {
-                status = SecItemAdd(query.merging([kSecValueData as String: data,
-                    kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly]) { _, new in new } as CFDictionary, nil)
-            }
-            guard status == errSecSuccess else { throw CommandFailure(message: "Could not save the server API key in Keychain (\(status)).") }
-            return token
-        }
-        var lookup = query
-        lookup[kSecReturnData as String] = true
-        lookup[kSecMatchLimit as String] = kSecMatchLimitOne
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(lookup as CFDictionary, &result)
-        if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess, let data = result as? Data else {
-            throw CommandFailure(message: "Could not read the server API key from Keychain (\(status)).")
-        }
-        return String(data: data, encoding: .utf8)
+        let item = KeychainItem(service: "io.archivebox.Server.browser-api-key",
+                               account: collectionDirectory.standardizedFileURL.path)
+        if let token { try item.save(Data(token.utf8)); return token }
+        return try item.load().map { String(decoding: $0, as: UTF8.self) }
     }
 
     func management(username: String? = nil, email: String = "", password: String = "") throws -> ServerDetails {
@@ -89,6 +70,9 @@ extension Runtime {
                     token = APIToken.objects.create(created_by=owner, expires=None).token
             admin = get_admin_base_url()
             machine = Machine.current()
+            from archivebox.machine.admin import MachineAdmin
+            # Django anchors fieldset headings by index; derive it so field reordering stays safe.
+            config_section = next(i for i, (_, options) in enumerate(MachineAdmin.fieldsets) if 'config' in options['fields'])
             result = dict(base=get_base_url(), admin=get_admin_base_url() + '/admin/', api=get_api_base_url(),
                           # get_config resolves auto for localhost. Keep the user's
                           # configured choice in the editor, not that derived mode.
@@ -99,7 +83,7 @@ extension Runtime {
                                       is_staff=u.is_staff, is_active=u.is_active, has_password=u.has_usable_password())
                                  for u in User.objects.order_by('username')],
                           token=token, shortcuts=dict(
-                              host=admin + reverse('admin:machine_machine_change', args=[machine.pk]) + '#id_config',
+                              host=admin + reverse('admin:machine_machine_change', args=[machine.pk]) + f'#fieldset-0-{config_section}-heading',
                               personas=admin + reverse('admin:personas_persona_changelist'),
                               api=admin + reverse('admin:app_list', kwargs={'app_label': 'api'}),
                               logs=admin + '/admin/environment/logs/'))
@@ -117,11 +101,11 @@ extension Runtime {
         // Django may print its automatic-import banner before the result.
         let prefix = "ARCHIVEBOX_SETTINGS_JSON:"
         guard let line = output.split(separator: "\n").last(where: { $0.hasPrefix(prefix) }) else {
-            throw CommandFailure(message: "ArchiveBox did not return its settings. Check that the server is running.")
+            throw ArchiveBoxError.message("ArchiveBox did not return its settings. Check that the server is running.")
         }
         let data = Data(line.dropFirst(prefix.count).utf8)
         if let result = try JSONSerialization.jsonObject(with: data) as? [String: Any], let error = result["error"] as? String {
-            throw CommandFailure(message: error)
+            throw ArchiveBoxError.message(error)
         }
         if let result = try JSONSerialization.jsonObject(with: data) as? [String: Any], let token = result["token"] as? String {
             try browserAPIKey(save: token)
@@ -159,7 +143,7 @@ struct CrawlActivity: Decodable, Sendable {
 
 extension Runtime {
     func archiving(action: String = "status") throws -> CrawlActivity {
-        guard ["status", "pause", "resume"].contains(action) else { throw CommandFailure(message: "Unknown archiving action.") }
+        guard ["status", "pause", "resume"].contains(action) else { throw ArchiveBoxError.message("Unknown archiving action.") }
         let script = #"""
         import json, sys
         from archivebox.crawls.models import Crawl
@@ -189,7 +173,7 @@ extension Runtime {
                                  logOutput: false, input: JSONSerialization.data(withJSONObject: ["action": action]))
         let prefix = "ARCHIVEBOX_MENU_JSON:"
         guard let line = output.split(separator: "\n").last(where: { $0.hasPrefix(prefix) }) else {
-            throw CommandFailure(message: "ArchiveBox did not return archiving status.")
+            throw ArchiveBoxError.message("ArchiveBox did not return archiving status.")
         }
         return try JSONDecoder().decode(CrawlActivity.self, from: Data(line.dropFirst(prefix.count).utf8))
     }

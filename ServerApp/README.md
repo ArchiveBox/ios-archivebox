@@ -23,8 +23,7 @@ does not stop the companion.
 - Logs: `~/Library/Application Support/ArchiveBox Server/desktop.log`
 
 The bundled container always sets `OPENCODE_ENABLED=true`, including during
-initialization. Older app containers are recreated once to apply this immutable
-launch environment, preserving the mounted collection. Each newly created server container resolves
+initialization. Each newly created server container resolves
 the declared agent dependencies at runtime, without changing the bundled image. The client’s **AI Agent** screen
 opens `/admin/agent/`. Configure a model/provider in OpenCode if required; its
 credentials and sessions persist in the collection’s `opencode/` directory.
@@ -47,8 +46,8 @@ to copy), and plain CPU/RAM readings. Activity and Users show active snapshot an
 superuser counts. Resource readings refresh every 10 seconds while the window is
 open; CPU needs two samples. **HTTP, TLS, and DNS** provides BASE_URL and
 SERVER_SECURITY_MODE fields. **Apply & Restart** validates and saves both using
-ArchiveBox's config CLI, then recreates the container with the same data mount.
-This also removes old environment overrides that would mask saved config values.
+ArchiveBox's config CLI, then stops/starts the existing container. Its writable
+layer and mounted collection are preserved; bundle updates still recreate it.
 The `auto` choice stays automatic rather than becoming its currently derived mode.
 
 BASE_URL is the advertised origin, not a bind-address or certificate installer.
@@ -114,6 +113,12 @@ bash prepare.sh   # large downloads; build-machine step only
 bash build.sh   # requires uv for reading the packaged image metadata
 ```
 
+To rebuild and relaunch an existing developer installation, run
+`bash install-local.sh`. It reuses the installed runtime payload, signs and verifies
+a separate staged bundle, then atomically swaps it into `~/Applications` and keeps
+the previous bundle for rollback. Do not overwrite or re-sign an installed executable
+in place: a concurrent launch can otherwise crash with `CODESIGNING / Invalid Page`.
+
 For an existing verified preparation directory, use
 `ARCHIVEBOX_SERVER_ASSETS=/absolute/path/to/prepared/assets bash build.sh`.
 Build output is `dist/ArchiveBox Server.app`. Local builds select an installed
@@ -139,33 +144,15 @@ has not been verified.
 
 ## Publish the optional download
 
-```sh
-export ARCHIVEBOX_SIGNING_IDENTITY='Developer ID Application: ...'
-export ARCHIVEBOX_NOTARY_PROFILE='your-existing-notarytool-profile'
-# Generate once using .build/artifacts/sparkle/Sparkle/bin/generate_keys.
-# Keep its private key in Keychain; publish only the public key below.
-export ARCHIVEBOX_SPARKLE_PUBLIC_KEY='your-public-EdDSA-key'
-export ARCHIVEBOX_BUILD_NUMBER=2  # increase for every app release
-bash release.sh
-```
-
-This signs our app (preserving Apple's nested runtime signatures), submits it for
-notarization, staples the ticket, assesses it with Gatekeeper, and produces
-`dist/ArchiveBox-Server-arm64.zip` plus a SHA-256 file. Attach the ZIP to a stable
-GitHub release `server-<build number>` in **ArchiveBox/ios-archivebox**. The release
-script also generates/signs `dist/server-<build number>/appcast.xml` with Sparkle's
-own tool. Upload that file to the stable `server-updates` release (replacing its
-previous appcast). Do not overwrite ZIPs on versioned releases. The direct client reads GitHub's
-asset digest, verifies the ZIP and the ArchiveBox signing team, and requires a
-successful Gatekeeper assessment before installing into `~/Applications`.
-It never strips quarantine or bypasses a security warning. Existing installations
-are launched, not overwritten. Interrupted downloads remove only staging data.
+Push significant app or packaging changes to `main`; the **Release apps** workflow
+publishes both signed, notarized Mac apps together, updates the Sparkle feed, and
+sends the same commit to TestFlight. See [release automation](../docs/RELEASES.md)
+for versioning, credentials and retry instructions. The public companion asset is
+`ArchiveBox.Server.app.zip`; it is downloaded only when explicitly requested.
 
 The App Store client opens the release page for manual installation. The
 `ArchiveBoxMacDirect` scheme uses the same client source with automatic download
-support; archive it with ReleaseDirect. A separate distribution configuration is
-necessary because the App Store requires a sandbox and restricts downloading
-additional executable functionality. No new App Store listing is created.
+support and the ReleaseDirect configuration. No new App Store listing is created.
 
 ## Live management acceptance check
 
@@ -173,10 +160,7 @@ With the installed companion running and no sign-in-capable admin yet, run from
 this repository's root:
 
 ```sh
-swiftc -parse-as-library ServerApp/Sources/Runtime.swift \
-  ServerApp/Sources/Management.swift ServerApp/Tests/ManagementAcceptance.swift \
-  -o /tmp/archivebox-management-acceptance
-/tmp/archivebox-management-acceptance "$HOME/Applications/ArchiveBox Server.app"
+bash ServerApp/Tests/run.sh Management "$HOME/Applications/ArchiveBox Server.app"
 ```
 
 This creates a randomly named temporary admin through the same management code,
@@ -188,8 +172,5 @@ To verify HTTP settings against a running companion (temporarily changes its URL
 and security mode, restarts twice, and restores the original effective settings):
 
 ```sh
-swiftc -parse-as-library ServerApp/Sources/Runtime.swift \
-  ServerApp/Sources/Management.swift ServerApp/Tests/HTTPSettingsAcceptance.swift \
-  -o /tmp/archivebox-http-settings-acceptance
-/tmp/archivebox-http-settings-acceptance "$HOME/Applications/ArchiveBox Server.app"
+bash ServerApp/Tests/run.sh HTTPSettings "$HOME/Applications/ArchiveBox Server.app"
 ```

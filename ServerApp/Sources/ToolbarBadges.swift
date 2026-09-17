@@ -1,6 +1,20 @@
 import AppKit
 import SwiftUI
 
+struct ServerToolbarBrand: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            if let url = Bundle.main.url(forResource: "ArchiveBox", withExtension: "icns"),
+               let logo = NSImage(contentsOf: url) {
+                Image(nsImage: logo).resizable().scaledToFit().frame(width: 24, height: 24)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .accessibilityHidden(true)
+            }
+            Text("ArchiveBox Server").font(.system(size: 15, weight: .semibold))
+        }.fixedSize()
+    }
+}
+
 struct ServerToolbarStatus: View {
     @ObservedObject var model: SettingsModel
     var body: some View {
@@ -50,12 +64,18 @@ struct ServerToolbarMetrics: View {
                 Image(systemName: "cpu")
                 Text(model.ready ? model.cpu : "—")
                     .frame(width: 38, alignment: .trailing)
-            }.help("Container CPU; 100% is one core. Available after two samples.")
+            }.accessibilityElement(children: .ignore)
+                .accessibilityLabel("Container CPU")
+                .accessibilityValue(model.ready ? model.cpu : "Unavailable")
+                .help("Container CPU; 100% is one core. Available after two samples.")
             HStack(spacing: 4) {
                 Image(systemName: "memorychip")
                 Text(model.ready ? model.ram : "—")
                     .frame(width: 64, alignment: .trailing)
-            }.help("Container memory usage")
+            }.accessibilityElement(children: .ignore)
+                .accessibilityLabel("Container memory")
+                .accessibilityValue(model.ready ? model.ram : "Unavailable")
+                .help("Container memory usage")
         }
         .font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary).fixedSize()
     }

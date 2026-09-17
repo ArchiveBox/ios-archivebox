@@ -1,7 +1,7 @@
 import ArchiveBoxCore
 import Foundation
 
-// Shared by both executables; a future Safari native target can use the same store and client.
+// The client, share extension, and Safari native handler use the same verified connection.
 enum AppEnvironment {
     static var store: ConfigurationStore {
         configurationStore(account: "server")

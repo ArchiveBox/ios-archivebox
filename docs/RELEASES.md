@@ -35,7 +35,8 @@ Apple must approve external builds; successful upload is not public availability
 A TestFlight review failure does not unpublish the notarized Mac downloads.
 
 The `testflight` GitHub environment holds `ASC_KEY_ID`, `ASC_ISSUER_ID`,
-`ASC_PRIVATE_KEY`, `DEVELOPER_ID_P12` (base64), `DEVELOPER_ID_PASSWORD`, and
+`ASC_PRIVATE_KEY`, `DEVELOPER_ID_P12` (base64),
+`DEVELOPER_ID_PROFILES` (base64 tar.gz of the three Developer ID provisioning profiles), `DEVELOPER_ID_PASSWORD`, and
 `SPARKLE_PRIVATE_KEY` (base64 Ed25519 seed). Environment variables hold
 `SPARKLE_PUBLIC_KEY`, `ASC_PUBLIC_GROUP_ID`, and `TESTFLIGHT_PUBLIC_URL`.
 Release jobs are restricted to trusted main/tag refs. Private credentials are
@@ -45,3 +46,6 @@ are never attached to releases or cached with the server payload.
 The app version and engine image version are separate: the companion continues to
 show the actual packaged engine version/digest. Updating the engine is a pinned
 `ServerApp/prepare.sh` change, not an unverified pull of a mutable image tag.
+
+Developer ID export uses the imported identity and explicit profiles, not cloud
+Developer ID signing. Renew the certificate and all three profiles together.

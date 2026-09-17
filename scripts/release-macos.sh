@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-: "${DEVELOPER_ID_P12:?}" "${DEVELOPER_ID_PASSWORD:?}" "${SPARKLE_PRIVATE_KEY:?}" "${SPARKLE_PUBLIC_KEY:?}"
+: "${DEVELOPER_ID_PROFILES:?}" "${DEVELOPER_ID_P12:?}" "${DEVELOPER_ID_PASSWORD:?}" "${SPARKLE_PRIVATE_KEY:?}" "${SPARKLE_PUBLIC_KEY:?}"
 : "${ASC_PRIVATE_KEY:?}" "${ASC_KEY_ID:?}" "${ASC_ISSUER_ID:?}" "${RUNNER_TEMP:?}"
 credentials=$(mktemp -d "$RUNNER_TEMP/release-credentials.XXXXXX")
 keychain="$credentials/signing.keychain-db"
@@ -11,7 +11,10 @@ trap cleanup EXIT
  printf '%s' "$DEVELOPER_ID_P12" | /usr/bin/base64 --decode > "$credentials/signing.p12"
  printf '%s' "$ASC_PRIVATE_KEY" > "$credentials/AuthKey.p8"
  printf '%s' "$SPARKLE_PRIVATE_KEY" > "$credentials/sparkle.key")
-unset DEVELOPER_ID_P12 ASC_PRIVATE_KEY SPARKLE_PRIVATE_KEY
+profiles="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+mkdir -p "$profiles"
+printf '%s' "$DEVELOPER_ID_PROFILES" | /usr/bin/base64 --decode | tar -xzf - -C "$profiles"
+unset DEVELOPER_ID_PROFILES DEVELOPER_ID_P12 ASC_PRIVATE_KEY SPARKLE_PRIVATE_KEY
 security create-keychain -p "$DEVELOPER_ID_PASSWORD" "$keychain"
 security set-keychain-settings -lut 21600 "$keychain"
 security unlock-keychain -p "$DEVELOPER_ID_PASSWORD" "$keychain"
@@ -33,13 +36,17 @@ xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxMacDirect -configurat
  -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/ArchiveBox-direct.xcarchive" \
  DEVELOPMENT_TEAM=Q3VA4FKRSA -allowProvisioningUpdates \
  -authenticationKeyPath "$credentials/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive
-cat > "$credentials/export.plist" <<'PLIST'
+cat > "$credentials/export.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
-<plist version="1.0"><dict><key>method</key><string>developer-id</string><key>teamID</key><string>Q3VA4FKRSA</string><key>signingStyle</key><string>automatic</string><key>signingCertificate</key><string>Developer ID Application</string></dict></plist>
+<plist version="1.0"><dict><key>method</key><string>developer-id</string><key>teamID</key><string>Q3VA4FKRSA</string><key>signingStyle</key><string>manual</string><key>signingCertificate</key><string>$ARCHIVEBOX_SIGNING_IDENTITY</string>
+<key>provisioningProfiles</key><dict>
+<key>io.archivebox.ArchiveBox</key><string>ArchiveBox GitHub Developer ID</string>
+<key>io.archivebox.ArchiveBox.Share</key><string>ArchiveBox Share GitHub Developer ID</string>
+<key>io.archivebox.ArchiveBox.Safari</key><string>ArchiveBox Safari GitHub Developer ID</string>
+</dict></dict></plist>
 PLIST
 PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/ArchiveBox-direct.xcarchive" \
- -exportPath "$RUNNER_TEMP/ArchiveBox-direct" -exportOptionsPlist "$credentials/export.plist" -allowProvisioningUpdates \
- -authenticationKeyPath "$credentials/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+ -exportPath "$RUNNER_TEMP/ArchiveBox-direct" -exportOptionsPlist "$credentials/export.plist"
 bash ServerApp/build.sh
 for product in client server; do
  if [[ "$product" == client ]]; then app="$RUNNER_TEMP/ArchiveBox-direct/ArchiveBox.app"; zip="$PWD/dist/ArchiveBox.app.zip"

@@ -57,6 +57,7 @@ jobs:
       - name: Build, sign, notarize and verify both ZIPs
         if: steps.version.outputs.ready == 'true'
         env:
+          DEVELOPER_ID_PROFILES: ${{ secrets.DEVELOPER_ID_PROFILES }}
           DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
           DEVELOPER_ID_PASSWORD: ${{ secrets.DEVELOPER_ID_PASSWORD }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}

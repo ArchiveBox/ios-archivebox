@@ -15,3 +15,9 @@ ServerApp/vendor/
 ServerApp/payload/
 ServerApp/dist/
 ServerApp/.runtime/
+
+# Jekyll landing page
+docs/site/_site/
+docs/site/.bundle/
+docs/site/vendor/
+docs/site/.jekyll-cache/

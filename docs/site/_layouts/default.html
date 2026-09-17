@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="{{ site.lang | default: 'en' }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#9b2854">
+    {% seo %}
+    <link rel="icon" type="image/png" href="{{ '/App/AppIcon.icon/Assets/ArchiveBox.png' | relative_url }}">
+    <link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}">
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to content</a>
+    <header class="site-header">
+      <a class="wordmark" href="{{ '/' | relative_url }}" aria-label="ArchiveBox home"><img src="{{ '/App/AppIcon.icon/Assets/ArchiveBox.png' | relative_url }}" width="30" height="30" alt="">ArchiveBox<span>for Apple devices</span></a>
+      <nav aria-label="Main navigation"><a href="#your-server-your-choice">Server for Mac</a><a href="https://github.com/ArchiveBox/ios-archivebox">GitHub ↗</a><a class="nav-download" href="#get-started">Get the apps</a></nav>
+    </header>
+    <main id="content" class="markdown-body">{{ content }}</main>
+    <footer class="site-footer"><span>Made for your devices. Built in the open.</span><a href="#privacy-and-license">Privacy &amp; license</a><a href="#development">Developers</a></footer>
+    <script>
+      // A direct privacy/developer link must expose its content; ordinary visits
+      // keep the README's supplementary sections collapsed, just like GitHub.
+      function revealLinkedDetails() {
+        const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+        if (!target) return;
+        let details = target.closest('details');
+        while (details) { details.open = true; details = details.parentElement.closest('details'); }
+      }
+      addEventListener('hashchange', revealLinkedDetails);
+      revealLinkedDetails();
+    </script>
+  </body>
+</html>

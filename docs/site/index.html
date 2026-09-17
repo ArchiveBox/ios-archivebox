@@ -1,0 +1,6 @@
+---
+layout: default
+---
+{% comment %}The README is the only source of product copy, for both GitHub and the landing page.{% endcomment %}
+{% capture readme %}{% include README.md %}{% endcapture %}
+{{ readme | markdownify }}

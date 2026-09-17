@@ -1,0 +1,19 @@
+title: ArchiveBox.app
+description: Save the web you want to keep. A native app for iPhone, iPad, and Mac, with an optional Mac server companion.
+url: https://archivebox.github.io
+baseurl: /ios-archivebox
+theme: jekyll-theme-primer
+lang: en
+repository: ArchiveBox/ios-archivebox
+image: /docs/screenshots/library-mac.png
+plugins:
+  - jekyll-seo-tag
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - build.sh
+  - vendor

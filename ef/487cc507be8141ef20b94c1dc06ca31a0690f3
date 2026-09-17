@@ -1,0 +1,28 @@
+App/SettingsView.swift
+  h_923c208e183a7b 206
+README.md
+  h_923c208e183a7b 23,25,27,56
+SafariWebExtension/SafariWebExtensionHandler.swift
+  h_923c208e183a7b 17
+SafariWebExtension/apple-connection.ts
+  h_923c208e183a7b 1-9,11-28
+Sources/ArchiveBoxCore/ServerAddress.swift
+  h_923c208e183a7b 33,37-38
+Tests/ArchiveBoxCoreTests/AddressTests.swift
+  h_923c208e183a7b 22-25
+docs/VALIDATION.md
+  h_923c208e183a7b 51-57
+scripts/prepare-safari.mjs
+  h_923c208e183a7b 19-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ef487cc507be8141ef20b94c1dc06ca31a0690f3",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

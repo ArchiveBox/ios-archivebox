@@ -1,0 +1,16 @@
+App/MainView.swift
+  h_923c208e183a7b 61-62,67
+docs/VALIDATION.md
+  h_923c208e183a7b 109-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "471fe66efbedd81a6470a215a0df989342b94406",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

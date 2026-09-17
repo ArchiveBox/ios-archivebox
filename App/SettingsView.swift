@@ -17,11 +17,12 @@ final class SettingsModel {
     var personas: [ServerPersona] = []
     var persona = ""
     var personaError: String?
+    var personasLoaded = false
     var busy = false
     private let client = ArchiveBoxClient()
 
     var canSave: Bool {
-        verifiedServer != nil && verifiedToken == tokenText && !tokenText.isEmpty && !busy && (persona.isEmpty || personas.contains { $0.name == persona })
+        verifiedServer != nil && verifiedToken == tokenText && !tokenText.isEmpty && !busy && (persona.isEmpty || (personasLoaded && personas.contains { $0.name == persona }))
     }
 
     func load() {
@@ -37,17 +38,18 @@ final class SettingsModel {
 
     func serverChanged() {
         verifiedServer = nil; verifiedToken = nil
-        personas = []; persona = ""; personaError = nil
+        personas = []; persona = ""; personaError = nil; personasLoaded = false
         serverMessage = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
     }
     func tokenChanged() {
-        personas = []; personaError = nil
+        personas = []; personaError = nil; personasLoaded = false
         verifiedToken = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
     }
 
     func testServer() async {
         busy = true; errorMessage = nil; savedMessage = nil
         verifiedServer = nil; verifiedToken = nil; tokenMessage = nil
+        personasLoaded = false; personaError = nil
         defer { busy = false }
         do {
             let server = try await client.discoverServer(serverText)
@@ -73,9 +75,15 @@ final class SettingsModel {
     }
 
     private func fetchPersonas(server: URL, token: String) async {
-        personaError = nil
-        do { personas = try await client.personas(server: server, token: token) }
-        catch { personas = []; personaError = error.localizedDescription }
+        personaError = nil; personasLoaded = false; savedMessage = nil
+        do {
+            personas = try await client.personas(server: server, token: token)
+            personasLoaded = true
+        } catch {
+            // A failed request says nothing about whether the saved persona exists.
+            // Keep the last displayed list, but require a successful refresh before saving it.
+            personaError = error.localizedDescription
+        }
     }
 
     func refreshPersonas() async {
@@ -167,7 +175,7 @@ struct SettingsView: View {
                         Text("Server default").tag("")
                         ForEach(model.personas) { persona in Text(persona.name).tag(persona.name) }
                         if !model.persona.isEmpty && !model.personas.contains(where: { $0.name == model.persona }) {
-                            Text(model.verifiedToken == nil ? model.persona : "\(model.persona) (unavailable)").tag(model.persona)
+                            Text(model.personasLoaded ? "\(model.persona) (not found on server)" : model.persona).tag(model.persona)
                         }
                     }
                     .pickerStyle(.menu)
@@ -178,7 +186,7 @@ struct SettingsView: View {
                     }
                     .disabled(model.verifiedToken == nil || model.busy)
                     if let message = model.personaError {
-                        Text("Couldn’t load personas: \(message)").foregroundStyle(.red)
+                        Text("Couldn’t refresh personas: \(message) Your saved persona has not changed.").foregroundStyle(.red)
                     }
                 } header: { Text("Archiving") } footer: {
                     Text("Test your API key to load personas from the server. Shared links use your saved choice. Server default uses the server’s Default persona.")

@@ -22,16 +22,16 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["API key rejected"].waitForExistence(timeout: 20))
         app.secureTextFields["apiKey"].typeText("\n")
         app.buttons["getAPIKey"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Admin"].isSelected)
+        XCTAssertTrue(app.navigationBars["Admin"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Add URLs"].tap()
+        openScreen("Add URLs", app: app)
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["More ways to add"].waitForExistence(timeout: 5))
         attach("Add URLs guide", app: app)
-        app.tabBars.buttons["Archive"].tap()
+        openScreen("Snapshots", app: app)
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Admin"].tap()
+        openScreen("Admin", app: app)
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
     }
 
@@ -69,15 +69,15 @@ final class ArchiveBoxUITests: XCTestCase {
         replace(key, with: "invalid-test-key")
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "invalid or expired")).firstMatch.waitForExistence(timeout: 20))
         replace(key, with: token)
-        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         app.buttons["saveConnection"].tap()
-        app.tabBars.buttons["Add URLs"].tap()
+        openScreen("Add URLs", app: app)
         let picker = app.buttons["defaultPersona"]
         app.swipeUp()
         XCTAssertTrue(picker.waitForExistence(timeout: 10), app.debugDescription)
         picker.tap()
         app.buttons["AppleAcceptance"].tap()
-        app.tabBars.buttons["Connection Settings"].tap()
+        openScreen("Connection Settings", app: app)
         XCTAssertTrue(app.buttons["saveConnection"].isEnabled, app.debugDescription)
         app.buttons["saveConnection"].tap()
         app.swipeUp()
@@ -86,7 +86,7 @@ final class ArchiveBoxUITests: XCTestCase {
         app.terminate()
         app.launch()
         app.swipeUp()
-        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
 
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
         safari.terminate()
@@ -128,40 +128,60 @@ final class ArchiveBoxUITests: XCTestCase {
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let app = XCUIApplication()
         app.launch()
-        let settings = app.tabBars.buttons["Connection Settings"]
-        let archive = app.tabBars.buttons["Archive"]
+        let settings = app.navigationBars["Connection Settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: 10), app.debugDescription)
-        XCTAssertTrue(settings.isSelected)
+        XCTAssertTrue(settings.exists)
         replace(app.textFields["serverURL"], with: "http://127.0.0.1:1")
-        archive.tap()
-        XCTAssertTrue(settings.isSelected)
         XCTAssertFalse(app.webViews.firstMatch.exists)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["sidebar.snapshots"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["sidebar.snapshots"].isEnabled)
+        openScreen("Connection Settings", app: app)
+        XCTAssertTrue(settings.exists)
         replace(app.textFields["serverURL"], with: server)
         XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20))
-        archive.tap()
+        openScreen("Snapshots", app: app)
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15), app.debugDescription)
         XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 20), app.debugDescription)
         let username = app.webViews.textFields.firstMatch
         username.tap()
         username.typeText("ios-test")
-        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 5), app.debugDescription)
-        app.buttons["Done"].tap()
-        settings.tap()
-        archive.tap()
+        username.typeText("\n")
+        openScreen("Connection Settings", app: app)
+        openScreen("Snapshots", app: app)
         XCTAssertEqual(username.value as? String, "ios-test")
         attach("Archive admin login", app: app)
-        settings.tap()
+        openScreen("Connection Settings", app: app)
         XCTAssertTrue(app.textFields["serverURL"].exists)
         replace(app.textFields["serverURL"], with: server + "/admin/")
-        archive.tap()
-        XCTAssertTrue(settings.isSelected)
         XCTAssertFalse(app.webViews.firstMatch.exists)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["sidebar.snapshots"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["sidebar.snapshots"].isEnabled)
+        openScreen("Connection Settings", app: app)
+        XCTAssertTrue(settings.exists)
+    }
+
+    private func openScreen(_ name: String, app: XCUIApplication) {
+        let identifiers = ["Add URLs": "add", "Snapshots": "snapshots", "Admin": "admin", "Connection Settings": "settings"]
+        let item = app.buttons["sidebar." + identifiers[name]!]
+        if !item.isHittable {
+            let back = app.navigationBars.buttons.firstMatch
+            XCTAssertTrue(back.waitForExistence(timeout: 5), app.debugDescription)
+            back.tap()
+        }
+        for _ in 0..<5 where !item.isHittable { app.swipeUp() }
+        XCTAssertTrue(item.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(item.isHittable, app.debugDescription)
+        XCTAssertTrue(item.isEnabled, app.debugDescription)
+        item.tap()
     }
 
     private func replace(_ field: XCUIElement, with value: String) {
         field.tap()
         // Select-all through the keyboard rather than injecting settings or Keychain state.
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (field.value as? String)?.count ?? 0))
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText(XCUIKeyboardKey.delete.rawValue)
         field.typeText(value)
     }
 

@@ -4,48 +4,124 @@ import WebKit
 
 struct MainView: View {
     @Bindable var settings: SettingsModel
-    @State private var selection = Screen.settings
-    private enum Screen { case add, archive, admin, settings }
+    @State private var selection: Screen? = .settings
+    @State private var pages = WebPages()
+    @State private var compactColumn: NavigationSplitViewColumn = .detail
+
+    private enum Screen: String, CaseIterable {
+        case add, agent, crawls, schedules, snapshots, results, tags, admin, users, personas, keys, webhooks
+        case processes, machines, interfaces, binaries, github, docs, bugs, forum, extensionSource, settings
+
+        var info: (title: String, icon: String, path: String) {
+            switch self {
+            case .add: ("Add URLs", "plus", "add/")
+            case .agent: ("AI Agent", "sparkles", "admin/agent/")
+            case .crawls: ("Crawls", "point.3.connected.trianglepath.dotted", "admin/crawls/crawl/")
+            case .schedules: ("Scheduled Crawls", "calendar.badge.clock", "admin/crawls/crawlschedule/")
+            case .snapshots: ("Snapshots", "building.columns", "admin/core/snapshot/grid/")
+            case .results: ("Archive Results", "doc.richtext", "admin/core/archiveresult/")
+            case .tags: ("Tags", "tag", "admin/core/tag/")
+            case .admin: ("Admin", "person.crop.circle", "admin/")
+            case .users: ("Users", "person.2", "admin/auth/user/")
+            case .personas: ("Personas", "person.crop.rectangle.stack", "admin/personas/persona/")
+            case .keys: ("API Keys", "key", "admin/api/apitoken/")
+            case .webhooks: ("Webhooks", "arrow.triangle.branch", "admin/api/outboundwebhook/")
+            case .processes: ("Processes", "cpu", "admin/machine/process/")
+            case .machines: ("Machines", "desktopcomputer", "admin/machine/machine/")
+            case .interfaces: ("Network Interfaces", "network", "admin/machine/networkinterface/")
+            case .binaries: ("Binaries", "terminal", "admin/machine/binary/")
+            case .github: ("GitHub", "chevron.left.forwardslash.chevron.right", "https://github.com/ArchiveBox")
+            case .docs: ("ArchiveBox Docs", "book", "https://github.com/ArchiveBox/ArchiveBox/wiki")
+            case .bugs: ("Bug Reports", "ladybug", "https://github.com/ArchiveBox/ios-archivebox/issues")
+            case .forum: ("Forum", "bubble.left.and.bubble.right", "https://zulip.archivebox.io")
+            case .extensionSource: ("Browser Extension", "puzzlepiece.extension", "https://github.com/ArchiveBox/archivebox-browser-extension")
+            case .settings: ("Connection Settings", "gearshape", "")
+            }
+        }
+        var isHelp: Bool { info.path.hasPrefix("https://") }
+    }
 
     var body: some View {
-        let server = settings.verifiedServer
-        TabView(
-            selection: Binding(
-                get: { selection },
-                set: {
-                    if $0 == .settings || $0 == .add || server != nil || ($0 == .admin && settings.adminDestination != nil) { selection = $0 }
-                })
-        ) {
-            Tab("Add URLs", systemImage: "plus", value: .add) { AddURLsView(model: settings) }
-            Tab("Archive", systemImage: "building.columns", value: .archive) {
-                NavigationStack {
-                    if let server { ServerWebView(url: server.appending(path: "admin/core/snapshot/grid/"), title: "Archive").id(server) }
+        NavigationSplitView(preferredCompactColumn: $compactColumn) {
+            List(selection: $selection) {
+                rows([.add, .agent])
+                Section("Collection") { rows([.crawls, .schedules, .snapshots, .results, .tags]) }
+                Section {
+                    rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries])
+                } header: {
+                    NavigationLink(value: Screen.admin) {
+                        HStack { Text("Admin"); Image(systemName: "arrow.up.right").imageScale(.small) }
+                    }
+                    .buttonStyle(.plain).disabled(settings.verifiedServer == nil)
+                    .simultaneousGesture(TapGesture().onEnded { settings.openAdmin(settings.adminURL) })
+                    .accessibilityLabel("Admin home").accessibilityIdentifier("sidebar.admin")
                 }
-            }.disabled(server == nil)
-            Tab("Admin", systemImage: "person.crop.circle", value: .admin) {
+                Section("Help") { rows([.github, .docs, .bugs, .forum, .extensionSource]) }
+                Section { rows([.settings]) }
+            }
+            .listStyle(.sidebar)
+            .navigationTitle("ArchiveBox")
+            #if os(macOS)
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Image("BrandLogo")
+                        .resizable().scaledToFit().frame(width: 24, height: 24)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .accessibilityLabel("ArchiveBox")
+                }
+            }
+            #endif
+            .navigationSplitViewColumnWidth(min: 210, ideal: 240)
+        } detail: {
+            let screen = selection ?? .settings
+            if screen == .settings { SettingsView(model: settings) }
+            else if screen == .add { AddURLsView(model: settings, pages: pages) }
+            else {
                 NavigationStack {
-                    if let destination = settings.adminDestination ?? settings.adminURL {
-                        ServerWebView(url: destination, title: "Admin").id("\(destination)-\(settings.adminNavigationID)")
+                    if let url = destination(screen) {
+                        ServerWebView(url: url, title: screen.info.title, page: pages.page(for: "\(screen.rawValue)-\(url)"),
+                                      reloadID: screen == .admin ? settings.adminNavigationID : nil)
+                            .id("\(screen.rawValue)-\(url)")
+                    } else {
+                        ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Choose Connection Settings to get started."))
                     }
                 }
-            }.disabled(server == nil && settings.adminDestination == nil)
-            Tab("Connection Settings", systemImage: "gearshape", value: .settings) { SettingsView(model: settings) }
+            }
         }
-        .tabViewStyle(.sidebarAdaptable)
         .task { settings.load() }
-        .onChange(of: settings.adminNavigationID) { selection = .admin }
-        .onChange(of: settings.verifiedServer) {
-            if settings.verifiedServer == nil && selection != .add { selection = .settings }
+        .onChange(of: settings.adminNavigationID) {
+            selection = .admin
+            compactColumn = .detail
         }
+        .onChange(of: settings.verifiedServer) {
+            if settings.verifiedServer == nil, let selection, !selection.isHelp, selection != .add { self.selection = .settings }
+        }
+    }
+
+    @ViewBuilder private func rows(_ screens: [Screen]) -> some View {
+        ForEach(screens, id: \.self) { screen in
+            NavigationLink(value: screen) { Label(screen.info.title, systemImage: screen.info.icon) }
+                .accessibilityIdentifier("sidebar.\(screen.rawValue)")
+                .disabled(screen != .add && screen != .settings && !screen.isHelp && settings.verifiedServer == nil)
+        }
+    }
+
+    private func destination(_ screen: Screen) -> URL? {
+        if screen.isHelp { return URL(string: screen.info.path) }
+        if screen == .admin, let target = settings.adminDestination { return target }
+        return settings.verifiedServer?.appending(path: screen.info.path)
     }
 }
 
-// WebPage uses WebKit's persistent cookie store, shared by the three web screens.
+// WebPage uses WebKit's persistent cookie store, shared by all embedded screens.
 // The native API key never enters web content; normal server login handles sessions.
-private struct ServerWebView: View {
-    let url: URL
-    let title: String
-    @State private var page: WebPage = {
+@MainActor private final class WebPages {
+    private var pages: [String: WebPage] = [:]
+
+    // Retain each screen's page independently, but allocate it only when visited.
+    // All pages share the same persistent login cookie store.
+    func page(for key: String) -> WebPage {
+        if let page = pages[key] { return page }
         var configuration = WebPage.Configuration()
         configuration.websiteDataStore = .default()
         // The server's Add template includes Django base.css (980px minimum)
@@ -69,8 +145,17 @@ private struct ServerWebView: View {
             document.head.append(style);
         }
         """#, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
-        return WebPage(configuration: configuration)
-    }()
+        let page = WebPage(configuration: configuration)
+        pages[key] = page
+        return page
+    }
+}
+
+private struct ServerWebView: View {
+    let url: URL
+    let title: String
+    let page: WebPage
+    var reloadID: UUID? = nil
     @State private var errorMessage: String?
     var body: some View {
         WebView(page)
@@ -88,7 +173,7 @@ private struct ServerWebView: View {
             .navigationTitle(title)
             // Returning from a successful login in another pane should not leave a
             // previously visited pane stranded on its cached login form.
-            .task { if page.url == nil || page.url?.path.contains("/login/") == true { await load() } }
+            .task(id: reloadID) { if reloadID != nil || page.url == nil || page.url?.path.contains("/login/") == true { await load() } }
     }
     private func load() async {
         errorMessage = nil
@@ -98,13 +183,14 @@ private struct ServerWebView: View {
 
 private struct AddURLsView: View {
     @Bindable var model: SettingsModel
+    let pages: WebPages
     @Environment(\.openURL) private var openURL
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     if let server = model.verifiedServer {
-                        ServerWebView(url: server.appending(path: "add/"), title: "Add URLs")
+                        ServerWebView(url: server.appending(path: "add/"), title: "Add URLs", page: pages.page(for: "add-\(server)"))
                             .id(server).frame(maxWidth: .infinity).frame(height: 580)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {

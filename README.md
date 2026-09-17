@@ -4,10 +4,14 @@ A small SwiftUI app for iPhone, iPad, and Mac: configure your **ArchiveBox 0.9.x
 
 ## Use
 
-The app opens in **Connection Settings**, alongside **Add URLs**, **Archive**, and
-**Admin** in an adaptive sidebar/tab bar. Archive opens the snapshots grid; Admin
-opens the admin home. Both require a successful server check. The embedded pages
-share normal WebKit login cookies; API keys are never injected into web content.
+The app opens in **Connection Settings**. The adaptive sidebar keeps **Add URLs**
+first and Connection Settings last, with AI Agent, Collection, Admin, and Help
+sections between them. Collection includes Crawls, Scheduled Crawls, Snapshots
+(grid), Archive Results, and Tags. The clickable Admin heading opens admin home;
+its rows include Users, Personas, API Keys, Webhooks, Processes, Machines, Network
+Interfaces, and Binaries. Server screens require a successful connection check.
+Each web screen retains its own page and shares normal WebKit login cookies;
+API keys are never injected into web content.
 
 1. On Mac, choose **Run Server Locally** or **Connect to remote server**. Local mode
    finds the separate menu-bar companion, displays its port, and opens its Settings.
@@ -48,11 +52,11 @@ Browser/GitHub SVG marks are from Font Awesome Free 6.7.2 (CC BY 4.0; see
 
 ### Safari extension
 
-Enable ArchiveBox in Safari’s Extensions settings (on iOS: Settings → Apps → Safari → Extensions). Safari automatically reads the server and API key saved in the native app whenever it loads settings or saves a URL. Configure and save changes in the app; there is no import button or separate Safari connection to maintain. The native default persona applies to the system share sheet; the browser extension retains its own persona controls and existing behavior.
+Enable ArchiveBox in Safari’s Extensions settings (on iOS: Settings → Apps → Safari → Extensions). Configure the server and API key either in extension options or the native app. An extension-configured connection takes precedence; with its server field cleared, Safari automatically reads the app connection. Server/key pairs are never mixed. An unavailable app connection does not block extension options. The native default persona applies to the system share sheet; the browser extension retains its own persona controls and existing behavior.
 
-Apple packaging lives entirely here. `scripts/prepare-safari.mjs` builds a pinned revision of [archivebox-browser-extension](https://github.com/ArchiveBox/archivebox-browser-extension) in an ignored build directory. A small checked build patch connects its settings reader to native messaging and makes connection fields read-only. The upstream repository is unchanged and remains extension-focused.
+Apple packaging lives entirely here. `scripts/prepare-safari.mjs` builds a pinned revision of [archivebox-browser-extension](https://github.com/ArchiveBox/archivebox-browser-extension) in an ignored build directory. A small checked build patch connects its settings reader to native messaging and leaves the shared extension options editable. The upstream repository remains extension-focused; its options button uses the standard runtime API on every browser.
 
-The native app, share extension, and Safari native handler share one Keychain access group. Safari reads the current connection through its native handler without persisting a second copy of the token. Missing or locked app settings stop the operation instead of falling back to old browser credentials.
+The native app, share extension, and Safari native handler share one Keychain access group. Safari reads the current connection through its native handler without persisting a second copy of the token. App credentials are optional; explicit extension settings work independently. Changing the extension server clears its key to prevent sending credentials to a different host.
 
 ## Build
 

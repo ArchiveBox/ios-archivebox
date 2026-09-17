@@ -13,7 +13,7 @@ struct MainView: View {
             selection: Binding(
                 get: { selection },
                 set: {
-                    if $0 == .settings || $0 == .add || server != nil { selection = $0 }
+                    if $0 == .settings || $0 == .add || server != nil || ($0 == .admin && settings.adminDestination != nil) { selection = $0 }
                 })
         ) {
             Tab("Add URLs", systemImage: "plus", value: .add) { AddURLsView(model: settings) }
@@ -24,11 +24,11 @@ struct MainView: View {
             }.disabled(server == nil)
             Tab("Admin", systemImage: "person.crop.circle", value: .admin) {
                 NavigationStack {
-                    if let server {
-                        ServerWebView(url: settings.adminDestination ?? server.appending(path: "admin/"), title: "Admin").id("\(server)-\(settings.adminNavigationID)")
+                    if let destination = settings.adminDestination ?? settings.adminURL {
+                        ServerWebView(url: destination, title: "Admin").id("\(destination)-\(settings.adminNavigationID)")
                     }
                 }
-            }.disabled(server == nil)
+            }.disabled(server == nil && settings.adminDestination == nil)
             Tab("Connection Settings", systemImage: "gearshape", value: .settings) { SettingsView(model: settings) }
         }
         .tabViewStyle(.sidebarAdaptable)
@@ -48,6 +48,26 @@ private struct ServerWebView: View {
     @State private var page: WebPage = {
         var configuration = WebPage.Configuration()
         configuration.websiteDataStore = .default()
+        // The server's Add template includes Django base.css (980px minimum)
+        // without responsive.css. Load its own responsive rules inside this embed
+        // and release the desktop width constraint; do not hide overflowing fields.
+        configuration.userContentController.addUserScript(WKUserScript(source: #"""
+        if (document.querySelector('.add-page')) {
+            const base = document.querySelector('link[href*="admin/css/base.css"]');
+            if (base && !document.querySelector('link[href*="admin/css/responsive.css"]')) {
+                const responsive = document.createElement('link');
+                responsive.rel = 'stylesheet';
+                responsive.href = base.href.replace('admin/css/base.css', 'admin/css/responsive.css');
+                document.head.append(responsive);
+            }
+            const style = document.createElement('style');
+            style.textContent = `#container { min-width: 0; width: 100%; }
+                #content { min-width: 0; max-width: 100%; box-sizing: border-box; }
+                #header { min-width: 0; flex-wrap: wrap; gap: 12px; }
+                #header a { white-space: normal; overflow-wrap: anywhere; }`;
+            document.head.append(style);
+        }
+        """#, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         return WebPage(configuration: configuration)
     }()
     @State private var errorMessage: String?
@@ -84,7 +104,7 @@ private struct AddURLsView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     if let server = model.verifiedServer {
                         ServerWebView(url: server.appending(path: "add/"), title: "Add URLs")
-                            .id(server).frame(height: 580)
+                            .id(server).frame(maxWidth: .infinity).frame(height: 580)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {
                         ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Set up Connection Settings to use the embedded Add URLs form."))

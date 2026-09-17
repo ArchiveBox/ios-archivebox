@@ -99,3 +99,10 @@ Only the installed iPhone simulator and native Mac were run. iPad uses the same 
 - `testShareSheetGuide` passed using Safari’s real sharing UI and captured the bundled ShareSheetGuide asset; no generated/mock share sheet. The guide places Default Persona under Share Sheet and documents its scope.
 - Signed direct macOS build passed and was relaunched. All embedded WebPages explicitly use the same persistent WebKit cookie store. Get Key targets `/admin/api/apitoken/`; the live server returned `/admin/login/?next=/admin/api/apitoken/` when unauthenticated. The final macOS UI click also opened this exact login/next URL in the Admin pane. One web login is shared across the main app’s panes; the separate companion’s login is not silently copied. Remote API-key-to-session exchange is not supported by the current server.
 - The local server download uses the existing release flow. There is no published companion App Store URL to link yet.
+
+## Responsive Add embed and connection header (2026-09-17)
+
+- Reproduced the live, authenticated Add form's horizontal overflow in real WebKit: 760px viewport / 980px document. The template includes Django base.css's desktop minimum width without responsive.css. The embed now loads that server stylesheet and releases the outer minimum width rather than clipping form controls.
+- Verified document width equals viewport width at 320, 480, 760 and 1000px with the fix. Used a temporary real Django superuser/session; both were removed afterward. Acceptance log: `/tmp/ios-archivebox-tools/check-add-width.log`.
+- Connection Settings now shows the base URL as plain selectable text, separate Copy/Open buttons, and right-aligned CONNECTED/NOT CONNECTED status. Relaunched the signed Mac build and triple-clicked the URL: accessibility reported the entire URL selected while remaining in Connection Settings. Status became green after automatic validation.
+- macOS and iOS Simulator builds passed. Unrelated concurrent companion changes were left untouched.

@@ -30,7 +30,15 @@ final class SettingsModel {
     var tokenError: String?
 
     var adminURL: URL? { verifiedServer?.appending(path: "admin/") }
-    var apiKeysURL: URL? { verifiedServer?.appending(path: "admin/api/apitoken/") }
+    var apiKeysURL: URL? { adminURL?.appending(path: "api/apitoken/") }
+    var displayedBaseURL: URL? {
+        guard let normalized = try? ServerAddress.normalize(serverText),
+              var parts = URLComponents(url: normalized, resolvingAgainstBaseURL: false) else { return nil }
+        if let host = parts.host, let prefix = ["api.", "admin.", "web."].first(where: { host.hasPrefix($0) }) {
+            parts.host = String(host.dropFirst(prefix.count))
+        }
+        return parts.url
+    }
 
     func scheduleValidation() {
         validation?.cancel()
@@ -138,6 +146,7 @@ final class SettingsModel {
             serverText = server.absoluteString
             verifiedServer = server
             serverMessage = changed ? "Connected. Using \(server.absoluteString)." : "Connected to ArchiveBox."
+
         } catch { if !Task.isCancelled { serverError = error.localizedDescription } }
     }
 
@@ -199,6 +208,29 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        if let url = model.displayedBaseURL {
+                            Text(url.absoluteString).textSelection(.enabled)
+                                .accessibilityIdentifier("configuredBaseURL")
+                            Button("Copy URL", systemImage: "doc.on.doc") {
+                                #if os(macOS)
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(url.absoluteString, forType: .string)
+                                #else
+                                UIPasteboard.general.string = url.absoluteString
+                                #endif
+                            }.labelStyle(.iconOnly).buttonStyle(.borderless)
+                            Button("Open server", systemImage: "arrow.up.right.square") { model.openAdmin(url) }
+                                .labelStyle(.iconOnly).buttonStyle(.borderless)
+                        } else {
+                            Text("No server configured").foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 8)
+                        Text(model.verifiedServer == nil ? "🔴 NOT CONNECTED" : "🟢 CONNECTED")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
                 #if os(macOS)
                 Section {
                     Picker("Connection", selection: Binding(get: { model.connectionMode }, set: { model.selectConnection($0) })) {

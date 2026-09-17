@@ -1,0 +1,23 @@
+App/MainView.swift
+  s_ffefb637465167::t_933112e3e63500 1-74
+App/SettingsView.swift
+  s_ffefb637465167::t_2f80211247b1ff 23,30-32,111,226
+UITests/ArchiveBoxUITests.swift
+  s_ffefb637465167::t_1aaddd8cc4bcd0 79-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0f1962fce2b615a96d64c9723d703ab8830a5b6a",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

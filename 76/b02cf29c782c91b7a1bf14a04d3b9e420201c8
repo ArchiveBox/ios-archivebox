@@ -1,0 +1,28 @@
+App/ArchiveBoxApp.swift
+  h_923c208e183a7b 12
+App/Assets.xcassets/ShareSheetGuide.imageset/Contents.json
+  h_923c208e183a7b 1
+App/MainView.swift
+  h_923c208e183a7b 1,8,12-19,21-22,24-32,35-36,38,43-52,55-64,66-70,74-203
+App/SettingsView.swift
+  h_923c208e183a7b 6-12,28-44,69,72,112,116-119,124,130,133,136,141,146-147,152,156,162-165,170,177,202,204-206,208-209,211,214-235,238-241,245,247-251,253,255,265,268-270,288-295
+MacLocalUI/LocalServerSection.swift
+  h_923c208e183a7b 8-15,17-29,31-33
+README.md
+  h_923c208e183a7b 7-32,42
+UITests/ArchiveBoxUITests.swift
+  h_923c208e183a7b 6-55,73-74,80,89,131,135,140
+docs/VALIDATION.md
+  h_923c208e183a7b 93-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "76b02cf29c782c91b7a1bf14a04d3b9e420201c8",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

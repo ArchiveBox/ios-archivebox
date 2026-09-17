@@ -28,9 +28,10 @@ extension AppDelegate {
         let quit = NSMenuItem(title: "Shut Down Server & Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         quit.image = NSImage(systemSymbolName: "power", accessibilityDescription: "Shut down")
         menu.addItem(quit)
-        // macOS 27 hides menu images by default, including explicitly supplied SF Symbols.
-        if #available(macOS 27.0, *) {
-            for item in menu.items { item.preferredImageVisibility = .visible }
+        // macOS 27 hides menu images by default. Resolve its public setter at runtime
+        // so releases built with the stable macOS 26 SDK still show icons on macOS 27.
+        for item in menu.items where item.responds(to: NSSelectorFromString("setPreferredImageVisibility:")) {
+            item.setValue(1, forKey: "preferredImageVisibility") // NSMenuItem.ImageVisibility.visible
         }
         menuBarItem.menu = menu
         renderServerMenu()

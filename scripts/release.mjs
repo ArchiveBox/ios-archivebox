@@ -70,7 +70,10 @@ if (process.argv[2] === 'prepare') {
   const assets=['ArchiveBox.app.zip','ArchiveBox.Server.app.zip','SHA256SUMS','appcast.xml'];
   gh('release','upload',tag,'--repo',repo,'--clobber',...assets.map(a=>`dist/${a}`));
   const release=JSON.parse(gh('api',`repos/${repo}/releases/tags/${tag}`));
-  for(const name of assets) if(!release.assets.some(a=>a.name===name && a.size>0 && a.state==='uploaded')) throw Error(`Missing release asset: ${name}`);
+  for(const name of assets) {
+    const hash=run('/usr/bin/shasum',['-a','256',`dist/${name}`]).split(' ')[0];
+    if(!release.assets.some(a=>a.name===name && a.state==='uploaded' && a.digest===`sha256:${hash}`)) throw Error(`Uploaded asset digest mismatch: ${name}`);
+  }
   gh('release','edit',tag,'--repo',repo,'--draft=false','--latest','--notes-file','dist/release-notes.md');
   // Keep the existing Sparkle feed URL; never replace the immutable versioned ZIPs.
   const feed=JSON.parse(gh('api','--paginate','--slurp',`repos/${repo}/releases?per_page=100`)).flat().find(r=>r.tag_name==='server-updates');

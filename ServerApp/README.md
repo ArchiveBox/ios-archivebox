@@ -16,7 +16,27 @@ does not stop the companion.
 - Runtime: `~/Library/Application Support/ArchiveBox Server/runtime`
 - Logs: `~/Library/Application Support/ArchiveBox Server/desktop.log`
 
-Create your own administrator account using the existing ArchiveBox UI or run
+On first launch, Settings is the only tab and focuses the built-in **Create your
+first admin** form. ArchiveBox's passwordless internal `system` account does not
+complete setup. Creating an active admin unlocks **Archive**, **Activity**, and
+**Settings**, and signs both webviews in with a normal Django session scoped to the
+admin host. Existing sessions persist in WebKit; expired sessions use Archive's
+normal login page. Additional superusers can be created above the terminal.
+
+Settings shows the server's actual BASE_URL, admin and API URLs with copy buttons,
+plus its Tailscale DNS name (or IP) when connected. The Tailscale row is detection
+only: the server remains bound to localhost, so remote access needs a proxy.
+Shortcuts open the current machine's config editor, Personas, API Keys & Webhooks,
+and Debug Logs inside Archive. The machine config editor syncs with ArchiveBox.conf.
+
+Activity shares Archive's cookie store and displays only the server's live-progress
+component. The pinned image has `/progress.json` and an embedded admin component,
+not a standalone `/live-progress/` page, so a small WebKit script removes the
+surrounding admin page while preserving its existing component and polling code.
+
+Account creation uses Django's user manager, validators and password hasher inside
+the running container. Passwords travel through stdin and are not logged, placed
+in process arguments, or stored by the app. You can also run
 `archivebox manage createsuperuser` in the embedded terminal. The terminal uses the
 image's normal entrypoint and a real PTY, so commands run as ArchiveBox's normal user.
 Terminal input and output are not logged. Configure an API key in the main app for
@@ -78,3 +98,20 @@ The App Store client opens the release page for manual installation. The
 support; archive it with ReleaseDirect. A separate distribution configuration is
 necessary because the App Store requires a sandbox and restricts downloading
 additional executable functionality. No new App Store listing is created.
+
+## Live management acceptance check
+
+With the installed companion running and no sign-in-capable admin yet, run from
+this repository's root:
+
+```sh
+swiftc -parse-as-library ServerApp/Sources/Runtime.swift \
+  ServerApp/Sources/Management.swift ServerApp/Tests/ManagementAcceptance.swift \
+  -o /tmp/archivebox-management-acceptance
+/tmp/archivebox-management-acceptance "$HOME/Applications/ArchiveBox Server.app"
+```
+
+This creates a randomly named temporary admin through the same management code,
+checks password hashing/authentication, authenticated shortcut/progress responses,
+validation failures and log exclusion, then removes that account and session.
+It does not replace a visual check of onboarding, focus and the Activity webview.

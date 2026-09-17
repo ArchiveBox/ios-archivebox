@@ -8,7 +8,8 @@ struct CommandFailure: Error, LocalizedError {
 
 // Reuse Apple's released runtime; this app only owns its lifecycle and UI.
 final class Runtime: @unchecked Sendable {
-    let resources = Bundle.main.resourceURL!
+    let resources: URL
+    init(resources: URL = Bundle.main.resourceURL!) { self.resources = resources }
     let home = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/ArchiveBox Server")
     var root: URL { home.appendingPathComponent("runtime") }
@@ -17,15 +18,23 @@ final class Runtime: @unchecked Sendable {
     let address = URL(string: "http://archivebox.localhost:18080")!
     var ownsService = false
 
-    func command(_ args: [String], allowFailure: Bool = false, logOutput: Bool = true) throws -> String {
+    func command(_ args: [String], allowFailure: Bool = false, logOutput: Bool = true,
+                 input: Data? = nil, executable: URL? = nil) throws -> String {
         let process = Process()
-        process.executableURL = cli
+        process.executableURL = executable ?? cli
         process.arguments = args
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
-        process.standardInput = FileHandle.nullDevice
+        let stdin = Pipe()
+        process.standardInput = input == nil ? FileHandle.nullDevice : stdin.fileHandleForReading
         try process.run()
+        if let input {
+            // Credentials travel through stdin, never command arguments, environment,
+            // or desktop.log. Management requests are small JSON documents.
+            try stdin.fileHandleForWriting.write(contentsOf: input)
+            try stdin.fileHandleForWriting.close()
+        }
         let bytes = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         let output = String(decoding: bytes, as: UTF8.self)

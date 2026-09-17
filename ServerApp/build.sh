@@ -15,7 +15,7 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 ditto "$assets/vendor/package/Payload" "$app/Contents/Resources/runtime"
 cp "$assets/payload/images.tar" "$assets/payload/vmlinux" "$app/Contents/Resources/"
 cp "$assets/vendor/container/LICENSE" "$app/Contents/Resources/APPLE-CONTAINER-LICENSE"
-swift build --build-system native -c release -Xlinker -rpath -Xlinker @executable_path/../Frameworks
+swift build --build-system native --arch arm64 -c release -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 cp .build/release/ArchiveBox "$app/Contents/MacOS/ArchiveBoxServer"
 ditto .build/release/SwiftTerm_SwiftTerm.bundle "$app/Contents/Resources/SwiftTerm_SwiftTerm.bundle"
 cp -f .build/checkouts/SwiftTerm/LICENSE "$app/Contents/Resources/SWIFTTERM-LICENSE"

@@ -35,3 +35,16 @@ Safari native-message import still needs an enabled-extension runtime check: Saf
 ![Saved default persona and Safari setup](screenshots/persona.png)
 
 GitHub Actions run [35162082842](https://github.com/ArchiveBox/ios-archivebox/actions/runs/35162082842) passed the pinned WXT build, five Swift tests, and builds of the iOS and macOS apps with both embedded extensions.
+
+## Settings and Archive screens
+
+- Signed macOS and iPhone simulator builds succeeded. The shared screen uses native SwiftUI adaptive tabs/sidebar and WebKit's SwiftUI web view, with no platform-specific web-view wrapper.
+- Mac: starts in Settings; Archive cannot be selected before connection. Connecting loads the real server's admin login. Signed in as the disposable acceptance user, opened Personas, and switched Settings → Archive: the same page and authenticated session remained. Editing the server prevented selecting Archive again.
+- iPhone: the focused `testArchiveRequiresConnection` test completed successfully, including launch selection, blocked Archive navigation, a real successful server probe, rendered admin login fields, keyboard input/dismissal, preserved input across tab switches, and re-locking after editing the URL. Its result bundle finalized successfully, unlike the earlier Safari share-test runner issue noted above.
+- The embedded website uses its normal login and cookies; no native API key is injected. `/admin/` routing is delegated to the server, whose subdomain middleware redirects it to the configured admin host.
+
+Only the installed iPhone simulator and native Mac were run. iPad uses the same adaptive navigation; additional runtimes were not downloaded. A URL bar and explicit back/forward buttons remain future UI work.
+
+![Archive admin UI on Mac](screenshots/archive-mac.png)
+
+![Archive login on iPhone](screenshots/archive-iphone.png)

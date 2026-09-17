@@ -20,12 +20,16 @@ final class SettingsModel {
     var personasLoaded = false
     var busy = false
     private let client = ArchiveBoxClient()
+    private var didLoad = false
 
     var canSave: Bool {
         verifiedServer != nil && verifiedToken == tokenText && !tokenText.isEmpty && !busy && (persona.isEmpty || (personasLoaded && personas.contains { $0.name == persona }))
     }
 
     func load() {
+        // Revisiting Settings must preserve the current draft and connection checks.
+        guard !didLoad else { return }
+        didLoad = true
         do {
             if let config = try AppEnvironment.store.load() {
                 serverText = config.server.absoluteString
@@ -104,7 +108,7 @@ final class SettingsModel {
 }
 
 struct SettingsView: View {
-    @State private var model = SettingsModel()
+    @Bindable var model: SettingsModel
     @FocusState private var focusedField: Field?
     private enum Field { case server, token }
 
@@ -219,7 +223,7 @@ struct SettingsView: View {
                 }
             }
             .formStyle(.grouped)
-            .navigationTitle("ArchiveBox")
+            .navigationTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", systemImage: "checkmark") { focusedField = nil; model.save() }

@@ -1,8 +1,10 @@
 # ArchiveBox for Apple devices
 
-A small SwiftUI app for iPhone, iPad, and Mac: configure your **ArchiveBox 0.9.x+** server and save links through the system share sheet. Uses Swift 6 and standard Liquid Glass controls on iOS/iPadOS/macOS 26+. The same project also bundles the existing WXT Safari extension.
+A small SwiftUI app for iPhone, iPad, and Mac: configure your **ArchiveBox 0.9.x+** server, browse its admin UI, and save links through the system share sheet. Uses Swift 6 and standard Liquid Glass controls on iOS/iPadOS/macOS 26+. The same project also bundles the existing WXT Safari extension.
 
 ## Use
+
+The app opens in **Settings** (gear). **Archive** (building with columns) becomes available after **Test server** successfully connects. It embeds the server’s `/admin/` UI and follows its admin-host redirect when needed. Sign in using your normal server account; the API key is not a web login. Switching screens preserves the current page. Editing the server locks Archive until you connect again. Navigation adapts from a tab bar to a sidebar on larger screens.
 
 1. Enter your server address and select **Test server**. Pasted admin/API paths are removed; missing schemes default to HTTPS. The app probes the entered host, its `api.` host, and the base host without sending credentials. The working address appears in the field. Include `http://` explicitly for an HTTP-only server.
 2. Enter an administrator’s API key from ArchiveBox’s admin → API Tokens and select **Test API key**.
@@ -48,13 +50,13 @@ Both platform apps use `io.archivebox.ArchiveBox`, with `.Share` and `.Safari` e
 ## Architecture
 
 - `Sources/ArchiveBoxCore`: shared API discovery, authentication, persona listing, submission, link parsing, and Keychain configuration.
-- `App`: shared SwiftUI configuration, using system forms, colors, Dynamic Type, and glass controls.
+- `App`: shared SwiftUI Settings/Archive screens, using system forms, adaptive tabs/sidebar, glass controls, and the native WebKit `WebView`/`WebPage` APIs.
 - `ShareExtension`: shared SwiftUI sheet/model plus thin UIKit host.
 - `MacShareExtension`: thin AppKit host for the same sheet/model.
 - `SafariWebExtension`: native messaging handler and packaging-only connection-import UI; generated WXT resources are ignored.
 - `project.yml`: reproducible platform targets, entitlements, and bundle identifiers.
 
-Authenticated requests stay on the verified origin; all redirects are rejected, including token-validation JSON bodies. No persistent cookies/caches, tokens in URLs/logs, automatic HTTPS downgrade, or certificate-validation bypass. ATS permits explicitly configured HTTP self-hosted servers; HTTPS is the default. Review this justification for App Store submission.
+Native API requests stay on the verified origin; all redirects are rejected, including token-validation JSON bodies. The API client uses no persistent cookies/caches, tokens in URLs/logs, automatic HTTPS downgrade, or certificate-validation bypass. The Archive web view uses normal website navigation and persistent WebKit cookies/storage, separately from the native API key. ATS permits explicitly configured HTTP self-hosted servers; HTTPS is the default. Review this justification for App Store submission.
 
 ## Verification
 
@@ -68,7 +70,7 @@ xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
   ARCHIVEBOX_TEST_TOKEN="$ARCHIVEBOX_TEST_TOKEN" test
 ```
 
-This tests invalid/valid keys, the live persona picker, saved settings after relaunch, and Safari’s real system share sheet. Use an expendable key: Xcode test artifacts may contain test input. No network interception or seeded app settings.
+This tests Archive connection gating and the real admin login page, invalid/valid keys, the live persona picker, saved settings after relaunch, and Safari’s real system share sheet. Use an expendable key: Xcode test artifacts may contain test input. No network interception or seeded app settings.
 
 ```sh
 ARCHIVEBOX_TEST_SERVER=http://localhost:8947 \

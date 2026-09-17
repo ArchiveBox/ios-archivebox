@@ -76,6 +76,41 @@ final class ArchiveBoxUITests: XCTestCase {
         safari.buttons["Done"].tap()
     }
 
+    func testArchiveRequiresConnection() throws {
+        continueAfterFailure = false
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let app = XCUIApplication()
+        app.launch()
+        let settings = app.tabBars.buttons["Settings"]
+        let archive = app.tabBars.buttons["Archive"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(settings.isSelected)
+        archive.tap()
+        XCTAssertTrue(settings.isSelected)
+        XCTAssertFalse(app.webViews.firstMatch.exists)
+        replace(app.textFields["serverURL"], with: server)
+        app.buttons["testServer"].tap()
+        XCTAssertTrue(app.staticTexts["Connected to ArchiveBox."].waitForExistence(timeout: 20))
+        archive.tap()
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        let username = app.webViews.textFields.firstMatch
+        username.tap()
+        username.typeText("ios-test")
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 5), app.debugDescription)
+        app.buttons["Done"].tap()
+        settings.tap()
+        archive.tap()
+        XCTAssertEqual(username.value as? String, "ios-test")
+        attach("Archive admin login", app: app)
+        settings.tap()
+        XCTAssertTrue(app.textFields["serverURL"].exists)
+        replace(app.textFields["serverURL"], with: server + "/admin/")
+        archive.tap()
+        XCTAssertTrue(settings.isSelected)
+        XCTAssertFalse(app.webViews.firstMatch.exists)
+    }
+
     private func replace(_ field: XCUIElement, with value: String) {
         field.tap()
         // Select-all through the keyboard rather than injecting settings or Keychain state.

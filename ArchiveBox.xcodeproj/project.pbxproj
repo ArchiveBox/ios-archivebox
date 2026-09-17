@@ -42,6 +42,7 @@
 		63BE8629890FEC1ABF6A20AA /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 64DF0D9729FE1DDD1A9901C7 /* popup.html */; };
 		65D2AC69EA2BEC5C1C2B113C /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
 		6ED001E7250A7E026023B216 /* ShareModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA994EC8E1863D30F98F5DF0 /* ShareModel.swift */; };
+		70BE6D3D37E544D5520E512B /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E6DEFA1F8FE0EA95C84DBE /* MainView.swift */; };
 		70DAF88A8D9F4EB1A02CD8B4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE45EBF447663409775DECBA /* SettingsView.swift */; };
 		83A73898A46B0711D2C51E51 /* content-scripts in Resources */ = {isa = PBXBuildFile; fileRef = F17AFF5065DB2022281D7DA8 /* content-scripts */; };
 		88DC73A38B41EB557E9C4BDC /* ArchiveBoxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */; };
@@ -64,6 +65,7 @@
 		DB8083BDE0D9F292E4564360 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
 		E25563AC0CB0DDDE51D1B49F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 0A375E50F1CA716143843802 /* manifest.json */; };
 		E3E17DDB49D45B7E663F0361 /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 64DF0D9729FE1DDD1A9901C7 /* popup.html */; };
+		E6BA134DC3B681B72F04F1C8 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E6DEFA1F8FE0EA95C84DBE /* MainView.swift */; };
 		F01CE36160D577C892777BDA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */; };
 		FF3FF97F86C7CF66F057A90D /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3A614EEE696BEEF4D8A4877D /* ArchiveBoxCore */; };
 /* End PBXBuildFile section */
@@ -158,6 +160,7 @@
 		7E9C25C037A0F204B0BDCF38 /* ArchiveBoxUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveBoxUITests.swift; sourceTree = "<group>"; };
 		92E8F186372A4E02E08177BB /* options.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = options.html; sourceTree = "<group>"; };
 		99779D6DCD1E0CDAF64EED92 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		99E6DEFA1F8FE0EA95C84DBE /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A2ED54AF5CBA782B38156D97 /* ArchiveBoxMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBoxMac.entitlements; sourceTree = "<group>"; };
 		B47DE619CE801A18C34392BA /* ArchiveBox.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBox.entitlements; sourceTree = "<group>"; };
@@ -296,6 +299,7 @@
 				45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */,
 				06F8051E8FD4E6F293429D02 /* Assets.xcassets */,
 				2E58417FC1E8AADB7CBC6FE2 /* Info.plist */,
+				99E6DEFA1F8FE0EA95C84DBE /* MainView.swift */,
 				9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */,
 				BE45EBF447663409775DECBA /* SettingsView.swift */,
 			);
@@ -642,6 +646,7 @@
 			files = (
 				A9471D3223421DB739C368C0 /* AppEnvironment.swift in Sources */,
 				B0FE976378BA828B33A4D0FA /* ArchiveBoxApp.swift in Sources */,
+				70BE6D3D37E544D5520E512B /* MainView.swift in Sources */,
 				61993E0DC6606E24A95457A9 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -671,6 +676,7 @@
 			files = (
 				DB8083BDE0D9F292E4564360 /* AppEnvironment.swift in Sources */,
 				88DC73A38B41EB557E9C4BDC /* ArchiveBoxApp.swift in Sources */,
+				E6BA134DC3B681B72F04F1C8 /* MainView.swift in Sources */,
 				70DAF88A8D9F4EB1A02CD8B4 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

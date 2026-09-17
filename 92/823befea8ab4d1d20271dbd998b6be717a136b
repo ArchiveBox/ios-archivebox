@@ -1,0 +1,23 @@
+MacLocalUI/EngineCommand.swift
+  s_ffefb637465167::t_5b9ed90e40f892 1-84
+ServerApp/Package.resolved
+  s_ffefb637465167::t_4b3183b5dc7895 1-24
+ServerApp/Sources/Settings.swift
+  s_ffefb637465167::t_c11201116c20b1 1-238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "92823befea8ab4d1d20271dbd998b6be717a136b",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

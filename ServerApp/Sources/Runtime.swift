@@ -90,15 +90,60 @@ final class Runtime: @unchecked Sendable {
         if let container {
             if (container["status"] as? [String: Any])?["state"] as? String != "running" { _ = try command(["start", name]) }
         } else {
-            _ = try command(["run", "--detach", "--name", name, "--cpus", "4", "--memory", "4G",
-                             "--publish", "127.0.0.1:18080:8000",
-                             "--volume", home.appendingPathComponent("data").path + ":/data",
-                             "--env", "BASE_URL=http://archivebox.localhost:18080", "archivebox/archivebox:dev"])
+            if !fm.fileExists(atPath: home.appendingPathComponent("data/index.sqlite3").path) {
+                _ = try command(["run", "--rm", "--volume", home.appendingPathComponent("data").path + ":/data",
+                                 "archivebox/archivebox:dev", "/bin/sh", "-c",
+                                 "archivebox init && archivebox config --set BASE_URL=http://archivebox.localhost:18080"])
+            }
+            try runContainer()
         }
+        try await waitUntilReady()
+    }
+
+    private func runContainer() throws {
+        // Configuration belongs to ArchiveBox.conf / Machine.config. Environment
+        // overrides would silently mask subsequent edits made in either Settings UI.
+        _ = try command(["run", "--detach", "--name", name, "--cpus", "4", "--memory", "4G",
+                         "--publish", "127.0.0.1:18080:8000",
+                         "--volume", home.appendingPathComponent("data").path + ":/data", "archivebox/archivebox:dev"])
+    }
+
+    func applyHTTPSettings(baseURL: String, securityMode: String) async throws -> ServerDetails {
+        guard var url = URLComponents(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+              let host = url.host, !host.isEmpty, !host.contains(where: { $0.isWhitespace }),
+              url.user == nil, url.password == nil, url.query == nil, url.fragment == nil,
+              url.path.isEmpty || url.path == "/", url.port == nil || (1...65535).contains(url.port!) else {
+            throw CommandFailure(message: "Enter an http:// or https:// server origin, including its port when needed, without a path or credentials.")
+        }
+        url.path = ""
+        guard let normalized = url.url?.absoluteString else { throw CommandFailure(message: "Invalid BASE_URL.") }
+        let current = try management()
+        guard current.securityModes.contains(securityMode) else { throw CommandFailure(message: "Choose a security mode supported by this server.") }
+        // Use the real config CLI, with legacy container environment overrides
+        // removed for this command, so validation and file/DB synchronization run.
+        _ = try command(["exec", "--workdir", "/data", name, "/usr/bin/env", "-u", "BASE_URL", "-u", "SERVER_SECURITY_MODE",
+                         "/app/bin/docker_entrypoint.sh", "archivebox", "config", "--set",
+                         "BASE_URL=\(normalized)", "SERVER_SECURITY_MODE=\(securityMode)"])
+        _ = try command(["stop", name])
+        // Older app builds set an immutable BASE_URL environment variable. Replace
+        // only the container, preserving the mounted collection and all its users.
+        _ = try command(["delete", name])
+        try runContainer()
+        try await waitUntilReady()
+        let updated = try management()
+        guard updated.base.absoluteString == normalized, updated.securityMode == securityMode else {
+            throw CommandFailure(message: "The server restarted but its effective settings do not match the requested values. Check ArchiveBox.conf and the server logs.")
+        }
+        return updated
+    }
+
+    private func waitUntilReady() async throws {
         // Startup readiness, not a retry of failed operations. Surface the logs on timeout.
         let deadline = Date().addingTimeInterval(120)
         while Date() < deadline {
-            var request = URLRequest(url: address)
+            // Readiness must not depend on the user's DNS, TLS proxy or host routing.
+            var request = URLRequest(url: URL(string: "http://127.0.0.1:18080/health/")!)
             request.timeoutInterval = 2
             do {
                 let (_, response) = try await URLSession.shared.data(for: request)

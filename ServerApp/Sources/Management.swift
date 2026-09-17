@@ -19,6 +19,8 @@ struct ServerDetails: Decodable, Sendable {
     let users: [ServerUser]
     let shortcuts: Shortcuts
     let session: Session?
+    let securityMode: String
+    let securityModes: [String]
     var hasAdmin: Bool { users.contains { $0.is_superuser && $0.is_active && $0.has_password } }
     var loginCookie: HTTPCookie? {
         guard let session, let host = admin.host else { return nil }
@@ -38,7 +40,7 @@ extension Runtime {
         // validators, transactions and password hasher own all account writes.
         // Only explicitly selected public user fields leave the container.
         let script = #"""
-        import json, sys
+        import json, sys, os
         from django.contrib.auth import get_user_model, authenticate, login
         from django.conf import settings
         from django.http import HttpRequest
@@ -49,6 +51,7 @@ extension Runtime {
         from django.db import IntegrityError, transaction
         from archivebox.core.routes_util import get_base_url, get_admin_base_url, get_api_base_url
         from archivebox.machine.models import Machine
+        from archivebox.config.common import ServerConfig
         request = json.load(sys.stdin)
         User = get_user_model()
         try:
@@ -77,12 +80,17 @@ extension Runtime {
                         session = dict(name=settings.SESSION_COOKIE_NAME, value=http.session.session_key,
                                        expires=http.session.get_expiry_date().timestamp(), secure=settings.SESSION_COOKIE_SECURE)
             admin = get_admin_base_url()
+            machine = Machine.current()
             result = dict(base=get_base_url(), admin=get_admin_base_url() + '/admin/', api=get_api_base_url(),
+                          # get_config resolves auto for localhost. Keep the user's
+                          # configured choice in the editor, not that derived mode.
+                          securityMode=os.environ.get('SERVER_SECURITY_MODE') or machine.config.get('SERVER_SECURITY_MODE') or 'auto',
+                          securityModes=list(ServerConfig.SERVER_SECURITY_MODES),
                           users=[dict(id=u.pk, username=u.username, email=u.email, is_superuser=u.is_superuser,
                                       is_staff=u.is_staff, is_active=u.is_active, has_password=u.has_usable_password())
                                  for u in User.objects.order_by('username')],
                           session=session, shortcuts=dict(
-                              host=admin + reverse('admin:machine_machine_change', args=[Machine.current().pk]) + '#id_config',
+                              host=admin + reverse('admin:machine_machine_change', args=[machine.pk]) + '#id_config',
                               personas=admin + reverse('admin:personas_persona_changelist'),
                               api=admin + reverse('admin:app_list', kwargs={'app_label': 'api'}),
                               logs=admin + '/admin/environment/logs/'))

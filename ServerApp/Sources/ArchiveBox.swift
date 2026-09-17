@@ -14,6 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
     var tabs: NSSegmentedControl!
     var startup: Task<Void, Never>?
     var menuBarItem: NSStatusItem!
+    var baseURLLabel: NSTextField?
+    var displayedAdmin: URL?
     var selectedScreen = Screen.settings
     var screens: [Screen] = [.settings]
 
@@ -100,6 +102,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         settings.openAdmin = { [weak self] url in self?.openArchive(url) }
         settings.didUpdateDetails = { [weak self] details in
             guard let self else { return }
+            baseURLLabel?.attributedStringValue = NSAttributedString(string: details.base.absoluteString,
+                attributes: [.link: details.base, .foregroundColor: NSColor.linkColor, .font: NSFont.systemFont(ofSize: 12)])
+            if settings.restarting || (displayedAdmin != nil && displayedAdmin != details.admin) {
+                // A host/mode change needs fresh destinations, not a reload of the
+                // old hostname. Do not move authenticated cookies across origins.
+                web.load(URLRequest(url: details.admin))
+                if activity.url != nil { activity.load(URLRequest(url: details.admin)) }
+            }
+            displayedAdmin = details.admin
             if let cookie = details.loginCookie {
                 // Keep Django's admin session scoped to the exact admin host;
                 // never share it with replay/API subdomains or persist a password.
@@ -139,11 +150,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         }
     }
 
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs")] }
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .flexibleSpace] }
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .init("baseURL")] }
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.flexibleSpace, .init("tabs"), .flexibleSpace, .init("baseURL")] }
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier id: NSToolbarItem.Identifier, willBeInsertedIntoToolbar: Bool) -> NSToolbarItem? {
-        guard id.rawValue == "tabs" else { return nil }
         let item = NSToolbarItem(itemIdentifier: id)
+        if id.rawValue == "baseURL" {
+            let label = NSTextField(labelWithString: "")
+            label.isSelectable = true; label.allowsEditingTextAttributes = true
+            label.lineBreakMode = .byTruncatingMiddle
+            label.setAccessibilityLabel("BASE_URL — open in default browser")
+            label.widthAnchor.constraint(equalToConstant: 290).isActive = true
+            baseURLLabel = label; item.view = label; item.label = "BASE_URL"
+            item.toolTip = "Open in your default browser, or select and copy the address."
+            return item
+        }
+        guard id.rawValue == "tabs" else { return nil }
         tabs = NSSegmentedControl(labels: ["Settings"], trackingMode: .selectOne, target: self, action: #selector(changeTab))
         tabs.segmentStyle = .automatic
         tabs.selectedSegment = 0
@@ -194,6 +215,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         settings.shutdown()
         Task {
             await startup?.value
+            await settings.finishHTTPChange()
             await Task.detached { [runtime] in runtime.stop() }.value
             NSApp.reply(toApplicationShouldTerminate: true)
         }

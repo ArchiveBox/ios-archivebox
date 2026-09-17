@@ -36,6 +36,7 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <key>NSLocalNetworkUsageDescription</key><string>Connect to your local ArchiveBox server.</string>
 <key>NSAppTransportSecurity</key><dict>
 <key>NSAllowsLocalNetworking</key><true/>
+<key>NSAllowsArbitraryLoadsInWebContent</key><true/>
 <key>NSExceptionDomains</key><dict><key>localhost</key><dict>
 <key>NSIncludesSubdomains</key><true/>
 <key>NSExceptionAllowsInsecureHTTPLoads</key><true/>

@@ -66,6 +66,12 @@ final class SettingsModel: ObservableObject {
     @Published var managementError: String?
     @Published var tailscaleURL: URL?
     @Published var tailscaleError: String?
+    @Published var baseURLDraft = ""
+    @Published var securityModeDraft = "auto"
+    @Published var restarting = false
+    @Published var httpMessage: String?
+    @Published var httpError: String?
+    var httpChanged: Bool { baseURLDraft != serverDetails?.base.absoluteString || securityModeDraft != serverDetails?.securityMode }
     var hasAdmin: Bool { serverDetails?.hasAdmin == true }
     var didUpdateDetails: ((ServerDetails) async -> Void)?
     var openAdmin: ((URL) -> Void)?
@@ -74,6 +80,7 @@ final class SettingsModel: ObservableObject {
     private var polling: Task<Void, Never>?
     private var sizing: Task<Void, Never>?
     private var loadingDetails: Task<Void, Never>?
+    private var applyingHTTP: Task<Void, Never>?
     private var previous: ContainerSample?
     private var expectedRunning = false
     private var startupFinished = false
@@ -121,6 +128,7 @@ final class SettingsModel: ObservableObject {
     func pauseMonitoring() { polling?.cancel(); polling = nil; previous = nil }
 
     private func apply(_ sample: ContainerSample) {
+        guard !restarting else { return }
         ready = sample.state == "running"
         if ready {
             state = "Running"
@@ -170,13 +178,17 @@ final class SettingsModel: ObservableObject {
     }
 
     func updateUsers(username: String? = nil, email: String = "", password: String = "") async -> Bool {
-        guard ready, !managementBusy else { return false }
+        guard ready, !managementBusy, !restarting else { return false }
         managementBusy = true; managementError = nil
         defer { managementBusy = false }
         do {
+            let refreshDraft = serverDetails == nil || !httpChanged
             serverDetails = try await Task.detached { [runtime] in
                 try runtime.management(username: username, email: email, password: password)
             }.value
+            if refreshDraft, let serverDetails {
+                baseURLDraft = serverDetails.base.absoluteString; securityModeDraft = serverDetails.securityMode
+            }
             if let serverDetails { await didUpdateDetails?(serverDetails) }
             return true
         } catch {
@@ -184,6 +196,30 @@ final class SettingsModel: ObservableObject {
             return false
         }
     }
+
+    func applyHTTPSettings() {
+        guard ready, !managementBusy, !restarting, httpChanged else { return }
+        restarting = true; httpError = nil; httpMessage = "Saving settings and restarting the container…"
+        pauseMonitoring()
+        let base = baseURLDraft, mode = securityModeDraft
+        applyingHTTP = Task {
+            defer { restarting = false; applyingHTTP = nil; monitor() }
+            do {
+                let updated = try await Task.detached { [runtime] in
+                    try await runtime.applyHTTPSettings(baseURL: base, securityMode: mode)
+                }.value
+                serverDetails = updated
+                baseURLDraft = updated.base.absoluteString; securityModeDraft = updated.securityMode
+                ready = true; state = "Running"
+                await didUpdateDetails?(updated)
+                httpMessage = "Settings saved. Container restarted."
+            } catch {
+                httpMessage = nil; httpError = error.localizedDescription
+            }
+        }
+    }
+
+    func finishHTTPChange() async { await applyingHTTP?.value }
 
     func connectTerminal() {
         guard ready, !terminalConnected else { return }
@@ -288,6 +324,30 @@ struct SettingsView: View {
                 } label: { Label("Connection", systemImage: "network") }
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
+                        TextField("BASE_URL", text: $model.baseURLDraft, prompt: Text("http://archivebox.localhost:18080"))
+                            .textFieldStyle(.roundedBorder)
+                        Picker("SERVER_SECURITY_MODE", selection: $model.securityModeDraft) {
+                            ForEach(model.serverDetails?.securityModes ?? ["auto"], id: \.self) { Text($0).tag($0) }
+                        }
+                        if model.securityModeDraft == "unsafe-onedomain-noadmin" {
+                            Text("This mode disables the web admin UI, including Archive’s admin shortcuts and Activity.").font(.caption).foregroundStyle(.secondary)
+                        } else if model.securityModeDraft == "danger-onedomain-fullreplay" {
+                            Text("Archived pages can execute scripts on the same origin as the admin UI in this mode.").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Text("Use the URL clients will visit. HTTPS requires a TLS proxy; custom hostnames require DNS. This does not change the local listener at 127.0.0.1:18080. Subdomain mode also requires admin, api, web and snapshot subdomains.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        HStack {
+                            Button("Apply & Restart") { model.applyHTTPSettings() }
+                                .disabled(!model.ready || model.managementBusy || model.restarting || !model.httpChanged)
+                            if model.restarting { ProgressView().controlSize(.small) }
+                            if let message = model.httpMessage { Text(message).font(.callout).foregroundStyle(.secondary) }
+                        }
+                        if let error = model.httpError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
+                    }.padding(8)
+                        .disabled(model.restarting)
+                } label: { Label("HTTP, TLS, and DNS", systemImage: "network.badge.shield.half.filled") }
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("\(model.serverDetails?.users.count ?? 0) users").foregroundStyle(.secondary)
                             Spacer()
@@ -330,6 +390,7 @@ struct SettingsView: View {
             .padding(24)
         }
         .frame(minWidth: 760, minHeight: 650)
+        .disabled(model.restarting)
         .background(Color(nsColor: .windowBackgroundColor))
         .sheet(isPresented: $addingUser) { AddSuperuserView(model: model) }
     }

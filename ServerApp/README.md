@@ -29,6 +29,18 @@ only: the server remains bound to localhost, so remote access needs a proxy.
 Shortcuts open the current machine's config editor, Personas, API Keys & Webhooks,
 and Debug Logs inside Archive. The machine config editor syncs with ArchiveBox.conf.
 
+The upper-right toolbar shows the current BASE_URL as selectable linked text;
+click it to open your default browser. **HTTP, TLS, and DNS** provides BASE_URL and
+SERVER_SECURITY_MODE fields. **Apply & Restart** validates and saves both using
+ArchiveBox's config CLI, then recreates the container with the same data mount.
+This also removes old environment overrides that would mask saved config values.
+The `auto` choice stays automatic rather than becoming its currently derived mode.
+
+BASE_URL is the advertised origin, not a bind-address or certificate installer.
+The local listener stays at `127.0.0.1:18080`; configure DNS and a TLS/reverse proxy
+separately for a custom public URL. Changing the admin hostname may require signing
+in again. Embedded destinations refresh after applying the settings.
+
 Activity shares Archive's cookie store and displays only the server's live-progress
 component. The pinned image has `/progress.json` and an embedded admin component,
 not a standalone `/live-progress/` page, so a small WebKit script removes the
@@ -115,3 +127,13 @@ This creates a randomly named temporary admin through the same management code,
 checks password hashing/authentication, authenticated shortcut/progress responses,
 validation failures and log exclusion, then removes that account and session.
 It does not replace a visual check of onboarding, focus and the Activity webview.
+
+To verify HTTP settings against a running companion (temporarily changes its URL
+and security mode, restarts twice, and restores the original effective settings):
+
+```sh
+swiftc -parse-as-library ServerApp/Sources/Runtime.swift \
+  ServerApp/Sources/Management.swift ServerApp/Tests/HTTPSettingsAcceptance.swift \
+  -o /tmp/archivebox-http-settings-acceptance
+/tmp/archivebox-http-settings-acceptance "$HOME/Applications/ArchiveBox Server.app"
+```

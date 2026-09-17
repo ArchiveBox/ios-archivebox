@@ -44,6 +44,7 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: ArchiveBox
+        ArchiveBoxTeamIdentifier: '$(DEVELOPMENT_TEAM)'
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         UILaunchScreen: {}
         UIApplicationSceneManifest:

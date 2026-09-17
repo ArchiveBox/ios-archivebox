@@ -591,7 +591,11 @@ private struct AddURLsView: View {
                                     #else
                                         if #available(iOS 26.2, *) {
                                             Button("Safari", systemImage: "safari") {
-                                                SFSafariSettings.openExtensionsSettings(forIdentifiers: ["io.archivebox.ArchiveBox.Safari"]) { error in
+                                                // Safari needs its composed identifier to open the extension’s
+                                                // detail page instead of stopping at the extensions list.
+                                                let team = Bundle.main.object(forInfoDictionaryKey: "ArchiveBoxTeamIdentifier") as? String ?? ""
+                                                let identifier = "io.archivebox.ArchiveBox.Safari (\(team))"
+                                                SFSafariSettings.openExtensionsSettings(forIdentifiers: [identifier]) { error in
                                                     if let error { model.errorMessage = error.localizedDescription }
                                                 }
                                             }

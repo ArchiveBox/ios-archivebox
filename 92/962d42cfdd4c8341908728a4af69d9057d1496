@@ -1,0 +1,14 @@
+docs/TESTFLIGHT.md
+  h_923c208e183a7b 1-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "92962d42cfdd4c8341908728a4af69d9057d1496",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

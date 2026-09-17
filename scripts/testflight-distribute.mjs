@@ -39,8 +39,16 @@ while (pending.size && Date.now() < deadline) {
       await api(`builds/${build.id}`, 'PATCH', { data: { type: 'builds', id: build.id, attributes: { usesNonExemptEncryption: false } } });
     }
     await api(`betaGroups/${env.ASC_GROUP_ID}/relationships/builds`, 'POST', { data: [{ type: 'builds', id: build.id }] });
-    const groups = await api(`builds/${build.id}/betaGroups`);
-    if (!groups.data.some(item => item.id === env.ASC_GROUP_ID)) throw new Error('TestFlight group assignment was not confirmed.');
+    let page = `betaGroups/${env.ASC_GROUP_ID}/relationships/builds?limit=200`;
+    let assigned = false;
+    while (page && !assigned) {
+      const members = await api(page);
+      assigned = members.data.some(item => item.id === build.id);
+      const next = members.links?.next;
+      if (next && !next.startsWith('https://api.appstoreconnect.apple.com/v1/')) throw new Error('Unexpected API pagination origin.');
+      page = next?.slice('https://api.appstoreconnect.apple.com/v1/'.length);
+    }
+    if (!assigned) throw new Error('TestFlight group assignment was not confirmed.');
     const message = `${version.platform} ${env.RELEASE_VERSION} (${env.RELEASE_BUILD}) assigned to ${group.attributes.name}`;
     console.log(message);
     if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `${message}\n\n`);

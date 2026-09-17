@@ -1,0 +1,16 @@
+ServerApp/Sources/ServerMenu.swift
+  h_923c208e183a7b 31-34
+scripts/release.mjs
+  h_923c208e183a7b 73-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d99a6047348b85daf3d21560ea6e07a14df9e012",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

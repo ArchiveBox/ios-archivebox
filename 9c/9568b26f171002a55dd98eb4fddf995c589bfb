@@ -1,0 +1,48 @@
+App/Assets.xcassets/Brave.imageset/Contents.json
+  h_923c208e183a7b 1
+App/Assets.xcassets/Brave.imageset/icon.svg
+  h_923c208e183a7b 1
+App/Assets.xcassets/Browser-Icons-LICENSE.txt
+  h_923c208e183a7b 1-165
+App/Assets.xcassets/Chrome.imageset/Contents.json
+  h_923c208e183a7b 1
+App/Assets.xcassets/Chrome.imageset/icon.svg
+  h_923c208e183a7b 1
+App/Assets.xcassets/Firefox.imageset/Contents.json
+  h_923c208e183a7b 1
+App/Assets.xcassets/Firefox.imageset/icon.svg
+  h_923c208e183a7b 1
+App/Assets.xcassets/GitHubMark.imageset/Contents.json
+  h_923c208e183a7b 1
+App/Assets.xcassets/GitHubMark.imageset/github.svg
+  h_923c208e183a7b 1
+App/SettingsView.swift
+  h_923c208e183a7b 262,265,271-277,281-296
+README.md
+  h_923c208e183a7b 21-30
+ServerApp/README.md
+  h_923c208e183a7b 9-16
+ServerApp/Sources/ArchiveBox.swift
+  h_923c208e183a7b 6,21-28,34,220
+ServerApp/Sources/Management.swift
+  h_923c208e183a7b 138-184
+ServerApp/Sources/ServerMenu.swift
+  h_923c208e183a7b 1-107
+ServerApp/Sources/Settings.swift
+  h_923c208e183a7b 130
+ServerApp/Tests/ArchivingAcceptance.swift
+  h_923c208e183a7b 1-39
+docs/VALIDATION.md
+  h_923c208e183a7b 85-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9c9568b26f171002a55dd98eb4fddf995c589bfb",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

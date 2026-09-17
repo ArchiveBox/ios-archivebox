@@ -1,0 +1,33 @@
+.github/workflows/pages.yml
+  s_ffefb637465167::t_1a53b60e92ecd5 1-44
+.gitignore
+  s_ffefb637465167::t_cadd7f29e87b75 18-23
+docs/site/Gemfile
+  s_ffefb637465167::t_5a27519ac11d06 1-5
+docs/site/Gemfile.lock
+  s_ffefb637465167::t_9da4b02226f99e 1-267
+docs/site/_config.yml
+  s_ffefb637465167::t_f297df38b8f3aa 1-19
+docs/site/_layouts/default.html
+  s_ffefb637465167::t_5e2271373c414c 1-32
+docs/site/build.sh
+  s_ffefb637465167::t_7353eea87e814f 1-18
+docs/site/index.html
+  s_ffefb637465167::t_1002cc12f481a0 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3d755355e9fe914f0e4d8b922dee5a16cae55d13",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

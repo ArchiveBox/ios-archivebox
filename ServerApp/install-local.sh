@@ -15,7 +15,7 @@ staged="$staging/ArchiveBox Server.app"
 # APFS clones reuse the large runtime/image payload without sharing writable inodes.
 cp -cR "$app" "$staged"
 cp .build/release/ArchiveBoxServer "$staged/Contents/MacOS/ArchiveBoxServer"
-xcrun actool ../App/Assets.xcassets --compile "$staged/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --output-format human-readable-text
+xcrun actool "$PWD/../App/Assets.xcassets" --compile "$staged/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --output-format human-readable-text
 codesign --force --options runtime --sign "$identity" "$staged"
 codesign --verify --deep --strict "$staged"
 uv run --no-project python - "$app" "$staged" <<'PY'

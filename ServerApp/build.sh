@@ -33,7 +33,8 @@ for component in XPCServices/Downloader.xpc XPCServices/Installer.xpc Autoupdate
 done
 codesign --force --options runtime --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework"
 # Share the client's browser logos and branding with the companion's Clients section.
-xcrun actool ../App/Assets.xcassets --compile "$app/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --output-format human-readable-text
+xcrun actool "$PWD/../App/Assets.xcassets" --compile "$app/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --output-format human-readable-text
+test -s "$app/Contents/Resources/Assets.car"
 # Reuse the client's branding without depending on an Xcode client build.
 iconset="$PWD/.build/ArchiveBox.iconset"
 mkdir -p "$iconset"

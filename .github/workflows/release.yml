@@ -43,7 +43,7 @@ jobs:
       - name: Test shared code
         if: steps.version.outputs.ready == 'true'
         run: swift test
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         if: steps.version.outputs.ready == 'true'
         id: payload
         with:
@@ -54,6 +54,13 @@ jobs:
       - name: Download pinned server runtime and images
         if: steps.version.outputs.ready == 'true' && steps.payload.outputs.cache-hit != 'true'
         run: bash ServerApp/prepare.sh
+      - uses: actions/cache/save@v4
+        if: steps.version.outputs.ready == 'true' && steps.payload.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ServerApp/vendor
+            ServerApp/payload
+          key: server-payload-arm64-${{ hashFiles('ServerApp/prepare.sh') }}
       - name: Build, sign, notarize and verify both ZIPs
         if: steps.version.outputs.ready == 'true'
         env:

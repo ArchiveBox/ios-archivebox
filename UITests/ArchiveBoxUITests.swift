@@ -3,6 +3,47 @@ import XCTest
 /// Run against a real, disposable ArchiveBox 0.9+ server. No intercepted requests or seeded app state.
 @MainActor
 final class ArchiveBoxUITests: XCTestCase {
+    func testShareTagsUsingSavedConnection() throws {
+        continueAfterFailure = false
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        safari.terminate()
+        safari.launch()
+        let address = safari.textFields["Address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 10), safari.debugDescription)
+        address.tap()
+        address.typeText("https://example.com/?archivebox-share-tags=\(UUID().uuidString)\n")
+        let share = safari.buttons["Share"]
+        if !share.exists { safari.buttons["Page Menu"].tap() }
+        XCTAssertTrue(share.waitForExistence(timeout: 15), safari.debugDescription)
+        share.tap()
+        let more = safari.cells["More"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5), safari.debugDescription)
+        more.tap()
+        let archiveBox = safari.tables.staticTexts["ArchiveBox"]
+        XCTAssertTrue(archiveBox.waitForExistence(timeout: 5), safari.debugDescription)
+        archiveBox.tap()
+        let tags = safari.textFields["shareTagInput"]
+        XCTAssertTrue(tags.waitForExistence(timeout: 15), safari.debugDescription)
+        XCTAssertFalse(safari.buttons["submitShare"].exists)
+        XCTAssertTrue(safari.staticTexts["Sent to ArchiveBox"].waitForExistence(timeout: 30), safari.debugDescription)
+        tags.tap()
+        tags.typeText("share-sheet-test\n")
+        XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)
+        safari.buttons["Remove tag share-sheet-test"].tap()
+        tags.tap()
+        tags.typeText("share-sheet")
+        let suggestion = safari.buttons["Add suggested tag share-sheet-test"]
+        XCTAssertTrue(suggestion.waitForExistence(timeout: 15), safari.debugDescription)
+        attach("Share tag suggestions", app: safari)
+        suggestion.tap()
+        XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)
+        safari.buttons["Remove from server"].tap()
+        XCTAssertTrue(safari.buttons["Keep it"].waitForExistence(timeout: 5), safari.debugDescription)
+        attach("Share removal confirmation", app: safari)
+        safari.buttons["Keep it"].tap()
+        attach("Share tags saved", app: safari)
+    }
+
     func testSafariButtonOpensExtensionSettings() throws {
         continueAfterFailure = false
         let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")

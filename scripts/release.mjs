@@ -33,7 +33,7 @@ if (process.argv[2] === 'prepare') {
   if(git('rev-parse','origin/main') !== source) { output({ready:false, reason:'Superseded by a newer main push'}); process.exit(0); }
   // Ignore documentation and tests alone, but include build scripts, assets and pinned payloads.
   const changed=git('diff-tree','--no-commit-id','--name-only','-r',...(previous ? [previous,source] : ['--root',source])).split('\n');
-  const significant=changed.some(p => /^(App\/|MacApp\/|MacLocalUI\/|ShareExtension\/|MacShareExtension\/|SafariWebExtension\/|Sources\/|ServerApp\/(Sources\/|Package\.|build\.sh|prepare\.sh|bundle-metadata\.py)|scripts\/|\.github\/workflows\/|ArchiveBox\.xcodeproj\/|project\.yml$|Package\.)/.test(p));
+  const significant=changed.some(p => /^(App\/|MacApp\/|MacLocalUI\/|ShareExtension\/|MacShareExtension\/|SafariWebExtension\/|Sources\/|ServerApp\/(Sources\/|Package\.|build\.sh|prepare\.sh|bundle-metadata\.py)|scripts\/|\.github\/workflows\/(release|build|testflight)\.ya?ml$|ArchiveBox\.xcodeproj\/|project\.yml$|Package\.)/.test(p));
   if(!significant) { output({ready:false,reason:'No app or packaging changes'}); process.exit(0); }
   const state=JSON.parse(readFileSync('release.json'));
   const occupied=tags.filter(t=>versionPattern.test(t)).map(t=>t.slice(1).split('.'));

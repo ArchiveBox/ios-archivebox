@@ -135,3 +135,50 @@ extension Runtime {
         return url.url
     }
 }
+
+struct CrawlActivity: Decodable, Sendable {
+    let downloads: Int
+    let paused: Int
+    let active: Int
+    let changed: Int
+    let base: URL
+    let admin: URL
+}
+
+extension Runtime {
+    func archiving(action: String = "status") throws -> CrawlActivity {
+        guard ["status", "pause", "resume"].contains(action) else { throw CommandFailure(message: "Unknown archiving action.") }
+        let script = #"""
+        import json, sys
+        from archivebox.crawls.models import Crawl
+        from archivebox.core.models import ArchiveResult, Snapshot
+        from archivebox.core.routes_util import get_base_url, get_admin_base_url
+        from archivebox.plugins.discovery import discover_plugin_configs
+        action = json.load(sys.stdin)['action']
+        changed = 0
+        if action == 'pause':
+            for crawl in Crawl.objects.exclude(status__in=Crawl.INACTIVE_STATES).iterator():
+                changed += bool(crawl.pause())
+        elif action == 'resume':
+            # Only paused jobs: never restart sealed/completed archives.
+            for crawl in Crawl.objects.filter(status=Crawl.StatusChoices.PAUSED).iterator():
+                changed += bool(crawl.resume())
+        plugins = [name for name, config in discover_plugin_configs().items()
+                   if config.get('output_mimetypes') and not {'search', 'flush'}.issubset(config.get('commands', {}))]
+        downloads = ArchiveResult.objects.filter(status=ArchiveResult.StatusChoices.STARTED, plugin__in=plugins,
+                    snapshot__status__in=Snapshot.RUNNABLE_STATES, snapshot__crawl__status__in=Crawl.RUNNABLE_STATES).count()
+        print('ARCHIVEBOX_MENU_JSON:' + json.dumps(dict(downloads=downloads, changed=changed,
+              paused=Crawl.objects.filter(status=Crawl.StatusChoices.PAUSED).count(),
+              active=Crawl.objects.exclude(status__in=Crawl.INACTIVE_STATES).count(),
+              base=get_base_url(), admin=get_admin_base_url() + '/admin/')))
+        """#
+        let output = try command(["exec", "--interactive", "--workdir", "/data", name,
+                                  "/app/bin/docker_entrypoint.sh", "archivebox", "manage", "shell", "-c", script],
+                                 logOutput: false, input: JSONSerialization.data(withJSONObject: ["action": action]))
+        let prefix = "ARCHIVEBOX_MENU_JSON:"
+        guard let line = output.split(separator: "\n").last(where: { $0.hasPrefix(prefix) }) else {
+            throw CommandFailure(message: "ArchiveBox did not return archiving status.")
+        }
+        return try JSONDecoder().decode(CrawlActivity.self, from: Data(line.dropFirst(prefix.count).utf8))
+    }
+}

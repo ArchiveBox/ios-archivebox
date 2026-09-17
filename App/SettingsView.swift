@@ -1,8 +1,6 @@
 import ArchiveBoxCore
 import SwiftUI
-#if os(macOS)
 import SafariServices
-#endif
 
 @MainActor @Observable
 final class SettingsModel {
@@ -261,18 +259,41 @@ struct SettingsView: View {
                 if let message = model.savedMessage {
                     Section { status(message).accessibilityIdentifier("savedConnection") }
                 }
-                Section("Safari extension") {
+                Section("Browser Extension") {
                     Text("Enable ArchiveBox in Safari’s Extensions settings. The extension automatically uses the server and API key saved here.")
                     #if os(macOS)
-                    Button("Open Safari settings", systemImage: "safari") {
+                    Button("Safari", systemImage: "safari") {
                         SFSafariApplication.showPreferencesForExtension(withIdentifier: "io.archivebox.ArchiveBox.Safari") { error in
                             if let error { Task { @MainActor in model.errorMessage = error.localizedDescription } }
                         }
                     }
                     #else
+                    if #available(iOS 26.2, *) {
+                        Button("Safari", systemImage: "safari") {
+                            SFSafariSettings.openExtensionsSettings(forIdentifiers: ["io.archivebox.ArchiveBox.Safari"]) { error in
+                                if let error { model.errorMessage = error.localizedDescription }
+                            }
+                        }
+                    }
                     Text("Settings → Apps → Safari → Extensions → ArchiveBox")
                         .font(.footnote).foregroundStyle(.secondary)
                     #endif
+                    ForEach([("Chrome", "https://chromewebstore.google.com/detail/archivebox/habonpimjphpdnmcfkaockjnffodikoj"),
+                             ("Brave", "https://chromewebstore.google.com/detail/archivebox/habonpimjphpdnmcfkaockjnffodikoj"),
+                             ("Firefox", "https://addons.mozilla.org/firefox/addon/archivebox-exporter/")], id: \.0) { name, address in
+                        Link(destination: URL(string: address)!) {
+                            Label { Text(name) } icon: {
+                                Image(name).resizable().scaledToFit().frame(width: 18, height: 18)
+                            }
+                        }
+                    }
+                    Link(destination: URL(string: "https://github.com/ArchiveBox/archivebox-browser-extension")!) {
+                        Label { Text("Source Code") } icon: {
+                            Image("GitHubMark").resizable().scaledToFit().frame(width: 18, height: 18)
+                        }
+                    }
+                    Text("Brave uses the Chrome Web Store. In other browsers, configure the extension with your server URL and API key.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section {
                     Label("Links are sent directly to your server.", systemImage: "arrow.up.right")

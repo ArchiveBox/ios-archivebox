@@ -3,7 +3,7 @@ import WebKit
 import SwiftUI
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSWindowDelegate, WKNavigationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSWindowDelegate, WKNavigationDelegate, NSMenuDelegate {
     enum Screen: String, CaseIterable { case archive = "Archive", activity = "Activity", settings = "Settings" }
     let runtime = Runtime()
     var window: NSWindow!
@@ -18,19 +18,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
     var displayedAdmin: URL?
     var selectedScreen = Screen.settings
     var screens: [Screen] = [.settings]
+    var menuStatus = NSMenuItem()
+    var menuMetrics = NSMenuItem()
+    var pauseItem = NSMenuItem()
+    var menuRefresh: Task<Void, Never>?
+    var lastMenuRefresh = Date.distantPast
+    var crawlActivity: CrawlActivity?
+    var menuError: String?
+    var changingArchiving = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = SettingsModel(runtime: runtime)
         menuBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         menuBarItem.button?.image = NSImage(systemSymbolName: "archivebox", accessibilityDescription: "ArchiveBox Server")
-        let serverMenu = NSMenu()
-        serverMenu.addItem(withTitle: "Archive", action: #selector(showArchive), keyEquivalent: "")
-        serverMenu.addItem(withTitle: "Activity", action: #selector(showActivity), keyEquivalent: "")
-        serverMenu.addItem(withTitle: "Settings & Terminal…", action: #selector(showSettings), keyEquivalent: "")
-        serverMenu.addItem(withTitle: "Open Collection in Finder", action: #selector(openData), keyEquivalent: "")
-        serverMenu.addItem(.separator())
-        serverMenu.addItem(withTitle: "Quit ArchiveBox Server", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
-        menuBarItem.menu = serverMenu
+        configureServerMenu()
         let menu = NSMenu()
         let item = NSMenuItem()
         let appMenu = NSMenu()
@@ -216,6 +217,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         Task {
             await startup?.value
             await settings.finishHTTPChange()
+            await menuRefresh?.value
             await Task.detached { [runtime] in runtime.stop() }.value
             NSApp.reply(toApplicationShouldTerminate: true)
         }

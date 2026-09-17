@@ -18,7 +18,16 @@ The native share extensions POST directly to `/api/v1/cli/add`. Success means th
 
 Private servers require the device’s Wi-Fi or VPN connection. `localhost` on a physical phone refers to the phone; the iPhone simulator can reach a server on the Mac.
 
-## Safari extension
+## Browser extensions
+
+Settings includes Safari, Chrome, Brave, Firefox, and Source Code shortcuts. Safari
+opens its extension settings on macOS and iOS 26.2+; earlier iOS versions show the
+manual setup path. Brave uses the Chrome Web Store listing. Only bundled Safari
+shares the native app connection automatically; configure other browsers separately.
+Browser/GitHub SVG marks are from Font Awesome Free 6.7.2 (CC BY 4.0; see
+`App/Assets.xcassets/Browser-Icons-LICENSE.txt`).
+
+### Safari extension
 
 Enable ArchiveBox in Safari’s Extensions settings (on iOS: Settings → Apps → Safari → Extensions). Safari automatically reads the server and API key saved in the native app whenever it loads settings or saves a URL. Configure and save changes in the app; there is no import button or separate Safari connection to maintain. The native default persona applies to the system share sheet; the browser extension retains its own persona controls and existing behavior.
 

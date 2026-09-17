@@ -127,7 +127,7 @@ final class SettingsModel: ObservableObject {
 
     func pauseMonitoring() { polling?.cancel(); polling = nil; previous = nil }
 
-    private func apply(_ sample: ContainerSample) {
+    func apply(_ sample: ContainerSample) {
         guard !restarting else { return }
         ready = sample.state == "running"
         if ready {

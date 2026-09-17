@@ -6,8 +6,14 @@ Linux image, Apple Container runtime, kernel, guest init, and SwiftTerm terminal
 The main iPhone/iPad/Mac client contains none of these large assets.
 
 Open **ArchiveBox Server.app** to start your server. Its menu-bar archive icon opens
-Archive or Settings & Terminal. There is no Dock icon. Closing the window keeps the
-server running; Quit ArchiveBox Server stops its container. Quitting the main client
+a native menu with server status, active downloads, CPU and RAM, followed by Add URL,
+Open ArchiveBox, Admin, Settings, Pause/Unpause Archiving, and Shut Down Server & Quit.
+Status refreshes when the menu opens, at most once every 30 seconds; there is no
+background menu timer. CPU needs two samples. Pause uses ArchiveBox’s crawl controls;
+unpause resumes all paused crawls without restarting sealed archives. Add URL and
+Admin open in your default browser. Open ArchiveBox launches the installed client or
+its App Store listing (subject to public release availability). There is no Dock icon.
+Closing the window keeps the server running; Shut Down Server & Quit stops its container. Quitting the main client
 does not stop the companion.
 
 - Server: `http://archivebox.localhost:18080`

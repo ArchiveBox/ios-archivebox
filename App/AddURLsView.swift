@@ -19,7 +19,7 @@ struct AddURLsView: View {
                     Text("There are several ways you can add new URLs to archive.")
                     GroupBox {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("In any app, open Share → ArchiveBox (under More if needed) → Save to ArchiveBox, and keep the sheet open until it finishes.")
+                            Text("In any app, open Share → ArchiveBox (under More if needed). The link is sent immediately; add tags, wait for confirmation, then tap Done.")
                             Image("ShareSheetGuide").resizable().scaledToFit().frame(maxHeight: 320)
                                 .accessibilityLabel("iPhone share sheet with ArchiveBox available in the Apps list")
                             Picker(

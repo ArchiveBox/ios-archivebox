@@ -27,7 +27,7 @@
 1. **Install ArchiveBox.app.** [Join TestFlight](https://testflight.apple.com/join/wUG6DS6z) on iPhone, iPad, or Mac, or find the Mac app on [GitHub Releases](https://github.com/ArchiveBox/ios-archivebox/releases).
 2. **Connect your archive.** Open **Connection Settings** and enter your server URL. On Mac, you can also choose **Run Server Locally** to use the optional companion below.
 3. **Add your API key.** Click **Get Key**, sign in to your server, and create an administrator API key. Paste it into the app; the connection is checked automatically.
-4. **Save your first link.** In any app that shares URLs, choose **Share → ArchiveBox → Save to ArchiveBox**.
+4. **Save your first link.** In any app that shares URLs, choose **Share → ArchiveBox**. The link is sent immediately; optionally add tags, then tap **Done** after confirmation.
 
 <p class="caption">Beta software. TestFlight builds depend on Apple’s review; Mac downloads appear on the releases page as they are published. Connect to ArchiveBox 0.9.x or later. Mac downloads require Apple Silicon.</p>
 
@@ -41,12 +41,14 @@
 
 - Open a link in Safari, Mail, Messages, or another app.
 - Tap the **Share** button and choose **ArchiveBox**.
-- Confirm **Save to ArchiveBox** and wait for the server’s confirmation.
+- The link is sent immediately. Add tags while the sheet stays open, then tap **Done** after the server confirms.
 - Find the result in **Snapshots** after the server finishes archiving.
 
 Set **Default Persona** under **Add URLs → Share Sheet** to choose the server profile used for shared links. Personas can carry the cookies needed to archive pages that require a login.
 
 **Your server must be reachable when you share.** The app sends links directly; offline queueing is not supported. A success message means the server accepted the URL.
+
+Tags are saved separately through the REST API, without submitting the URL again. Pick suggested tags from your server or use commas to add several new tags; tap a tag’s × to remove it. **Done** also saves any text still in the tag field. If a tag update fails, the sheet keeps the successful link submission and offers **Retry tags**. **Remove** cancels and deletes this share’s crawl after confirmation; previous captures of the same URL are kept.
 
 <details markdown="1">
 <summary>Can’t see ArchiveBox in the share sheet?</summary>

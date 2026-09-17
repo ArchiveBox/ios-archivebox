@@ -2,6 +2,11 @@ import Foundation
 import Testing
 @testable import ArchiveBoxCore
 
+@Test func normalizesSharedTagsWithoutLosingMultiwordNames() {
+    #expect(ArchiveTags.normalize([" research, read later\nSwift ", "RESEARCH", "", "café"]) == ["research", "read later", "Swift", "café"])
+    #expect(ArchiveTags.normalize([" ,\n  "]).isEmpty)
+}
+
 @Test func normalizesPastedAddresses() throws {
     #expect(try ServerAddress.normalize("  Example.COM/admin/api/apitoken/?x=1#top ").absoluteString == "https://example.com")
     #expect(try ServerAddress.normalize("http://127.0.0.1:8123/").absoluteString == "http://127.0.0.1:8123")

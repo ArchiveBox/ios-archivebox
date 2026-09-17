@@ -155,12 +155,17 @@ final class ArchiveBoxUITests: XCTestCase {
         let archiveBox = safari.tables.staticTexts["ArchiveBox"]
         XCTAssertTrue(archiveBox.waitForExistence(timeout: 5), safari.debugDescription)
         archiveBox.tap()
-        let submit = safari.buttons["submitShare"]
-        XCTAssertTrue(submit.waitForExistence(timeout: 10), safari.debugDescription)
+        let tags = safari.textFields["shareTagInput"]
+        XCTAssertTrue(tags.waitForExistence(timeout: 10), safari.debugDescription)
         XCTAssertTrue(safari.staticTexts["AppleAcceptance"].exists, safari.debugDescription)
         attach("Share preview", app: safari)
-        submit.tap()
+        // Choosing ArchiveBox starts submission, without a second Save action.
         XCTAssertTrue(safari.staticTexts["Sent to ArchiveBox"].waitForExistence(timeout: 30), safari.debugDescription)
+        tags.tap()
+        tags.typeText("share-ui, read later\n")
+        XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)
+        safari.buttons["Remove tag share-ui"].tap()
+        XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)
         attach("Share accepted", app: safari)
         safari.buttons["Done"].tap()
     }

@@ -17,7 +17,10 @@ const releases = JSON.parse(gh('api', '--paginate', '--slurp', `repos/${repo}/re
 const previous = releases[0]?.tag_name;
 if (process.argv[2] === 'prepare') {
   git('fetch', 'origin', 'main', '--tags');
-  const source = process.env.GITHUB_SHA || git('rev-parse','HEAD');
+  let source = process.env.GITHUB_SHA || git('rev-parse','HEAD');
+  const reserved=JSON.parse(readFileSync('release.json'));
+  // A manual retry can start at the bot's version commit rather than its source commit.
+  if(reserved.source && git('tag','--points-at',source).split('\n').includes(`release-candidate/${reserved.source}`)) source=reserved.source;
   const candidate = `release-candidate/${source}`;
   const tags = git('tag','--list').split('\n');
   if (tags.includes(candidate)) {
@@ -69,7 +72,9 @@ if (process.argv[2] === 'prepare') {
   if(!existing) gh('release','create',tag,'--repo',repo,'--verify-tag','--draft','--title',`ArchiveBox ${state.version}`,'--notes-file','dist/release-notes.md');
   const assets=['ArchiveBox.app.zip','ArchiveBox.Server.app.zip','SHA256SUMS','appcast.xml'];
   gh('release','upload',tag,'--repo',repo,'--clobber',...assets.map(a=>`dist/${a}`));
-  const release=JSON.parse(gh('api',`repos/${repo}/releases/tags/${tag}`));
+  // Drafts are omitted by GitHub's tag lookup; the authenticated list includes them.
+  const release=JSON.parse(gh('api','--paginate','--slurp',`repos/${repo}/releases?per_page=100`)).flat().find(r=>r.tag_name===tag);
+  if(!release) throw Error('Draft release is missing');
   for(const name of assets) {
     const hash=run('/usr/bin/shasum',['-a','256',`dist/${name}`]).split(' ')[0];
     if(!release.assets.some(a=>a.name===name && a.state==='uploaded' && a.digest===`sha256:${hash}`)) throw Error(`Uploaded asset digest mismatch: ${name}`);

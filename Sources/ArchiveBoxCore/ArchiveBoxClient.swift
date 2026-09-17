@@ -103,7 +103,44 @@ public final class ArchiveBoxClient: Sendable {
         return result
     }
 
-    private func request(_ server: URL, path: String, body: Data? = nil, token: String? = nil, query: [URLQueryItem] = [], cookie: String? = nil) async throws -> Data {
+    public func updateTags(_ tags: [String], for receipt: SubmissionReceipt, configuration: ServerConfiguration) async throws {
+        guard let crawlID = receipt.crawlID, !crawlID.isEmpty else {
+            throw ArchiveBoxError.message("The server did not return a crawl ID for updating tags.")
+        }
+        let tags = ArchiveTags.normalize(tags)
+        let body = try JSONEncoder().encode(TagUpdate(tags: tags))
+        // Snapshots are created asynchronously. Updating their parent crawl also
+        // updates existing snapshots and supplies tags to ones created later.
+        let data = try await request(configuration.server, path: "api/v1/crawls/crawl/\(crawlID)",
+                                     body: body, token: configuration.token, method: "PATCH")
+        let result = try JSONDecoder().decode(TagUpdateResponse.self, from: data)
+        guard result.id == crawlID,
+              Set(ArchiveTags.normalize([result.tags_str]).map { $0.lowercased() }) == Set(tags.map { $0.lowercased() }) else {
+            throw ArchiveBoxError.message("The server did not confirm the tag update.")
+        }
+    }
+
+    public func tagSuggestions(query: String, configuration: ServerConfiguration) async throws -> [String] {
+        let data = try await request(configuration.server, path: "api/v1/core/tags/autocomplete/", token: configuration.token,
+                                     query: [URLQueryItem(name: "q", value: query)])
+        return try JSONDecoder().decode(TagSuggestions.self, from: data).tags.map(\.name)
+    }
+
+    public func removeSubmission(_ receipt: SubmissionReceipt, configuration: ServerConfiguration) async throws {
+        guard let crawlID = receipt.crawlID, !crawlID.isEmpty else {
+            throw ArchiveBoxError.message("The server did not return a crawl ID for removal.")
+        }
+        // Delete only the crawl returned by this share, never all captures of its URL.
+        // The server cancels its workers before removing its snapshots.
+        let data = try await request(configuration.server, path: "api/v1/crawls/crawl/\(crawlID)",
+                                     token: configuration.token, method: "DELETE")
+        let result = try JSONDecoder().decode(RemovalResponse.self, from: data)
+        guard result.success, result.crawl_id == crawlID else {
+            throw ArchiveBoxError.message("The server did not confirm removal. Check your archive before trying again.")
+        }
+    }
+
+    private func request(_ server: URL, path: String, body: Data? = nil, token: String? = nil, query: [URLQueryItem] = [], cookie: String? = nil, method: String? = nil) async throws -> Data {
         var request = URLRequest(url: server.appending(path: path).appending(queryItems: query))
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
@@ -113,6 +150,7 @@ public final class ArchiveBoxClient: Sendable {
         }
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         if let cookie { request.setValue(cookie, forHTTPHeaderField: "Cookie") }
+        if let method { request.httpMethod = method }
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ArchiveBoxError.message("The server returned an invalid response.") }
         switch http.statusCode {
@@ -124,6 +162,23 @@ public final class ArchiveBoxClient: Sendable {
         }
     }
 }
+
+public enum ArchiveTags {
+    public static func normalize(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.flatMap { $0.components(separatedBy: CharacterSet(charactersIn: ",\n")) }
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
+    }
+}
+
+private struct TagUpdate: Encodable { let tags: [String] }
+private struct TagUpdateResponse: Decodable { let id: String; let tags_str: String }
+private struct TagSuggestions: Decodable {
+    struct Tag: Decodable { let name: String }
+    let tags: [Tag]
+}
+private struct RemovalResponse: Decodable { let success: Bool; let crawl_id: String }
 
 private struct APISchema: Decodable {
     struct Info: Decodable { let title: String }

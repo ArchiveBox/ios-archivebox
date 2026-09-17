@@ -1,0 +1,20 @@
+.github/workflows/testflight.yml
+  h_923c208e183a7b 1-51
+docs/TESTFLIGHT.md
+  h_923c208e183a7b 21-51
+scripts/testflight-distribute.mjs
+  h_923c208e183a7b 1-54
+scripts/testflight.sh
+  h_923c208e183a7b 1-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3be5a272a5ecf2073eb04dee35abd66728e3ba0c",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

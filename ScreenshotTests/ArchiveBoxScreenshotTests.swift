@@ -141,7 +141,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(app.radioButtons["Connect to remote server"])
         press(app.menuBars.menuBarItems["ArchiveBox"])
         press(app.menuItems["About ArchiveBox"])
-        let credits = NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@",
+        let credits = NSPredicate(format: "label CONTAINS %@ OR CAST(value, 'NSString') CONTAINS %@",
             "Save URLs from your apps and browsers to ArchiveBox", "Save URLs from your apps and browsers to ArchiveBox")
         let about = app.windows.containing(.any, identifier: "ArchiveBox Documentation").firstMatch
         XCTAssertTrue(about.waitForExistence(timeout: 5), app.debugDescription)
@@ -266,8 +266,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     private func assertPage(_ marker: String, app: XCUIApplication) {
         #if os(macOS)
-        // WebKit exposes rendered text through AXValue on macOS; its AXLabel is often empty.
-        let predicate = NSPredicate(format: "value CONTAINS[c] %@", marker)
+        // WebKit uses AXValue for text and numbers; normalize its type before string matching.
+        let predicate = NSPredicate(format: "CAST(value, 'NSString') CONTAINS[c] %@", marker)
         #else
         let predicate = NSPredicate(format: "label CONTAINS[c] %@", marker)
         #endif

@@ -1,0 +1,29 @@
+App/AddURLsView.swift
+  s_ffefb637465167::t_b27ff478512543 13
+App/EmbeddedBrowser.swift
+  s_ffefb637465167::t_e9ba8cb56e6400 9,16-18,58,61-62,64-65,77,84-89
+App/MainView.swift
+  s_ffefb637465167::t_ffb174fb7622b5 122,164
+ServerApp/Sources/ArchiveBox.swift
+  s_ffefb637465167::t_389a4a339f72b1 7,11,62,71,93,213-217,222-228
+Sources/ArchiveBoxCore/BrowserNavigation.swift
+  s_ffefb637465167::t_e769e519a8e6a8 1-54
+Tests/ArchiveBoxCoreTests/AddressTests.swift
+  s_ffefb637465167::t_2d7d4812aa01c2 73-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6da40c2a95cb70235caf1634feee7f32fb60415c",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

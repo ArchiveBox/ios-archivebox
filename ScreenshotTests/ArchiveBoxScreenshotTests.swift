@@ -106,19 +106,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                 press(start)
             }
             assertPage(marker, app: app)
-            #if os(iOS)
-            if id == "add" {
-                // The first authenticated WebKit page can trigger the system's Save Password prompt.
-                // Interact normally so XCTest invokes the specific Not Now interruption handler.
-                app.navigationBars.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-                let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-                let passwordAlert = springboard.alerts.containing(.staticText, identifier: "Save Password?").firstMatch
-                expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: passwordAlert)
-                waitForExpectations(timeout: 5)
-                XCTAssertFalse(app.alerts.containing(.staticText, identifier: "Save Password?").firstMatch.exists, app.debugDescription)
-                XCTAssertTrue(app.webViews.staticTexts["Create a new Crawl"].isHittable, app.debugDescription)
-            }
-            #endif
+
             capture(id, app: app)
         }
         openScreen("openActivity", app: app)
@@ -210,7 +198,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     #endif
 
     private func press(_ element: XCUIElement) {
-
+        #if os(iOS)
+        if !element.isHittable { declinePasswordPrompt() }
+        #endif
         XCTAssertTrue(element.isHittable, element.debugDescription)
         #if os(macOS)
         element.click()

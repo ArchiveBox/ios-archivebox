@@ -1,0 +1,23 @@
+App/EmbeddedBrowser.swift
+  s_ffefb637465167::t_26c928059c954c 8,16-17,19-34,56,89,97-105,118,137-151
+MacApp/ArchiveBoxMac.entitlements
+  s_ffefb637465167::t_5d81bc7c9b65d1 7-8
+ServerApp/Sources/ArchiveBox.swift
+  s_ffefb637465167::t_1df4945e5d9902 218,223-232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bb25daecdec4a96e8c4fddeec5b0926947d4c8b7",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

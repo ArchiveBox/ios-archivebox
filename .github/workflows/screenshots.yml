@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [iphone, ipad, macos]
+        platform: [iphone, macos]
     # Simulators plus the real server need the Intel runner's 14 GB of RAM.
     # The shipping Mac target is Apple Silicon and stays on the ARM runner.
     runs-on: ${{ matrix.platform == 'macos' && 'macos-26' || 'macos-26-intel' }}
@@ -102,10 +102,10 @@ jobs:
           pattern: app-screenshots-*
           path: build/capture-artifacts
       - uses: astral-sh/setup-uv@v7
-      - name: Assemble and validate all three platforms
+      - name: Assemble and validate iPhone and Mac captures
         run: |
           mkdir -p build/screenshots
-          for platform in iphone ipad macos; do
+          for platform in iphone macos; do
             mv "build/capture-artifacts/app-screenshots-$platform" "build/screenshots/$platform"
           done
           uv run --no-project python scripts/build-screenshot-gallery.py --revision "$GITHUB_SHA" --backend-revision "$BACKEND_REVISION"

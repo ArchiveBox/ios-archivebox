@@ -33,14 +33,17 @@ pixels in a 1500 × 3000 PNG. Inspect the entire exported frame before publishin
 some capture tools apply an extra scale. The site must not add a border,
 background, rounded clipping, or another shadow around these PNGs.
 
-The **App website and screenshots** workflow builds pull requests without deploying.
-Every commit to `main` captures the app on all three platforms before deploying
-through GitHub Actions to <https://archivebox.github.io/ios-archivebox/>.
+The **App website** workflow builds pull requests without deploying and deploys
+commits to `main` through GitHub Actions to <https://archivebox.github.io/ios-archivebox/>.
+The separate **Capture native app screenshots** workflow captures iPhone and Mac
+on app changes to `main`. Successful captures trigger a new website deployment;
+other website builds retain the latest complete gallery. iPad capture is disabled
+for now.
 The repository's Pages source must be **GitHub Actions**. App distribution and
 TestFlight continue to use their own release workflows.
 
-The Screenshots page is generated from real XCTest attachments for iPhone, iPad,
-and Mac. CI captures the current app revision against a pinned ArchiveBox server,
+The Screenshots page is generated from real XCTest attachments for iPhone and
+Mac. CI captures the current app revision against a pinned ArchiveBox server,
 then runs:
 
 ```sh
@@ -49,14 +52,15 @@ uv run --no-project python scripts/build-screenshot-gallery.py \
 ```
 
 Run that command from the repository root. Each
-`build/screenshots/{iphone,ipad,macos}/metadata.json` must contain matching
+`build/screenshots/{iphone,macos}/metadata.json` must contain matching
 `revision`, `backend_revision`, and `platform` values alongside the exported
 `attachments/manifest.json`. The converter validates all required named screens,
 PNG dimensions, timestamps, and provenance before staging original images under
 `build/screenshots/gallery/`. No generated captures are committed.
 
-`build.sh` requires a complete gallery by default. For a landing-page-only local
-preview without captures, use `ALLOW_INCOMPLETE_SCREENSHOTS=1 bash build.sh`.
+Before the first complete capture, `build.sh` publishes the documentation images.
+Once a generated gallery is available, it must contain all 31 iPhone and 33 Mac
+screenshots.
 To inspect a genuine partial capture export, the converter's explicit `--smoke`
 flag permits missing screens/platforms and `--backend-revision none` when no server
 was used. Build that output with `ALLOW_INCOMPLETE_SCREENSHOTS=1` and optionally

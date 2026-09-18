@@ -1,0 +1,18 @@
+ScreenshotTests/ArchiveBoxScreenshotTests.swift
+  h_923c208e183a7b 1-16
+project.yml
+  h_923c208e183a7b 257-274,298-317
+scripts/capture-app-screenshots.sh
+  h_923c208e183a7b 1-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e1bd310f694874f04f872683f140b59bf14fef7f",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

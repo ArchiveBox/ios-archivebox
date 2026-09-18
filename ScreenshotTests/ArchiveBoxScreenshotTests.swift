@@ -105,7 +105,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["More ways to add"].exists, app.debugDescription)
         capture("add-guide", app: app)
         press(persona)
-        let choice = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "AppleAcceptance")).firstMatch
+        let choice = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Research Browser")).firstMatch
         XCTAssertTrue(choice.waitForExistence(timeout: 10), app.debugDescription)
         capture("persona-picker", app: app)
         press(choice)

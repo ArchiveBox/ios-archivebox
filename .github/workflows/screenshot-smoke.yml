@@ -1,6 +1,11 @@
 name: Native screenshot feasibility
 on:
   workflow_dispatch:
+    inputs:
+      mac_only:
+        description: Check only native macOS signing and capture
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -8,7 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [iphone, ipad, macos]
+        platform: ${{ fromJSON(inputs.mac_only && '["macos"]' || '["iphone", "ipad", "macos"]') }}
+    environment: testflight
     runs-on: macos-26
     timeout-minutes: 20
     steps:
@@ -24,6 +30,10 @@ jobs:
       - name: Generate screenshot test schemes
         run: brew install xcodegen && xcodegen generate
       - name: Capture the real app with XCTest
+        env:
+          DEVELOPER_ID_PROFILES: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_PROFILES || '' }}
+          DEVELOPER_ID_P12: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_P12 || '' }}
+          DEVELOPER_ID_PASSWORD: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_PASSWORD || '' }}
         run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}'
       - name: Preserve native capture evidence
         if: always()

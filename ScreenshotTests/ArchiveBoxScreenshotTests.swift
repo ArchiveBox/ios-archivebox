@@ -88,14 +88,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
         let screens: [(String, String)] = [
             ("add", "Create a new Crawl"), ("agent", "New session"),
-            ("crawls", "Add Crawl"), ("schedules", "Add Scheduled Crawl"),
-            ("snapshots", "Example Domain"), ("results", "Add Archive Result"),
+            ("crawls", "Search Crawls"), ("schedules", "Search Scheduled Crawls"),
+            ("snapshots", "Example Domain"), ("results", "Search Archive Results"),
             ("tags", "All tags"), ("admin", "Recent Actions"),
-            ("users", "Add user"), ("personas", "Add persona"),
-            ("keys", "Add API Key"), ("webhooks", "Add API Outbound Webhook"),
-            ("processes", "Add process"), ("machines", "Add machine"),
-            ("interfaces", "Add network interface"), ("binaries", "Add binary"),
-            ("plugins", "Installed plugins"), ("workers", "worker processes"), ("logs", "Debug Log files")
+            ("users", "Search users"), ("personas", "Search personas"),
+            ("keys", "Search API Keys"), ("webhooks", "Search API Outbound Webhooks"),
+            ("processes", "Search Processes"), ("machines", "Search machines"),
+            ("interfaces", "Search network interfaces"), ("binaries", "Search Binaries"),
+            ("plugins", "Hooks"), ("workers", "Exit Status"), ("logs", "Most Recent Lines")
         ]
         for (id, marker) in screens {
             openScreen(id, app: app)

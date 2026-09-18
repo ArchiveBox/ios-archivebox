@@ -1,0 +1,14 @@
+scripts/build-screenshot-gallery.py
+  h_923c208e183a7b 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "edbe00d50b9ff5797eefcbc6c1baa53265d1aad7",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

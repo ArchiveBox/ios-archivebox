@@ -100,8 +100,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             assertPage(marker, app: app)
             capture(id, app: app)
         }
-        showSidebar(app)
-        press(app.buttons["sidebar.openActivity"])
+        openScreen("openActivity", app: app)
         assertPage("Recent Actions", app: app)
         capture("activity", app: app)
 
@@ -208,10 +207,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     private func showSidebar(_ app: XCUIApplication) {
         #if os(iOS)
-        if !app.buttons["sidebar.openActivity"].isHittable {
+        let sidebar = app.collectionViews["Sidebar"]
+        if !sidebar.isHittable {
             let back = app.navigationBars.buttons.firstMatch
             XCTAssertTrue(back.exists, app.debugDescription)
             press(back)
+            expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: sidebar)
+            waitForExpectations(timeout: 5)
         }
         #endif
     }
@@ -224,15 +226,15 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         for _ in 0..<6 where !item.isHittable { list.scroll(byDeltaX: 0, deltaY: 450) }
         for _ in 0..<10 where !item.isHittable { list.scroll(byDeltaX: 0, deltaY: -450) }
         #else
-        let surface = app
-        // Keep the gesture inside the sidebar on iPad, rather than scrolling its detail webview.
+        let surface = app.collectionViews["Sidebar"]
+        // Scroll the actual sidebar surface in both compact and regular split views.
         for _ in 0..<6 where !item.isHittable {
-            surface.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.3)).press(forDuration: 0.05,
-                thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.8)))
+            surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).press(forDuration: 0.05,
+                thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)))
         }
         for _ in 0..<10 where !item.isHittable {
-            surface.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.8)).press(forDuration: 0.05,
-                thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.3)))
+            surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)).press(forDuration: 0.05,
+                thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
         }
         #endif
         XCTAssertTrue(item.isEnabled, app.debugDescription)

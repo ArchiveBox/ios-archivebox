@@ -76,6 +76,12 @@ browser in. Failed changes restore the configured values, including a blank
 BASE_URL. Network changes preserve the collection and container's writable layer.
 
 Optional Tailscale HTTPS runs Serve or, after choosing public access, Funnel.
+Turning on **Allow access from users on the internet** opens a confirmation and
+then automatically selects Tailscale HTTPS, applies Funnel, and verifies the
+public address. Turning it off applies private access again. The verified public
+URL is shown beside the checkbox; an automatic BASE_URL stays blank so private
+connection addresses continue to work. Tailscale may require its own account
+approval, in which case the app shows the approval link.
 The app verifies the API and Tailscale access setting. Changing back to HTTP
 removes the HTTPS listener it owns. Tailscale account approval may still require
 a browser. Imported PEM certificates are supported. Cloudflare and Let's Encrypt

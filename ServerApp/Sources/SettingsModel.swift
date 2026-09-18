@@ -116,6 +116,7 @@ final class SettingsModel: ObservableObject {
         if UserDefaults.standard.data(forKey: "networkAccessOptions") != nil {
             networkURLs = try await networkAccess.start(options: networkOptions)
         }
+        await refreshManagedTailscaleHTTPS()
         serverDetails = details
         baseURLDraft = details.configuredBaseURL ?? details.base.absoluteString
         securityModeDraft = details.securityMode
@@ -412,6 +413,47 @@ struct EmbeddedTerminal: NSViewRepresentable {
 }
 
 extension SettingsModel {
+    func setInternetAccess(_ enabled: Bool) {
+        networkOptions.internet = enabled
+        if enabled {
+            networkOptions.https = true
+            networkOptions.certificate = .tailscale
+        } else if networkOptions.certificate == .tailscale && !networkOptions.tailnet {
+            networkOptions.https = false
+        }
+        startSharing()
+    }
+
+    // Reconstruct the applied HTTPS address after relaunch without enabling or
+    // exposing anything. A checkbox must not claim that an absent Funnel works.
+    private func refreshManagedTailscaleHTTPS() async {
+        let port = UserDefaults.standard.integer(forKey: "archiveboxManagedTailscaleHTTPSPort")
+        guard networkOptions.https, networkOptions.certificate == .tailscale, port != 0,
+              let cli = TailscaleNetwork.executable else { return }
+        do {
+            let result = try await ProcessCommand.runAsync(cli, ["serve", "status", "--json"], timeout: 8)
+            guard result.status == 0,
+                  let config = try JSONSerialization.jsonObject(with: Data(result.output.utf8)) as? [String: Any] else {
+                throw ArchiveBoxError.message("Could not check Tailscale HTTPS. Apply access settings to verify it again.")
+            }
+            let web = config["Web"] as? [String: [String: Any]] ?? [:]
+            let publicListeners = config["AllowFunnel"] as? [String: Bool] ?? [:]
+            guard let entry = web.first(where: { key, value in
+                let handlers = value["Handlers"] as? [String: [String: String]]
+                return key.hasSuffix(":\(port)") && handlers?.count == 1 && handlers?["/"]?["Proxy"] == "http://127.0.0.1:18080"
+            }), let url = URL(string: "https://" + entry.key) else {
+                throw ArchiveBoxError.message("The saved Tailscale HTTPS listener is missing. Apply access settings to restore it.")
+            }
+            sharingPublic = publicListeners[entry.key] == true
+            guard sharingPublic == networkOptions.internet else {
+                throw ArchiveBoxError.message("Tailscale's internet access differs from these settings. Apply access settings to restore your choice.")
+            }
+            _ = try await ArchiveBoxClient().discoverServer(url.absoluteString)
+            tailscaleURL = url
+            networkURLs.append(url)
+        } catch { sharingError = error.localizedDescription }
+    }
+
     private func automaticallyConnectTailnetIfNeeded() {
         guard hasAdmin, serverDetails?.base.host()?.hasSuffix(".localhost") == true,
               UserDefaults.standard.string(forKey: "networkSetupChoice") == nil,
@@ -507,6 +549,7 @@ extension SettingsModel {
                 ? "Funnel is enabled and the HTTPS API works from this Mac. Check from a phone with Wi-Fi and Tailscale off to confirm access from outside your network."
                 : "Ready. On your iPhone, open ArchiveBox → Find a server. Keep Tailscale connected."
             restarting = false
+            advertiseNetwork()
         } catch {
             let problem = error.localizedDescription
             var recovery = ""
@@ -612,6 +655,7 @@ extension SettingsModel {
             }
             catch { await networkAccess.stop(); networkURLs = []; message += " Previous network listeners could not restart." }
             advertiseNetwork(); sharingMessage = nil; sharingError = message
+            networkOptions.internet = oldOptions.internet
         }
     }
 

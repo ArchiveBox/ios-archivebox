@@ -21,9 +21,20 @@ struct PrivateSharingSection: View {
                         .accessibilityIdentifier("network.allowTailnet")
                     Text("Tailscale encrypts traffic. mDNS advertises the tailnet address to nearby devices; it does not travel across the tailnet.").font(.caption).foregroundStyle(.secondary)
                     Divider()
-                    Toggle("Allow access from users on the internet", isOn: $model.networkOptions.internet)
+                    Toggle("Allow access from users on the internet", isOn: Binding(
+                        get: { model.networkOptions.internet },
+                        set: { enabled in
+                            if enabled { confirmInternet = true }
+                            else { model.setInternetAccess(false) }
+                        }
+                    ))
                         .accessibilityIdentifier("network.allowInternet")
-                    Text("Public access is opt-in. Your ArchiveBox visibility settings still determine which pages require sign-in.").font(.caption).foregroundStyle(.secondary)
+                        .disabled(model.sharingBusy || !model.ready || !model.hasAdmin || model.managementBusy || model.restarting)
+                    Text("Turn on to set up public HTTPS with Tailscale Funnel. The app runs the commands and verifies the address for you.").font(.caption).foregroundStyle(.secondary)
+                    if model.sharingPublic, let url = model.tailscaleURL, url.scheme == "https" {
+                        Label("Public HTTPS is on", systemImage: "checkmark.shield.fill").foregroundStyle(.green)
+                        Link(url.absoluteString, destination: url).textSelection(.enabled)
+                    }
                 }.toggleStyle(.checkbox)
                     Spacer(minLength: 0)
                     if let url = model.tailscaleConnectionURL {
@@ -38,7 +49,7 @@ struct PrivateSharingSection: View {
                 Divider()
                 TextField("BASE_URL", text: $model.networkOptions.baseURL, prompt: Text("BASE_URL: Automatic — use the address each device connects to"))
                     .textFieldStyle(.roundedBorder).accessibilityIdentifier("network.baseURL")
-                Text("Leave blank for LAN and Tailscale to work side by side. Set a fixed address for custom DNS and isolated subdomains.").font(.caption).foregroundStyle(.secondary)
+                Text("Leave blank for localhost, LAN, Tailscale and public HTTPS to work side by side. Funnel supplies its own address automatically. Set BASE_URL only to pin a custom address.").font(.caption).foregroundStyle(.secondary)
                 TextField("Server listen port", value: $model.networkOptions.port, format: .number.grouping(.never))
                     .textFieldStyle(.roundedBorder).accessibilityIdentifier("network.port")
                 Picker("Serve using", selection: $model.networkOptions.https) {
@@ -98,8 +109,9 @@ struct PrivateSharingSection: View {
             }.padding(8).frame(maxWidth: .infinity, alignment: .leading)
         } label: { Label("Network access", systemImage: "network") }
         .confirmationDialog("Make this archive reachable from the internet?", isPresented: $confirmInternet) {
-            Button("Apply public access", role: .destructive) { model.startSharing() }
-        } message: { Text("Anyone can reach its public address. Public snapshots and the public index may be visible without signing in. Review ArchiveBox’s visibility settings before continuing.") }
+            Button("Enable public HTTPS with Funnel", role: .destructive) { model.setInternetAccess(true) }
+            Button("Cancel", role: .cancel) { }
+        } message: { Text("ArchiveBox will turn on HTTPS, configure Tailscale Funnel, and verify the public address. Anyone can reach that address; public snapshots and the public index may be visible without signing in. Localhost, LAN and private Tailscale access stay available according to your settings. No domain or commands are needed.") }
         .sheet(isPresented: $guide) {
             TailscaleGuide(role: .server,
                 prepareSettings: { base, mode in model.networkOptions.baseURL = base; model.networkOptions.securityMode = mode },

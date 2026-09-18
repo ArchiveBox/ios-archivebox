@@ -119,7 +119,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         openScreen("add", app: app)
         let persona = app.descendants(matching: .any)["defaultPersona"].firstMatch
         reveal(persona, named: "defaultPersona", app: app)
-        XCTAssertTrue(app.staticTexts["More ways to add"].exists, app.debugDescription)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@ OR CAST(value, 'NSString') == %@", "More ways to add", "More ways to add")).firstMatch.exists, app.debugDescription)
         capture("add-guide", app: app)
         press(persona)
         let choice = app.descendants(matching: .any)["Research Browser"].firstMatch
@@ -260,11 +260,17 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     private func reveal(_ element: XCUIElement, named name: String, app: XCUIApplication) {
         for _ in 0..<10 where !element.isHittable {
             #if os(macOS)
-            let outer = app.scrollViews.containing(.any, identifier: name).firstMatch
-            // Its center overlaps WKWebView, which consumes wheel events. Use the outer scrollbar.
-            outer.children(matching: .scrollBar).firstMatch.scroll(byDeltaX: 0, deltaY: -350)
+            // Wheel over visible native content, outside WebKit and the auto-hidden scrollbar.
+            let anchor = name == "defaultPersona"
+                ? app.staticTexts.matching(NSPredicate(format: "CAST(value, 'NSString') == %@", "More ways to add")).firstMatch
+                : app.staticTexts.matching(NSPredicate(format: "CAST(value, 'NSString') == %@", "Default persona")).firstMatch
+            XCTAssertTrue(anchor.isHittable, app.debugDescription)
+            anchor.scroll(byDeltaX: 0, deltaY: -250)
             #else
-            app.swipeUp()
+            let outer = app.scrollViews.containing(.any, identifier: name).firstMatch
+            // Begin below the embedded page's 80%-height viewport, in native guide content.
+            outer.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.93)).press(forDuration: 0.05,
+                thenDragTo: outer.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.3)))
             #endif
         }
         XCTAssertTrue(element.isHittable, app.debugDescription)

@@ -114,7 +114,9 @@ bash build.sh   # requires uv for reading the packaged image metadata
 ```
 
 To rebuild and relaunch an existing developer installation, run
-`bash install-local.sh`. It reuses the installed runtime payload, signs and verifies
+`bash install-local.sh`. It resolves the latest published `dev` image from both
+registries, refreshes stale image payloads using this app's running runtime, and
+records a new build number so startup recreates the container. It signs and verifies
 a separate staged bundle, then atomically swaps it into `~/Applications` and keeps
 the previous bundle for rollback. Do not overwrite or re-sign an installed executable
 in place: a concurrent launch can otherwise crash with `CODESIGNING / Invalid Page`.
@@ -133,8 +135,11 @@ Pinned components:
 - Kernel `vmlinux-6.18.35-197-debug`, recommended by that Container release,
   from Kata Containers 3.32.0. Linux is GPL-2.0; matching sources/configuration:
   <https://github.com/kata-containers/kata-containers/tree/3.32.0/tools/packaging/kernel>.
-- ArchiveBox index `sha256:26cf885e6ea791df15147cad4e07cc390d552926108bfcb5b827da5ffe5aad96`,
-  ARM64 manifest `sha256:af6b75a1bef801c4caa8c5661fece5a8fcff044b1e83da31b123f43ec677bbe8`.
+- ArchiveBox is resolved from the latest published `dev` image at build time.
+  Docker Hub and GHCR must agree, and both architectures must match `origin/dev`.
+  The resolved digest keys the release payload cache; the packaged ARM64 config
+  digest is checked before signing. Builds stop if image publication is behind.
+  The shipped version, source revision, and digest are recorded in `Info.plist`.
 - SwiftTerm 1.19.0, MIT.
 
 Apple's and SwiftTerm's licenses are copied into the bundle. ArchiveBox and its
@@ -174,3 +179,5 @@ and security mode, restarts twice, and restores the original effective settings)
 ```sh
 bash ServerApp/Tests/run.sh HTTPSettings "$HOME/Applications/ArchiveBox Server.app"
 ```
+
+Verify the installed agent with `bash ServerApp/Tests/run.sh OpenCode "/path/to/ArchiveBox Server.app"` from the repository root. The check uses the existing administrator session and verifies the embedded agent, health endpoint, and provider catalog without printing credentials.

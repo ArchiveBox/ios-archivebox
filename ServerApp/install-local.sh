@@ -9,11 +9,39 @@ mkdir "$lock" || { echo 'Another local installation is already running.' >&2; ex
 trap 'rmdir "$lock"' EXIT
 identity="${ARCHIVEBOX_SIGNING_IDENTITY:-$(security find-identity -v -p codesigning | awk '/"Apple Development:/ {print $2; exit}')}"
 [[ -n "$identity" && "$identity" != '-' ]] || { echo 'An Apple signing identity is required.' >&2; exit 1; }
+# Resolve before building so a local update cannot silently retain an old image.
+uv run --no-project python server-image.py resolve
+payload="$app/Contents/Resources/images.tar"
+if ! uv run --no-project python server-image.py verify "$payload"; then
+    payload="$PWD/payload/images.tar"
+    if ! uv run --no-project python server-image.py verify "$payload"; then
+        cli="$app/Contents/Resources/runtime/bin/container"
+        # Reuse only this app's running service; preparation must not take over
+        # another Container installation or interrupt the currently open server.
+        "$cli" system status --format json | uv run --no-project python -c '
+import json, pathlib, sys
+status = json.load(sys.stdin)
+expected = pathlib.Path(sys.argv[1]) / "Contents/Resources/runtime"
+if pathlib.Path(status["paths"]["installRoot"]).resolve() != expected.resolve():
+    raise SystemExit("The active Container runtime belongs to another installation.")
+' "$app"
+        image=$(uv run --no-project python -c 'import json; print(json.load(open("payload/resolved-image.json"))["image"])')
+        "$cli" image pull --arch arm64 "$image"
+        "$cli" image tag "$image" archivebox/archivebox:dev
+        "$cli" image save --arch arm64 -o "$payload" archivebox/archivebox:dev ghcr.io/apple/containerization/vminit:0.45.0
+        uv run --no-project python server-image.py verify "$payload"
+    fi
+fi
 swift build --build-system native --disable-build-manifest-caching -c release -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 staging=$(mktemp -d "$(dirname "$app")/.archivebox-update.XXXXXX")
 staged="$staging/ArchiveBox Server.app"
 # APFS clones reuse the large runtime/image payload without sharing writable inodes.
 cp -cR "$app" "$staged"
+if [[ "$payload" != "$app/Contents/Resources/images.tar" ]]; then
+    cp "$payload" "$staged/Contents/Resources/images.tar"
+fi
+# A new build marker makes startup import this payload and recreate the server.
+ARCHIVEBOX_BUILD_NUMBER="$(date -u +%Y%m%d%H%M%S)" uv run --no-project python bundle-metadata.py "$staged"
 cp .build/release/ArchiveBoxServer "$staged/Contents/MacOS/ArchiveBoxServer"
 xcrun actool "$PWD/../App/Assets.xcassets" --compile "$staged/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --output-format human-readable-text
 codesign --force --options runtime --sign "$identity" "$staged"

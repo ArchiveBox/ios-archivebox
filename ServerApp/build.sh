@@ -10,6 +10,13 @@ if [[ -z "$signing_identity" || "$signing_identity" == "-" ]]; then
     exit 1
 fi
 assets="${ARCHIVEBOX_SERVER_ASSETS:-$PWD}"
+if [[ -z "${ARCHIVEBOX_SERVER_IMAGE:-}" ]]; then
+    uv run --no-project python server-image.py resolve
+fi
+if ! uv run --no-project python server-image.py verify "$assets/payload/images.tar"; then
+    bash prepare.sh
+    assets="$PWD"
+fi
 app="${1:-$PWD/dist/ArchiveBox Server.app}"
 case "$app" in
     "$HOME/Applications/"*|/Applications/*)

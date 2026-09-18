@@ -4,7 +4,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p vendor payload
 version=1.4.1
-image='archivebox/archivebox@sha256:26cf885e6ea791df15147cad4e07cc390d552926108bfcb5b827da5ffe5aad96'
+if [[ -z "${ARCHIVEBOX_SERVER_IMAGE:-}" ]]; then
+    uv run --no-project python server-image.py resolve
+fi
+image="${ARCHIVEBOX_SERVER_IMAGE:-$(uv run --no-project python -c 'import json; print(json.load(open("payload/resolved-image.json"))["image"])')}"
 if [[ ! -d vendor/package ]]; then
     curl -fL "https://github.com/apple/container/releases/download/$version/container-$version-installer-signed.pkg" -o vendor/container.pkg
     printf "%s  %s\n" c0d2716afefbb194c93fae662e9cae7cc186bcbcf746816608ec673dd648a6a4 vendor/container.pkg | /usr/bin/shasum -a 256 -c -
@@ -26,3 +29,4 @@ trap '"$cli" system stop' EXIT
 "$cli" image pull --arch arm64 ghcr.io/apple/containerization/vminit:0.45.0
 "$cli" image save --arch arm64 -o "$PWD/payload/images.tar" archivebox/archivebox:dev ghcr.io/apple/containerization/vminit:0.45.0
 cp .runtime/kernels/vmlinux-6.18.35-197-debug payload/vmlinux
+uv run --no-project python server-image.py verify "$PWD/payload/images.tar"

@@ -1,0 +1,23 @@
+Package.swift
+  s_ffefb637465167::t_30ce32eba5e386 9
+Sources/ArchiveBoxCore/Resources/public_suffix_list.dat
+  s_ffefb637465167::t_a2ffc3be18e4c4 1-16477
+Tests/ArchiveBoxCoreTests/AddressTests.swift
+  s_ffefb637465167::t_fcd6a3370c6414 10-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2c2894786ad2add5751ffd20d874479c66573b9a",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

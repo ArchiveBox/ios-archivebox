@@ -1,0 +1,14 @@
+docs/site/assets/style.scss
+  h_923c208e183a7b 159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5d799fbe7bf4aa95f71c3bb6e6d4c298ebc99ba2",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

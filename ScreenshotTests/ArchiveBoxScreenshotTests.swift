@@ -51,6 +51,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             return true
         }
         defer { removeUIInterruptionMonitor(interruption) }
+        #if os(iOS)
+        let passwordInterruption = addUIInterruptionMonitor(withDescription: "Decline saving the disposable API key") { alert in
+            guard alert.staticTexts["Save Password?"].exists, alert.buttons["Not Now"].exists else { return false }
+            alert.buttons["Not Now"].tap()
+            return true
+        }
+        defer { removeUIInterruptionMonitor(passwordInterruption) }
+        #endif
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
         XCTAssertFalse(server.isEmpty)
@@ -98,6 +106,19 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                 press(start)
             }
             assertPage(marker, app: app)
+            #if os(iOS)
+            if id == "add" {
+                // The first authenticated WebKit page can trigger the system's Save Password prompt.
+                // Interact normally so XCTest invokes the specific Not Now interruption handler.
+                app.navigationBars.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+                let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+                let passwordAlert = springboard.alerts.containing(.staticText, identifier: "Save Password?").firstMatch
+                expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: passwordAlert)
+                waitForExpectations(timeout: 5)
+                XCTAssertFalse(app.alerts.containing(.staticText, identifier: "Save Password?").firstMatch.exists, app.debugDescription)
+                XCTAssertTrue(app.webViews.staticTexts["Create a new Crawl"].isHittable, app.debugDescription)
+            }
+            #endif
             capture(id, app: app)
         }
         openScreen("openActivity", app: app)

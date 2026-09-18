@@ -1,0 +1,39 @@
+ServerApp/Sources/ArchiveBox.swift
+  s_ffefb637465167::t_9e762ddaa0ddbe 34,40-49,106-109,118,144,277-278
+ServerApp/Sources/NetworkAccess.swift
+  s_ffefb637465167::t_66327c6e5f46e4 1-124
+ServerApp/Sources/Runtime.swift
+  s_ffefb637465167::t_000a4c0244e3c1 21-74,156-160,168,197,205,209-211,219-233,241,264-266
+ServerApp/Sources/Settings.swift
+  s_ffefb637465167::t_57ca12d2c881a4 16,20-21,34-58,70,90,93-102,123,225
+ServerApp/Sources/SettingsModel.swift
+  s_ffefb637465167::t_180648f5bf9c8d 11-13,25,28-42,46-57,64,66-69,80,85-101,112-156,160,195,197-198,227,230,235-246,257-263,265,268-269,276,294,296-299,303-304,353,414-642
+ServerApp/Sources/TailscaleSetup.swift
+  s_ffefb637465167::t_d63e82715f0bfc 1-184
+ServerApp/Tests/ReplayFormatsAcceptance.swift
+  s_ffefb637465167::t_89bdbf9838a8ff 1-42
+ServerApp/Tests/TailscaleAcceptance.swift
+  s_ffefb637465167::t_d1efe7374ae2a4 1-49
+ServerApp/build.sh
+  s_ffefb637465167::t_82e02ee666eef6 27-30,74-76
+ServerApp/install-local.sh
+  s_ffefb637465167::t_37da3133ddf01a 46-51,53-54
+ServerApp/prepare-network.sh
+  s_ffefb637465167::t_e789ed6a0efefb 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "440520cedac043d1a5075c48af7a7c9d8339457d",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

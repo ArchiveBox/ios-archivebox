@@ -1,0 +1,18 @@
+ServerApp/README.md
+  h_923c208e183a7b 79-84
+ServerApp/Sources/SettingsModel.swift
+  h_923c208e183a7b 119,416-456,552,658
+ServerApp/Sources/TailscaleSetup.swift
+  h_923c208e183a7b 24-30,32-37,52,112-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "78fff49d6bf2ba952cc4cfa1c538d712951fe875",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

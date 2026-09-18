@@ -83,6 +83,19 @@ public final class ArchiveBoxClient: Sendable {
         return try JSONDecoder().decode(SidebarProgress.self, from: data)
     }
 
+    public func search(query: String, limit: Int = 20, configuration: ServerConfiguration) async throws -> [ArchiveSnapshot] {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { throw ArchiveBoxError.message("Enter something to search for.") }
+        // Match the API's page-size ceiling; request one bounded result set so a
+        // Shortcut cannot accidentally download the user's entire collection.
+        guard (1...500).contains(limit) else { throw ArchiveBoxError.message("Choose between 1 and 500 results.") }
+        let data = try await request(configuration.server, path: "api/v1/core/snapshots", token: configuration.token,
+                                     query: [URLQueryItem(name: "search", value: query),
+                                             URLQueryItem(name: "search_mode", value: "meta"),
+                                             URLQueryItem(name: "limit", value: String(limit))])
+        return try JSONDecoder().decode(SnapshotPage.self, from: data).items
+    }
+
     public func submit(urls: [URL], configuration: ServerConfiguration) async throws -> SubmissionReceipt {
         guard !urls.isEmpty, urls.allSatisfy({ SharedLinks.isWebURL($0) }) else {
             throw ArchiveBoxError.message("Share an http:// or https:// link to ArchiveBox.")
@@ -210,6 +223,14 @@ public enum ArchiveTags {
 private struct TagUpdate: Encodable { let tags: [String] }
 private struct TagUpdateResponse: Decodable { let id: String; let tags_str: String }
 private struct RemovalResponse: Decodable { let success: Bool; let crawl_id: String }
+
+public struct ArchiveSnapshot: Decodable, Sendable, Identifiable {
+    public let id: String
+    public let title: String?
+    public let url: URL
+    public let tags: [String]
+}
+private struct SnapshotPage: Decodable { let items: [ArchiveSnapshot] }
 
 private struct APISchema: Decodable {
     struct Info: Decodable { let title: String }

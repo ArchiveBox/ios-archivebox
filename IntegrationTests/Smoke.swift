@@ -76,6 +76,13 @@ struct IntegrationChecks {
                 fatalError("Tag edit did not propagate to the existing snapshot")
             }
         }
+        let matches = try await client.search(query: url.absoluteString, limit: 1, configuration: configuration)
+        guard matches.count == 1, matches[0].id == snapshotID, matches[0].url == url else {
+            fatalError("Search did not return the newly created snapshot with its original URL")
+        }
+        let missing = try await client.search(query: UUID().uuidString, configuration: configuration)
+        guard missing.isEmpty else { fatalError("Search returned results for an unknown unique query") }
+        print("PASS: authenticated snapshot search returns matching records and an empty list for no matches")
         print("PASS: tags inherit before snapshot creation and add/remove/clear afterward without resubmitting")
         // Removal must be scoped to this receipt, even if the same URL was shared twice.
         let otherShare = try await client.submit(urls: [url], configuration: configuration)

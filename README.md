@@ -58,6 +58,15 @@ Your server must be reachable to save new links.
 
 </div>
 
+## Shortcuts and Siri
+
+The universal ArchiveBox app provides two actions on iPhone, iPad, and Mac:
+
+- **Search ArchiveBox** searches snapshot URLs, titles, and tags in the background. It returns up to **Maximum Results** (20 by default, up to the server's 500-result page limit). Each result exposes its title, original URL, archive URL, snapshot ID, and tags to subsequent Shortcut actions. It does not open the app or search archived page bodies.
+- **Save URLs to ArchiveBox** accepts one or more web URLs, including input from a preceding Shortcut action. It uses the saved connection and Default Persona, removes duplicate input URLs, and returns the links the server accepted. Capture completes on the server; there is no offline queue.
+
+Find both under **ArchiveBox** in Shortcuts, or say **“Search ArchiveBox”** / **“Save URLs to ArchiveBox”** to Siri and supply the requested input. First configure the server and API key in Connection Settings. Both actions require access to the unlocked device's Keychain and a reachable server. Empty searches return an error; a search with no matches returns an empty list.
+
 ## Your server, your choice
 
 Use an existing ArchiveBox server anywhere you can reach it, or keep your archive on your Mac with **ArchiveBox Server.app**.

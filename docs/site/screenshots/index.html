@@ -1,0 +1,33 @@
+---
+layout: default
+title: App screenshots
+---
+<h1>ArchiveBox on your devices</h1>
+<p>Explore real app captures on iPhone, iPad, and Mac. Open any image to see its original resolution.</p>
+{% assign gallery = site.data.screenshots %}
+{% unless gallery.complete %}<p class="gallery-preview">Incomplete local preview. This gallery is not ready to publish.</p>{% endunless %}
+<p class="gallery-provenance">App <a href="https://github.com/ArchiveBox/ios-archivebox/commit/{{ gallery.revision }}">{{ gallery.revision | slice: 0, 12 }}</a> · Server <a href="https://github.com/ArchiveBox/ArchiveBox/commit/{{ gallery.backend_revision }}">{{ gallery.backend_revision | slice: 0, 12 }}</a> · <a href="{{ '/screenshots/manifest.json' | relative_url }}">Capture manifest</a></p>
+<div class="gallery-platforms" role="group" aria-label="Choose a device">
+  <button type="button" data-platform="all" aria-pressed="true">All devices</button>
+  {% for platform in gallery.platforms %}<button type="button" data-platform="{{ platform.id }}" aria-pressed="false">{{ platform.label }}</button>{% endfor %}
+</div>
+<p class="gallery-provenance">Includes the app’s native navigation and embedded server pages. The separate Server app, external browser/settings pages, and Mac share extension are not included.</p>
+<div class="native-gallery">
+{% for capture in gallery.captures %}
+  <figure data-platform="{{ capture.platform }}" id="{{ capture.platform }}-{{ capture.id }}">
+    <h2>{{ capture.title }}</h2>
+    <p>{{ capture.platform_label }} · {{ capture.device | escape }}</p>
+    {% assign image_path = '/screenshots/' | append: capture.path %}
+    <a href="{{ image_path | relative_url }}"><img src="{{ image_path | relative_url }}" alt="{{ capture.title }} on {{ capture.platform_label }}" width="{{ capture.width }}" height="{{ capture.height }}" loading="lazy"></a>
+    <figcaption>{{ capture.width }} × {{ capture.height }} · <time datetime="{{ capture.captured_at }}">{{ capture.captured_at }}</time></figcaption>
+  </figure>
+{% endfor %}
+</div>
+<script>
+  document.querySelectorAll('.gallery-platforms button').forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.gallery-platforms button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      document.querySelectorAll('.native-gallery figure').forEach(figure => { figure.hidden = button.dataset.platform !== 'all' && figure.dataset.platform !== button.dataset.platform; });
+    });
+  });
+</script>

@@ -37,3 +37,29 @@ The **App website** workflow builds pull requests without deploying. On `main`, 
 deploys through GitHub Actions to <https://archivebox.github.io/ios-archivebox/>.
 The repository's Pages source must be **GitHub Actions**. App distribution and
 TestFlight continue to use their own release workflows.
+
+The Screenshots page is generated from real XCTest attachments for iPhone, iPad,
+and Mac. CI captures the current app revision against a pinned ArchiveBox server,
+then runs:
+
+```sh
+uv run --no-project python scripts/build-screenshot-gallery.py \
+  --revision "$GITHUB_SHA" --backend-revision "$BACKEND_REVISION"
+```
+
+Run that command from the repository root. Each
+`build/screenshots/{iphone,ipad,macos}/metadata.json` must contain matching
+`revision`, `backend_revision`, and `platform` values alongside the exported
+`attachments/manifest.json`. The converter validates all required named screens,
+PNG dimensions, timestamps, and provenance before staging original images under
+`build/screenshots/gallery/`. No generated captures are committed.
+
+`build.sh` requires a complete gallery by default. For a landing-page-only local
+preview without captures, use `ALLOW_INCOMPLETE_SCREENSHOTS=1 bash build.sh`.
+To inspect a genuine partial capture export, the converter's explicit `--smoke`
+flag permits missing screens/platforms and `--backend-revision none` when no server
+was used. Build that output with `ALLOW_INCOMPLETE_SCREENSHOTS=1` and optionally
+`SCREENSHOT_GALLERY_DIR=/path/to/gallery`; it is visibly marked incomplete and
+must never be deployed. Full-resolution PNGs retain the original capture pixels.
+The optional Server.app and external browser/settings destinations are outside
+this app gallery; Mac share-extension capture is not currently included.

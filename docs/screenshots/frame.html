@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>ArchiveBox iPhone screenshot frame</title>
+<style>
+  /* Frame the original capture without retouching app content. Transparent
+     margins preserve the device shadow on both GitHub and the landing page. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 500px; height: 1000px; background: transparent; }
+  html { zoom: 1.5; }
+  body { display: grid; place-items: start center; padding-top: 30px; }
+  .device { position: relative; width: 426px; padding: 12px; border-radius: 70px;
+    background: linear-gradient(110deg, #777 0, #242424 2%, #070707 8%, #111 92%, #777 98%, #242424);
+    box-shadow: 0 26px 32px -13px #1721324a, 0 8px 14px -5px #17213240, inset 0 0 0 1px #aaa, inset 0 0 0 3px #282828; }
+  .screen { position: relative; overflow: hidden; border-radius: 58px; background: #000; }
+  .screen img { display: block; width: 402px; height: 874px; }
+  .screen::after { content: ""; position: absolute; width: 116px; height: 34px;
+    top: 11px; left: calc(50% - 58px); border-radius: 22px; background: #050505; box-shadow: inset 0 0 0 1px #111; }
+  .button { position: absolute; width: 4px; left: -3px; border-radius: 3px 0 0 3px; background: linear-gradient(90deg, #aaa, #252525); }
+  .action { top: 117px; height: 25px; }
+  .volume-up { top: 177px; height: 59px; }
+  .volume-down { top: 249px; height: 59px; }
+  .power { left: auto; right: -3px; top: 200px; height: 86px; transform: rotate(180deg); }
+</style>
+<div class="device">
+  <i class="button action"></i><i class="button volume-up"></i><i class="button volume-down"></i><i class="button power"></i>
+  <div class="screen"><img alt="Unmodified ArchiveBox simulator capture"></div>
+</div>
+<script>
+  const screen = new URLSearchParams(location.search).get('screen');
+  if (['home-iphone', 'connection-iphone', 'share-iphone', 'extension-iphone'].includes(screen)) {
+    document.querySelector('img').src = `raw/${screen}.png`;
+  }
+</script>
+</html>

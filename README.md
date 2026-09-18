@@ -31,13 +31,16 @@
 
 <p class="caption">Beta · Requires ArchiveBox 0.9.x or later · Mac downloads require Apple Silicon.</p>
 
-<p class="screenshot" align="center"><img src="docs/screenshots/connection-mac.png" width="900" loading="lazy" alt="ArchiveBox.app Connection Settings with a running local server and a verified API key"></p>
+<div class="device-pair" align="center">
+<a href="docs/screenshots/home-iphone.png"><img src="docs/screenshots/home-iphone.png" width="300" loading="lazy" alt="ArchiveBox on iPhone: Add URLs, AI Agent, collection and admin screens, with a connected server"></a>
+<a href="docs/screenshots/connection-iphone.png"><img src="docs/screenshots/connection-iphone.png" width="300" loading="lazy" alt="Connection Settings on iPhone with a verified server URL and API key"></a>
+</div>
 
 <div class="feature" markdown="1">
 
 ## Share it. Keep it.
 
-<p class="phone-screenshot" align="right"><img src="App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png" width="245" loading="lazy" alt="The iPhone share sheet’s Apps list, with ArchiveBox available as a sharing destination"></p>
+<p class="phone-screenshot" align="right"><a href="docs/screenshots/share-iphone.png"><img src="docs/screenshots/share-iphone.png" width="280" loading="lazy" alt="ArchiveBox’s iPhone share sheet after saving a URL, with read later and research tags"></a></p>
 
 - Open a link in Safari, Chrome, Firefox, Brave, Mail, Messages, or another app.
 - Tap the **Share** button and choose **ArchiveBox**.
@@ -103,7 +106,11 @@ Your saved archive stays on your Mac when you quit either app.
 
 </details>
 
+<div class="feature" markdown="1">
+
 ## Save from your browser, too
+
+<p class="phone-screenshot" align="right"><a href="docs/screenshots/extension-iphone.png"><img src="docs/screenshots/extension-iphone.png" width="280" loading="lazy" alt="The ArchiveBox browser extension in mobile Safari, showing a page successfully archived to the server"></a></p>
 
 **Collect from Safari, Chrome, Firefox, Brave, and Edge with the ArchiveBox browser extension.**
 
@@ -112,6 +119,8 @@ Your saved archive stays on your Mac when you quit either app.
 - Save pages that require a login using browser personas.
 
 <p class="browser-links"><a href="https://github.com/ArchiveBox/archivebox-browser-extension">Browser setup &amp; extension guide ↗</a> &nbsp; · &nbsp; <a href="https://chrome.google.com/webstore/detail/habonpimjphpdnmcfkaockjnffodikoj">Chrome / Brave</a> &nbsp; · &nbsp; <a href="https://addons.mozilla.org/firefox/addon/archivebox-exporter/">Firefox</a> &nbsp; · &nbsp; <a href="https://microsoftedge.microsoft.com/addons/detail/archivebox/dmlljpjhnfjgchbkcgheebcffocgooeh">Edge</a></p>
+
+</div>
 
 ## Help & feedback
 

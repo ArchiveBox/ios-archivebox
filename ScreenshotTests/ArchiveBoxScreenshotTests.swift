@@ -219,7 +219,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     private func showSidebar(_ app: XCUIApplication) {
         #if os(iOS)
         declinePasswordPrompt()
-        let sidebar = app.collectionViews["Sidebar"]
+        let sidebar = app.collectionViews.containing(.button, identifier: "sidebar.add").firstMatch
         if !sidebar.isHittable {
             let back = app.navigationBars.buttons.firstMatch
             XCTAssertTrue(back.exists, app.debugDescription)
@@ -238,7 +238,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         for _ in 0..<6 where !item.isHittable { list.scroll(byDeltaX: 0, deltaY: 450) }
         for _ in 0..<10 where !item.isHittable { list.scroll(byDeltaX: 0, deltaY: -450) }
         #else
-        let surface = app.collectionViews["Sidebar"]
+        let surface = app.collectionViews.containing(.button, identifier: "sidebar.add").firstMatch
         // Scroll the actual sidebar surface in both compact and regular split views.
         for _ in 0..<6 where !item.isHittable {
             surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).press(forDuration: 0.05,
@@ -278,8 +278,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     #if os(iOS)
     private func declinePasswordPrompt() {
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let alert = springboard.alerts.containing(.staticText, identifier: "Save Password?").firstMatch
+        let alert = XCUIApplication().alerts["Save Password?"]
         if alert.exists {
             let notNow = alert.buttons["Not Now"]
             XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")

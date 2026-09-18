@@ -38,6 +38,16 @@ import ArchiveBoxCore
         if let destination { load(destination, requestID: requestID, force: true) }
     }
 
+    func disconnect() {
+        navigation?.cancel()
+        navigation = nil
+        page.stopLoading()
+        // Stop timers and redirects in cached pages while credentials are absent.
+        // Keep the destination so the same connection can authenticate and reload it.
+        page.loadHTMLString("", baseURL: nil)
+        renewedLogin = nil
+    }
+
     func load(_ url: URL, requestID: UUID?, force: Bool = false) {
         guard force || !started || self.requestID != requestID else { return }
         destination = url
@@ -70,10 +80,18 @@ import ArchiveBoxCore
 
     func configure(server: URL?, baseURL: URL?, token: String?) async {
         guard self.server != server || self.token != token || self.baseURL != baseURL else { return }
+        // A cached page belongs to the server it was created for. Changing its
+        // routing boundary would send its old navigations to the external browser.
+        for key in pages.keys.filter({ pages[$0]?.routing.baseURL != baseURL }) {
+            pages.removeValue(forKey: key)?.disconnect()
+        }
         self.server = server; self.token = token
         self.baseURL = baseURL
-        for page in pages.values { page.routing.baseURL = baseURL }
-        if server == nil || token == nil { await authentication.clear() }
+        if server == nil || token == nil {
+            for page in pages.values { page.disconnect() }
+            await authentication.clear()
+            return
+        }
         for page in pages.values { page.reconnect() }
     }
 

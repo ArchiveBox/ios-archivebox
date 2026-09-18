@@ -353,6 +353,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         declinePasswordPrompt()
         #endif
         #if os(macOS)
+        XCTAssertEqual(app.state, .runningForeground, "Cannot capture \(name): another app covers the target window")
         let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
         #else
         let attachment = XCTAttachment(screenshot: app.screenshot())

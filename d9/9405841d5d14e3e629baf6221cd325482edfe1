@@ -1,0 +1,19 @@
+ScreenshotTests/ArchiveBoxScreenshotTests.swift
+  s_ffefb637465167::t_c08f49fc00bc39 144,269-270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d99405841d5d14e3e629baf6221cd325482edfe1",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

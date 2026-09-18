@@ -8,8 +8,8 @@ title: App screenshots
 {% unless gallery.complete %}<p class="gallery-preview">Incomplete local preview. This gallery is not ready to publish.</p>{% endunless %}
 <p class="gallery-provenance">App <a href="https://github.com/ArchiveBox/ios-archivebox/commit/{{ gallery.revision }}">{{ gallery.revision | slice: 0, 12 }}</a> · Server <a href="https://github.com/ArchiveBox/ArchiveBox/commit/{{ gallery.backend_revision }}">{{ gallery.backend_revision | slice: 0, 12 }}</a> · <a href="{{ '/screenshots/manifest.json' | relative_url }}">Capture manifest</a></p>
 <div class="gallery-platforms" role="group" aria-label="Choose a device">
-  <button type="button" data-platform="all" aria-pressed="true">All devices</button>
-  {% for platform in gallery.platforms %}<button type="button" data-platform="{{ platform.id }}" aria-pressed="false">{{ platform.label }}</button>{% endfor %}
+  <button type="button" data-platform="all" aria-pressed="false">All devices</button>
+  {% for platform in gallery.platforms %}<button type="button" data-platform="{{ platform.id }}" aria-pressed="{% if platform.id == 'macos' %}true{% else %}false{% endif %}">{{ platform.label }}</button>{% endfor %}
 </div>
 <p class="gallery-provenance">Includes native navigation, embedded server pages, and the share extension on every device. The separate Server app and external browser/settings pages are outside this gallery.</p>
 <div class="native-gallery">
@@ -24,10 +24,22 @@ title: App screenshots
 {% endfor %}
 </div>
 <script>
-  document.querySelectorAll('.gallery-platforms button').forEach(button => {
-    button.addEventListener('click', () => {
-      document.querySelectorAll('.gallery-platforms button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
-      document.querySelectorAll('.native-gallery figure').forEach(figure => { figure.hidden = button.dataset.platform !== 'all' && figure.dataset.platform !== button.dataset.platform; });
-    });
-  });
+  const buttons = document.querySelectorAll('.gallery-platforms button');
+  const figures = document.querySelectorAll('.native-gallery figure');
+  function selectPlatform(platform) {
+    for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.platform === platform));
+    for (const figure of figures) figure.hidden = platform !== 'all' && figure.dataset.platform !== platform;
+  }
+  for (const button of buttons) button.addEventListener('click', () => selectPlatform(button.dataset.platform));
+  selectPlatform(Array.from(figures).some(figure => figure.dataset.platform === 'macos') ? 'macos' : 'all');
+  function revealLinkedCapture() {
+    let target;
+    try { target = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch { return; }
+    const figure = target?.closest('.native-gallery figure');
+    if (!figure) return;
+    selectPlatform(figure.dataset.platform);
+    requestAnimationFrame(() => target.scrollIntoView());
+  }
+  addEventListener('hashchange', revealLinkedCapture);
+  revealLinkedCapture();
 </script>

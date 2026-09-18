@@ -21,6 +21,8 @@ Select **ArchiveBox** for iPhone/iPad or **ArchiveBoxMac** for native Mac. The g
 
 To run on Mac or a physical device, select your Apple Developer team for the app and both extension targets, or pass `DEVELOPMENT_TEAM=YOUR_TEAM_ID`. Register their bundle IDs and matching Keychain Sharing entitlement. Use the same `ARCHIVEBOX_KEYCHAIN_GROUP` for all three targets. No App Group is needed.
 
+When updating an existing simulator installation, preserve its `ArchiveBoxKeychainGroup` value from the installed app's `Info.plist` by passing the same `ARCHIVEBOX_KEYCHAIN_GROUP` to `xcodebuild`. A build with a different group cannot read the existing saved connection, including from Safari's native handler. The unsigned build commands above check compilation; they do not preserve a previously configured team's Keychain group automatically.
+
 Both platform apps use `io.archivebox.ArchiveBox`, with `.Share` and `.Safari` extensions. This supports adding iOS and macOS to **one App Store Connect listing / universal purchase**; distribution signing and store submission remain release steps. iPhone/iPad layouts adapt to window size and orientation without model-specific code; unreleased hardware is not separately certified.
 
 ## Architecture

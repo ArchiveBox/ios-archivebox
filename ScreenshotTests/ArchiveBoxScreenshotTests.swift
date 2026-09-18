@@ -182,20 +182,27 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         sharePickerHierarchy.lifetime = .keepAlways
         add(sharePickerHierarchy)
         print(sharePickerDescription)
+        let shareSheet = XCUIApplication(bundleIdentifier: "com.apple.sharing.ShareSheetUI")
+        let shareSheetDescription = shareSheet.debugDescription
+        let shareSheetHierarchy = XCTAttachment(string: shareSheetDescription)
+        shareSheetHierarchy.name = "share-service-hierarchy"
+        shareSheetHierarchy.lifetime = .keepAlways
+        add(shareSheetHierarchy)
+        print(shareSheetDescription)
         let sharePickerScreenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         sharePickerScreenshot.name = "share-picker-diagnostic"
         sharePickerScreenshot.lifetime = .keepAlways
         add(sharePickerScreenshot)
-        // macOS exposes the share picker through its remote view; the same
-        // app name also appears in the hidden Apple > Recent Items menu.
-        // Require the rendered sharing control, not an offscreen name match.
+        // Safari presents the picker in the system ShareSheetUI process.
+        // Require its rendered sharing control, not a hidden Recent Items match.
         capture("share-picker", app: safari)
-        let extensionItem = safari.descendants(matching: .any).matching(
+        let extensionItem = shareSheet.descendants(matching: .any).matching(
             NSPredicate(format: "label == %@ AND hittable == true", "ArchiveBox")
         ).firstMatch
-        XCTAssertTrue(extensionItem.waitForExistence(timeout: 5), safari.debugDescription)
+        XCTAssertTrue(extensionItem.waitForExistence(timeout: 5), shareSheet.debugDescription)
         press(extensionItem)
-        XCTAssertTrue(safari.staticTexts["Submitted to ArchiveBox Server"].waitForExistence(timeout: 30), safari.debugDescription)
+        XCTAssertTrue(safari.staticTexts["Submitted to ArchiveBox Server"].waitForExistence(timeout: 30),
+            "Safari:\n\(safari.debugDescription)\nShareSheetUI:\n\(shareSheet.debugDescription)")
         capture("share-accepted", app: safari)
         let tags = safari.textFields["shareTagInput"]
         press(tags)

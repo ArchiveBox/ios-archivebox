@@ -2,6 +2,8 @@
 set -euo pipefail
 : "${ASC_PRIVATE_KEY:?Set the testflight environment secrets first}"
 : "${ASC_KEY_ID:?}" "${ASC_ISSUER_ID:?}" "${APPLE_TEAM_ID:?}" "${RUNNER_TEMP:?}"
+: "${APPLE_DEVELOPMENT_P12:?Add the existing development signing identity to the testflight environment}"
+: "${APPLE_DEVELOPMENT_PASSWORD:?}"
 [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo 'Invalid app version'; exit 1; }
 [[ "$RELEASE_PLATFORM" =~ ^(both|iOS|macOS)$ ]] || { echo 'Invalid platform'; exit 1; }
 # Reruns must not collide with a build still processing at Apple.
@@ -14,7 +16,27 @@ umask 077
 printf '%s' "$ASC_PRIVATE_KEY" > "$ASC_KEY_PATH"
 unset ASC_PRIVATE_KEY
 umask "$previous_umask"
-trap 'rm -f "$ASC_KEY_PATH"' EXIT
+# Reuse one development identity across ephemeral runners. Creating a new one
+# on every archive eventually exhausts Apple's certificate quota; distribution
+# signing still happens in Apple's cloud at export, as before.
+credentials=$(mktemp -d "$RUNNER_TEMP/testflight-signing.XXXXXX")
+keychain="$credentials/signing.keychain-db"
+cleanup() {
+    security delete-keychain "$keychain" >/dev/null 2>&1 || true
+    rm -rf "$credentials"
+    rm -f "$ASC_KEY_PATH"
+}
+trap cleanup EXIT
+(umask 077; printf '%s' "$APPLE_DEVELOPMENT_P12" | /usr/bin/base64 --decode > "$credentials/development.p12")
+unset APPLE_DEVELOPMENT_P12
+security create-keychain -p "$APPLE_DEVELOPMENT_PASSWORD" "$keychain"
+security set-keychain-settings -lut 21600 "$keychain"
+security unlock-keychain -p "$APPLE_DEVELOPMENT_PASSWORD" "$keychain"
+security import "$credentials/development.p12" -k "$keychain" -P "$APPLE_DEVELOPMENT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_DEVELOPMENT_PASSWORD" "$keychain" >/dev/null
+security list-keychains -d user -s "$keychain" "$HOME/Library/Keychains/login.keychain-db"
+identity=$(security find-identity -v -p codesigning "$keychain" | awk '/"Apple Development:/ {print $2; exit}')
+[[ -n "$identity" ]] || { echo 'Apple Development identity missing' >&2; exit 1; }
 # XcodeGen's committed plists have literal versions, so update every product here.
 for plist in App/Info.plist ShareExtension/Info.plist SafariWebExtension/Info-iOS.plist MacApp/Info.plist MacShareExtension/Info.plist SafariWebExtension/Info-macOS.plist; do
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $RELEASE_BUILD" "$plist"
@@ -40,7 +62,7 @@ for platform in iOS macOS; do
     # Cloud signing at export keeps distribution private keys on Apple's servers.
     xcodebuild -project ArchiveBox.xcodeproj -scheme "$scheme" -configuration Release \
         -destination "generic/platform=$platform" -archivePath "$archive" \
-        DEVELOPMENT_TEAM="$APPLE_TEAM_ID" -allowProvisioningUpdates \
+        DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_IDENTITY="$identity" -allowProvisioningUpdates \
         -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" \
         -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive
     # Both rsync processes must use Apple's version during export.

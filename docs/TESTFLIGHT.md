@@ -52,3 +52,13 @@ If Apple processing exceeds the timeout, inspect App Store Connect before
 rerunning: the binary may already have been accepted. The workflow summary lists
 confirmed internal-group assignments. Never include the API key in build logs or
 artifacts.
+
+### Reusable development signing identity
+
+The `testflight` GitHub environment needs `APPLE_DEVELOPMENT_P12` (base64 of an
+encrypted PKCS#12 export of an existing Apple Development certificate and its
+private key) and `APPLE_DEVELOPMENT_PASSWORD` (the export password). CI imports
+that identity into a temporary keychain and removes it after the run. Reusing
+one identity avoids exhausting Apple's development-certificate quota on
+ephemeral runners; App Store distribution signing remains cloud-managed.
+Only export a signing private key to GitHub with the certificate owner's approval.

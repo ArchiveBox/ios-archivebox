@@ -176,6 +176,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let share = safari.buttons["Share"]
         XCTAssertTrue(share.waitForExistence(timeout: 10), safari.debugDescription)
         press(share)
+        let picker = share.popovers.firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 5), safari.debugDescription)
+        // Safari first presents a spinner while its remote sharing service loads.
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: picker.activityIndicators.firstMatch)
+        waitForExpectations(timeout: 10)
         let sharePickerDescription = safari.debugDescription
         let sharePickerHierarchy = XCTAttachment(string: sharePickerDescription)
         sharePickerHierarchy.name = "share-picker-hierarchy"
@@ -183,6 +188,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         add(sharePickerHierarchy)
         print(sharePickerDescription)
         let shareSheet = XCUIApplication(bundleIdentifier: "com.apple.sharing.ShareSheetUI")
+        guard shareSheet.wait(for: .runningBackground, timeout: 5) else {
+            XCTFail("Safari's sharing service did not start.\n\(safari.debugDescription)")
+            return
+        }
         let shareSheetDescription = shareSheet.debugDescription
         let shareSheetHierarchy = XCTAttachment(string: shareSheetDescription)
         shareSheetHierarchy.name = "share-service-hierarchy"

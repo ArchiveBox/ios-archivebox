@@ -36,7 +36,7 @@ struct PrivateSharingSection: View {
                     }
                 }
                 Divider()
-                TextField("BASE_URL", text: $model.networkOptions.baseURL, prompt: Text("Automatic — use the address each device connects to"))
+                TextField("BASE_URL", text: $model.networkOptions.baseURL, prompt: Text("BASE_URL: Automatic — use the address each device connects to"))
                     .textFieldStyle(.roundedBorder).accessibilityIdentifier("network.baseURL")
                 Text("Leave blank for LAN and Tailscale to work side by side. Set a fixed address for custom DNS and isolated subdomains.").font(.caption).foregroundStyle(.secondary)
                 TextField("Server listen port", value: $model.networkOptions.port, format: .number.grouping(.never))

@@ -43,7 +43,7 @@ import Testing
 }
 
 @Test func connectionLinksRoundTripCredentialsWithoutChangingTheirValue() throws {
-    let server = try #require(URL(string: "http://100.100.10.20:18080"))
+    let server = try #require(URL(string: "http://100.100.10.20:5797"))
     let key = "test-only+/=&?#%credential"
     let link = ConnectionLink.make(server: server, apiKey: key)
     #expect(ConnectionLink.server(from: link) == server)
@@ -60,8 +60,8 @@ import Testing
             == ["https://admin.archive.example:8443", "https://api.archive.example:8443", "https://archive.example:8443"])
     #expect(try ServerAddress.candidates(for: "https://api.archive.example").map(\.absoluteString)
             == ["https://api.archive.example", "https://archive.example"])
-    #expect(try ServerAddress.candidates(for: "http://127.0.0.1:8000").count == 1)
-    #expect(try ServerAddress.candidates(for: "http://[::1]:8000").count == 1)
+    #expect(try ServerAddress.candidates(for: "http://127.0.0.1:5797").count == 1)
+    #expect(try ServerAddress.candidates(for: "http://[::1]:5797").count == 1)
     #expect(try ServerAddress.candidates(for: "http://localhost:8947").map(\.absoluteString)
             == ["http://localhost:8947", "http://api.archivebox.localhost:8947", "http://archivebox.localhost:8947"])
     #expect(try ServerAddress.candidates(for: "http://api.localhost:8947").map(\.absoluteString)
@@ -96,7 +96,7 @@ import Testing
                     "https://archive.example@attacker.test/", "mailto:someone@archive.example", "file:///archive.example"] {
         #expect(!BrowserNavigation.belongsToServer(URL(string: address)!, baseURL: base))
     }
-    for address in ["http://127.0.0.1:8000", "http://[::1]:8000", "http://archivebox.localhost:18080"] {
+    for address in ["http://127.0.0.1:5797", "http://[::1]:5797", "http://archivebox.localhost:5797"] {
         let local = URL(string: address)!
         #expect(BrowserNavigation.belongsToServer(local.appending(path: "admin/"), baseURL: local))
     }

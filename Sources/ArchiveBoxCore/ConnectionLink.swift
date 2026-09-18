@@ -42,9 +42,7 @@ public struct ConnectionCode: View {
             if compact { Text("Scan with Camera").font(.caption).foregroundStyle(.secondary) }
             else { Text(server.absoluteString).font(.callout.monospaced()).textSelection(.enabled) }
             ShareLink("Share connection link", item: ConnectionLink.make(server: server, apiKey: apiKey))
-            if apiKey != nil {
-                Text("Signs in as this Mac’s admin. Keep this code private.").font(.caption).foregroundStyle(.secondary)
-            } else if !compact {
+            if apiKey == nil && !compact {
                 Text("The link contains the address only. Sign in to ArchiveBox to finish connecting.").font(.caption).foregroundStyle(.secondary)
             }
         }

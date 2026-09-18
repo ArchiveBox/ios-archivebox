@@ -5,6 +5,7 @@ public struct TailscaleGuide: View {
     public enum Role { case client, server }
     private enum Audience: String, CaseIterable { case tailnet = "My tailnet", lan = "My home network", internet = "The internet" }
     private let role: Role
+    private let sharingAvailable: Bool
     private let prepareSettings: ((String, String) -> Void)?
     private let connect: ((URL) -> Void)?
     private let enableSharing: ((Bool) -> Void)?
@@ -18,13 +19,14 @@ public struct TailscaleGuide: View {
     @State private var tailnetName = "my-mac.my-tailnet.ts.net"
     @State private var tailnetIP = "100.x.y.z"
     @State private var status = ""
-    @State private var port = "18080"
+    @State private var port = "5797"
     @State private var verifyURL = ""
     @State private var verification: String?
     @State private var verifying = false
 
-    public init(role: Role, prepareSettings: ((String, String) -> Void)? = nil, enableSharing: ((Bool) -> Void)? = nil, connect: ((URL) -> Void)? = nil) {
+    public init(role: Role, sharingAvailable: Bool = true, prepareSettings: ((String, String) -> Void)? = nil, enableSharing: ((Bool) -> Void)? = nil, connect: ((URL) -> Void)? = nil) {
         self.role = role; self.prepareSettings = prepareSettings; self.connect = connect; self.enableSharing = enableSharing
+        self.sharingAvailable = sharingAvailable
     }
 
     public var body: some View {
@@ -57,6 +59,7 @@ public struct TailscaleGuide: View {
             }
             .confirmationDialog("Make this archive reachable on the internet?", isPresented: $confirmPublic) {
                 Button("Enable public access with Funnel", role: .destructive) { enableSharing?(true); dismiss() }
+                    .disabled(!sharingAvailable)
             } message: {
                 Text("Anyone can reach this address. ArchiveBox’s public index and public snapshots may be visible without signing in. Funnel does not add authentication. Review your archive visibility before continuing.")
             }
@@ -154,6 +157,7 @@ public struct TailscaleGuide: View {
                     if audience == .internet { confirmPublic = true }
                     else { enableSharing(false); dismiss() }
                 }.buttonStyle(.borderedProminent).accessibilityIdentifier("network.automaticSharing")
+                    .disabled(!sharingAvailable)
                 Text("If Tailscale needs approval, we’ll show a link to its approval page. No Terminal commands or manual ArchiveBox configuration are needed.").font(.caption).foregroundStyle(.secondary)
             } else {
             Text("Run on the server computer in Terminal. If Tailscale gives you an approval link, open it and follow its instructions, then run the command again.")
@@ -232,7 +236,7 @@ public struct TailscaleGuide: View {
     private var backendPort: some View {
         VStack(alignment: .leading, spacing: 4) {
             TextField("Local ArchiveBox port", text: $port).textFieldStyle(.roundedBorder)
-            Text("18080 for ArchiveBox Server.app; usually 8000 for Docker or Python. Commands run on the server computer. On a Mac, if tailscale isn’t in PATH, use /Applications/Tailscale.app/Contents/MacOS/Tailscale.").font(.caption).foregroundStyle(.secondary)
+            Text("5797 for ArchiveBox Server.app, Docker, or Python. Commands run on the server computer. On a Mac, if tailscale isn’t in PATH, use /Applications/Tailscale.app/Contents/MacOS/Tailscale.").font(.caption).foregroundStyle(.secondary)
         }
     }
     private var tailscaleLinks: some View {

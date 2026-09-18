@@ -1,4 +1,5 @@
 import AppKit
+import ArchiveBoxCore
 
 extension AppDelegate {
     func configureServerMenu() {
@@ -95,11 +96,7 @@ extension AppDelegate {
 
     private func openClientOrBrowser(admin: Bool) {
         let workspace = NSWorkspace.shared
-        // Prefer the installed copy over development builds registered with Launch Services.
-        let installed = [FileManager.default.homeDirectoryForCurrentUser.appending(path: "Applications/ArchiveBox.app"),
-                         URL(fileURLWithPath: "/Applications/ArchiveBox.app")]
-        let app = installed.first { FileManager.default.fileExists(atPath: $0.path) }
-            ?? workspace.urlForApplication(withBundleIdentifier: "io.archivebox.ArchiveBox")
+        let app = AppInformation.installedClientURL
         if let app, FileManager.default.fileExists(atPath: app.path) {
             if admin {
                 workspace.open([URL(string: "archivebox://admin")!], withApplicationAt: app,

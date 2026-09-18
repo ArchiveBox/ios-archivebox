@@ -29,7 +29,7 @@ import ArchiveBoxCore
                     try await self.owner.authenticate(force: true)
                     try Task.checkCancellation()
                     page.load(URLRequest(url: destination))
-                } catch { if !Task.isCancelled { errorMessage = error.localizedDescription } }
+                } catch { if !Task.isCancelled { self.errorMessage = error.localizedDescription } }
             }
         }
     }
@@ -76,13 +76,14 @@ import ArchiveBoxCore
     private var server: URL?
     private var token: String?
     private var baseURL: URL?
+    private var clearingSession: Task<Void, Never>?
     var hasCredentials: Bool { server != nil && token != nil }
 
     func reconnectFailedPages() {
         for page in pages.values where page.errorMessage != nil { page.reconnect() }
     }
 
-    func configure(server: URL?, baseURL: URL?, token: String?) async {
+    func configure(server: URL?, baseURL: URL?, token: String?) {
         guard self.server != server || self.token != token || self.baseURL != baseURL else { return }
         // A cached page belongs to the server it was created for. Changing its
         // routing boundary would send its old navigations to the external browser.
@@ -93,28 +94,36 @@ import ArchiveBoxCore
         self.baseURL = baseURL
         if server == nil || token == nil {
             for page in pages.values { page.disconnect() }
-            await authentication.clear()
+            let previous = clearingSession
+            clearingSession = Task {
+                await previous?.value
+                await authentication.clear()
+            }
             return
         }
         for page in pages.values { page.reconnect() }
     }
 
     func authenticate(force: Bool = false) async throws {
+        await clearingSession?.value
+        try Task.checkCancellation()
         guard let server, let token else { return }
         try await authentication.authenticate(server: server, token: token, force: force)
     }
 
     // Retain each screen's page independently, but allocate it only when visited.
     // All pages share the same authenticated in-memory cookie store.
-    func page(for key: String, baseURL: URL?) -> PageSession {
+    func page(for key: String, baseURL: URL?, server: URL?, token: String?) -> PageSession {
+        // Bind credentials before creating or loading a page. A separate SwiftUI
+        // task can run after the first navigation or be cancelled during setup.
+        configure(server: server, baseURL: baseURL, token: token)
         if let page = pages[key] { return page }
         let configuration = WKWebViewConfiguration()
         // Match the companion's standalone monitor without stripping the admin
         // chrome from other screens or altering its server-owned polling code.
         configuration.websiteDataStore = authentication.dataStore
         configuration.userContentController.addUserScript(EmbeddedPage.script(activity: key.hasPrefix("activity-")))
-        // Supply the boundary synchronously: SwiftUI can create/load the page
-        // before the asynchronous connection task has configured authentication.
+        // Each page keeps the routing boundary of its configured connection.
         let routing = BrowserNavigation(baseURL: baseURL)
         // WKWebView exposes authenticated download and blob completion callbacks;
         // SwiftUI's WebPage currently does not. Keep the surrounding UI in SwiftUI.

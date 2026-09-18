@@ -110,8 +110,8 @@ struct MainView: View {
         .onChange(of: settings.serverReachable) { _, reachable in
             if reachable { pages.reconnectFailedPages() }
         }
-        .task(id: "\(settings.verifiedServer?.absoluteString ?? "")\n\(settings.verifiedToken ?? "")") {
-            await pages.configure(server: settings.verifiedServer, baseURL: settings.displayedBaseURL, token: settings.verifiedToken)
+        .onChange(of: "\(settings.verifiedServer?.absoluteString ?? "")\n\(settings.verifiedToken ?? "")", initial: true) {
+            pages.configure(server: settings.verifiedServer, baseURL: settings.displayedBaseURL, token: settings.verifiedToken)
         }
         .confirmationDialog("Connect to this ArchiveBox server?", isPresented: $confirmingServer) {
             Button("Use this server") {
@@ -216,7 +216,8 @@ struct MainView: View {
                     Group {
                         if screen == .add { AddURLsView(model: settings, pages: pages, reloadID: reloadIDs[.add]) }
                         else if let url = destination(screen) {
-                            ServerWebView(url: url, title: screen.info.title, session: pages.page(for: "\(screen.rawValue)-\(url)", baseURL: settings.displayedBaseURL),
+                            ServerWebView(url: url, title: screen.info.title, session: pages.page(for: "\(screen.rawValue)-\(url)", baseURL: settings.displayedBaseURL,
+                                server: settings.verifiedServer, token: settings.verifiedToken),
                                           reloadID: screen == .admin ? settings.adminNavigationID : reloadIDs[screen])
                                 .id("\(screen.rawValue)-\(url)")
                         } else {

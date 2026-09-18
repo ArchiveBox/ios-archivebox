@@ -13,7 +13,7 @@ import Foundation
         let hosts = ["archivebox.localhost", "admin.archivebox.localhost", "api.archivebox.localhost", "web.archivebox.localhost", ip] + NetworkAccess.lanAddresses()
         let client = ArchiveBoxClient()
         for host in hosts {
-            let origin = URL(string: "http://\(host):18080")!
+            let origin = URL(string: "http://\(host):5797")!
             let api = try await client.discoverServer(origin.absoluteString)
             try await client.testToken(server: api, token: token)
             let session = try await client.browserSession(server: api, token: token)

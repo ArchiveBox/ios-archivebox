@@ -12,7 +12,7 @@ import Foundation
             let urls = try await access.start(options: options)
             guard urls.contains(where: { $0.host()?.hasPrefix("100.") == true }), urls.count >= 2 else { throw ArchiveBoxError.message("This check requires a real LAN and Tailscale connection") }
             let automatic = try await runtime.applyHTTPSettings(baseURL: "", securityMode: "safe-onedomain-nojsreplay")
-            guard automatic.configuredBaseURL == "", automatic.api.host() == "archivebox.localhost", automatic.api.port == 18080 else {
+            guard automatic.configuredBaseURL == "", automatic.api.host() == "archivebox.localhost", automatic.api.port == 5797 else {
                 throw ArchiveBoxError.message("Automatic settings returned an unreachable native sign-in address: \(automatic.api)")
             }
             let client = ArchiveBoxClient()

@@ -207,7 +207,7 @@ final class Runtime: Sendable {
         // in ArchiveBox.conf, but deliberately override the optional-plugin default.
         _ = try command(["run", "--detach", "--name", name, "--cpus", "4", "--memory", "4G",
                          "--env", "OPENCODE_ENABLED=true", "--env", "ARCHIVEBOX_HOST_BROWSER_PROFILES=/data/.host-browser-profiles",
-                         "--publish", "127.0.0.1:\(address.port!):8000",
+                         "--publish", "127.0.0.1:\(address.port!):5797",
                          "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:dev"])
         // Dependency installs in a previous container's writable layer do not
         // survive recreation. Resolve them again without modifying the image.

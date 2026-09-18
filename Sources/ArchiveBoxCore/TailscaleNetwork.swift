@@ -18,7 +18,9 @@ public struct TailscaleNetwork: Decodable, Sendable {
 
     #if os(macOS)
     public static var executable: URL? {
-        ["/Applications/Tailscale.app/Contents/MacOS/Tailscale", "/opt/homebrew/bin/tailscale", "/usr/local/bin/tailscale"]
+        ["/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+         FileManager.default.homeDirectoryForCurrentUser.appending(path: "Applications/Tailscale.app/Contents/MacOS/Tailscale").path,
+         "/opt/homebrew/bin/tailscale", "/usr/local/bin/tailscale"]
             .first { FileManager.default.isExecutableFile(atPath: $0) }.map { URL(fileURLWithPath: $0) }
     }
     public static func read() async throws -> Self {

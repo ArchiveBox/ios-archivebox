@@ -12,7 +12,7 @@ import Vision
         guard let ip = status.Self?.TailscaleIPs?.first(where: { !$0.contains(":") }), let key = try runtime.browserAPIKey() else {
             throw ArchiveBoxError.message("Connect Tailscale and create an administrator first.")
         }
-        let server = URL(string: "http://\(ip):18080")!
+        let server = URL(string: "http://\(ip):5797")!
         let link = ConnectionLink.make(server: server, apiKey: key)
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(link.absoluteString.utf8)

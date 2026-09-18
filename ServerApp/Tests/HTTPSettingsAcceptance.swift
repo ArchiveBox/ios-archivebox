@@ -24,8 +24,8 @@ import Foundation
         let afterInvalid = try configuration()
         try check(before["creationDate"] as? String == afterInvalid["creationDate"] as? String)
         do {
-            let changed = try await runtime.applyHTTPSettings(baseURL: "http://http-settings.archivebox.localhost:18080", securityMode: "safe-onedomain-nojsreplay")
-            try check(changed.base.absoluteString == "http://http-settings.archivebox.localhost:18080")
+            let changed = try await runtime.applyHTTPSettings(baseURL: "http://http-settings.archivebox.localhost:5797", securityMode: "safe-onedomain-nojsreplay")
+            try check(changed.base.absoluteString == "http://http-settings.archivebox.localhost:5797")
             try check(changed.admin.host == changed.base.host && changed.api.host == changed.base.host)
             let running = try configuration()
             // A restart picks up ArchiveBox.conf without replacing the container.

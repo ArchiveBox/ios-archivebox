@@ -17,9 +17,9 @@ import WebKit
         let runtime = Runtime(resources: URL(fileURLWithPath: CommandLine.arguments[1]).appending(path: "Contents/Resources"))
         let before = try runtime.management()
         guard !before.hasAdmin else { throw ArchiveBoxError.message("Run this first-admin acceptance check on a collection without an admin.") }
-        try check(before.base.absoluteString == "http://archivebox.localhost:18080")
-        try check(before.admin.absoluteString == "http://admin.archivebox.localhost:18080/admin/")
-        try check(before.api.absoluteString == "http://api.archivebox.localhost:18080")
+        try check(before.base.absoluteString == "http://archivebox.localhost:5797")
+        try check(before.admin.absoluteString == "http://admin.archivebox.localhost:5797/admin/")
+        try check(before.api.absoluteString == "http://api.archivebox.localhost:5797")
         let name = "settings-acceptance-" + UUID().uuidString
         let password = UUID().uuidString + UUID().uuidString
         let originalKey = try runtime.browserAPIKey()
@@ -90,7 +90,7 @@ import WebKit
         let log = try String(contentsOf: runtime.home.appending(path: "desktop.log"), encoding: .utf8)
         try check(!log.contains(password))
         try check(!log.contains(cookie.value))
-        _ = try runtime.tailscaleAddress(port: 18080)
+        _ = try runtime.tailscaleAddress(port: 5797)
         print("PASS: live URLs, user creation, flags, hashed password, authentication, admin session cookie, four shortcut pages, progress endpoint, duplicate/invalid validation, credential log exclusion, Tailscale detection")
     }
 }

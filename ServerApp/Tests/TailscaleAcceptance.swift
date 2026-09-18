@@ -15,9 +15,9 @@ import Foundation
             guard let ip = network.Self?.TailscaleIPs?.first(where: { !$0.contains(":") }) else { throw ArchiveBoxError.message("No tailnet IPv4") }
             var options = NetworkOptions(); options.lan = true; options.tailnet = true
             _ = try await proxy.start(options: options)
-            served = URL(string: "http://\(ip):18080")!
+            served = URL(string: "http://\(ip):5797")!
         } else {
-            guard let address = try runtime.tailscaleAddress(port: 18080) else { throw ArchiveBoxError.message("No Serve listener") }
+            guard let address = try runtime.tailscaleAddress(port: 5797) else { throw ArchiveBoxError.message("No Serve listener") }
             served = address
         }
 

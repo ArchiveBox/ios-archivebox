@@ -19,6 +19,7 @@ struct PrivateSharingSection: View {
                     Text("Nearby discovery with mDNS. Use this on a network you trust.").font(.caption).foregroundStyle(.secondary)
                     Toggle("Allow access from users on my Tailscale network", isOn: $model.networkOptions.tailnet)
                         .accessibilityIdentifier("network.allowTailnet")
+                        .disabled(!model.tailscaleInstalled)
                     Text("Tailscale encrypts traffic. mDNS advertises the tailnet address to nearby devices; it does not travel across the tailnet.").font(.caption).foregroundStyle(.secondary)
                     Divider()
                     Toggle("Allow access from users on the internet", isOn: Binding(
@@ -29,8 +30,12 @@ struct PrivateSharingSection: View {
                         }
                     ))
                         .accessibilityIdentifier("network.allowInternet")
-                        .disabled(model.sharingBusy || !model.ready || !model.hasAdmin || model.managementBusy || model.restarting)
+                        .disabled(!model.tailscaleInstalled || model.sharingBusy || !model.ready || !model.hasAdmin || model.managementBusy || model.restarting)
                     Text("Turn on to set up public HTTPS with Tailscale Funnel. The app runs the commands and verifies the address for you.").font(.caption).foregroundStyle(.secondary)
+                    if !model.tailscaleInstalled {
+                        Link("Install Tailscale to enable private network and public HTTPS access", destination: URL(string: "https://tailscale.com/download/mac")!)
+                            .font(.caption)
+                    }
                     if model.sharingPublic, let url = model.tailscaleURL, url.scheme == "https" {
                         Label("Public HTTPS is on", systemImage: "checkmark.shield.fill").foregroundStyle(.green)
                         Link(url.absoluteString, destination: url).textSelection(.enabled)
@@ -40,9 +45,6 @@ struct PrivateSharingSection: View {
                     if let url = model.tailscaleConnectionURL {
                         VStack(alignment: .center, spacing: 6) {
                             ConnectionCode(server: url, apiKey: model.qrAPIKey, compact: true)
-                            if !model.networkURLs.contains(url) {
-                                Text("Apply Tailscale access to connect.").font(.caption).foregroundStyle(.secondary)
-                            }
                         }.frame(width: 165).accessibilityIdentifier("network.tailscaleQR")
                     }
                 }
@@ -58,12 +60,14 @@ struct PrivateSharingSection: View {
                 }.pickerStyle(.radioGroup).accessibilityIdentifier("network.protocol")
                 if model.networkOptions.https {
                     Picker("Certificate / HTTPS provider", selection: $model.networkOptions.certificate) {
-                        ForEach(NetworkOptions.Certificate.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                        ForEach(NetworkOptions.Certificate.allCases, id: \.self) {
+                            Text($0.rawValue).tag($0).disabled($0 == .tailscale && !model.tailscaleInstalled)
+                        }
                     }
                     HStack {
                         Button("Set up certificate…", systemImage: "checkmark.seal") { certificateSetup = true }
                         Button("Set up wildcard certificate…", systemImage: "square.stack.3d.up") { certificateSetup = true }
-                    }
+                    }.disabled(model.networkOptions.certificate == .tailscale && !model.tailscaleInstalled)
                     if model.networkOptions.certificate == .tailscale {
                         Text("The app runs Serve for private HTTPS, or Funnel for internet access, and verifies the result. Tailscale chooses HTTPS port 443 or 8443. Enabled LAN listeners remain HTTP on the listen port above.").font(.caption).foregroundStyle(.secondary)
                     }
@@ -86,6 +90,7 @@ struct PrivateSharingSection: View {
                         else { model.startSharing() }
                     }.buttonStyle(.borderedProminent).accessibilityIdentifier("network.apply")
                         .disabled(model.sharingBusy || !model.ready || !model.hasAdmin || model.managementBusy || model.restarting)
+                        .disabled(model.needsTailscale && !model.tailscaleInstalled)
                     if model.sharingBusy { ProgressView().controlSize(.small) }
                     Spacer()
                     Button("Tailscale & network guide", systemImage: "book") { guide = true }
@@ -108,12 +113,16 @@ struct PrivateSharingSection: View {
                 }
             }.padding(8).frame(maxWidth: .infinity, alignment: .leading)
         } label: { Label("Network access", systemImage: "network") }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            model.refreshTailscaleAvailability()
+        }
         .confirmationDialog("Make this archive reachable from the internet?", isPresented: $confirmInternet) {
             Button("Enable public HTTPS with Funnel", role: .destructive) { model.setInternetAccess(true) }
             Button("Cancel", role: .cancel) { }
         } message: { Text("ArchiveBox will turn on HTTPS, configure Tailscale Funnel, and verify the public address. Anyone can reach that address; public snapshots and the public index may be visible without signing in. Localhost, LAN and private Tailscale access stay available according to your settings. No domain or commands are needed.") }
         .sheet(isPresented: $guide) {
             TailscaleGuide(role: .server,
+                sharingAvailable: model.tailscaleInstalled,
                 prepareSettings: { base, mode in model.networkOptions.baseURL = base; model.networkOptions.securityMode = mode },
                 enableSharing: { publicAccess in
                     model.networkOptions.https = true; model.networkOptions.certificate = .tailscale
@@ -161,7 +170,7 @@ private struct CertificateSetup: View {
                 Button("Choose private key (.pem)…") { chooseCertificate(key: true) }
                 if !model.networkOptions.privateKeyFile.isEmpty { Text("Private key imported").font(.caption) }
             }
-            TextField("BASE_URL", text: $model.networkOptions.baseURL, prompt: Text("https://archive.example.com:18080"))
+            TextField("BASE_URL", text: $model.networkOptions.baseURL, prompt: Text("https://archive.example.com:5797"))
                 .textFieldStyle(.roundedBorder)
             Text("Use the listen port in this address unless a proxy forwards standard HTTPS port 443 to it. DNS and a certificate alone don’t make a home server reachable from the internet.").font(.caption).foregroundStyle(.secondary)
             HStack {

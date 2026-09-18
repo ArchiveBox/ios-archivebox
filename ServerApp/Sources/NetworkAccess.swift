@@ -13,7 +13,7 @@ struct NetworkOptions: Codable, Equatable {
     var tailnet = true
     var internet = false
     var https = false
-    var port = 18080
+    var port = 5797
     var baseURL = ""
     var certificate = Certificate.tailscale
     var securityMode = "auto"
@@ -64,7 +64,7 @@ struct NetworkOptions: Codable, Equatable {
             guard let ip = network.Self?.TailscaleIPs?.first(where: { !$0.contains(":") }) else { throw ArchiveBoxError.message("Tailscale is not connected.") }
             hosts.insert(ip, at: 0)
         }
-        if options.port != 18080 { hosts.append("127.0.0.1") }
+        if options.port != 5797 { hosts.append("127.0.0.1") }
         guard !hosts.isEmpty else { await stop(); return [] }
         let binary = runtime.resources.appending(path: "caddy")
         guard FileManager.default.isExecutableFile(atPath: binary.path) else { throw ArchiveBoxError.message("The bundled network helper is missing. Reinstall ArchiveBox Server.") }
@@ -74,7 +74,7 @@ struct NetworkOptions: Codable, Equatable {
         var server: [String: Any] = [
             "listen": hosts.map { "\($0):\(options.port)" },
             "automatic_https": ["disable": true],
-            "routes": [["handle": [["handler": "reverse_proxy", "upstreams": [["dial": "127.0.0.1:18080"]]]]]]
+            "routes": [["handle": [["handler": "reverse_proxy", "upstreams": [["dial": "127.0.0.1:5797"]]]]]]
         ]
         var apps: [String: Any] = [:]
         // Tailscale terminates HTTPS itself; LAN addresses remain local HTTP

@@ -204,7 +204,7 @@ struct SetupGuide: View {
             mkdir -p ~/archivebox/data && cd ~/archivebox/data
             archivebox init
             archivebox install
-            archivebox server 0.0.0.0:8000
+            archivebox server 0.0.0.0:5797
             """)
             Text("Already use pip? ArchiveBox is also a Python package on PyPI. Follow the installation guide for supported Python versions and dependencies. Homebrew and Debian options are in the README too.")
                 .foregroundStyle(.secondary)
@@ -216,7 +216,7 @@ struct SetupGuide: View {
     private var finishInstallation: some View {
         Group {
             detail("3. Create your account in the browser", icon: "person.crop.circle",
-                   "On that computer, open http://admin.archivebox.localhost:8000/admin/ and follow the web setup to create your first administrator.")
+                   "On that computer, open http://admin.archivebox.localhost:5797/admin/ and follow the web setup to create your first administrator.")
             detail("4. Connect this app", icon: "link",
                    "Use the server address that opens from this device. In Connection Settings, choose Get Key, sign in, create an API key, and paste it into the app.")
             networkAdvice

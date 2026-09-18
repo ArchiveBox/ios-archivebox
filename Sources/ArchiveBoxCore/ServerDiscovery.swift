@@ -38,9 +38,7 @@ public final class ServerDiscovery: NSObject {
         search = Task { [self] in
             var candidates: [(String, String)] = [
                 (ServerAddress.localAPI.absoluteString, "This device"),
-                ("http://api.archivebox.localhost:8000", "This device"),
-                ("http://127.0.0.1:8000", "This device"),
-                ("http://127.0.0.1:18080", "This device")
+                ("http://127.0.0.1:5797", "This device")
             ]
             let lan = Self.lanHosts()
             notes.append(lan.note)
@@ -127,7 +125,7 @@ public final class ServerDiscovery: NSObject {
 
     private static func addresses(host: String, source: String) -> [(String, String)] {
         let host = host.contains(":") ? "[\(host)]" : host
-        return ["http://\(host):18080", "http://\(host):8000", "http://\(host):18081", "https://\(host)", "http://\(host)"]
+        return ["http://\(host):5797", "http://\(host):18081", "https://\(host)", "http://\(host)"]
             .filter { (try? ServerAddress.normalize($0)) != nil }.map { ($0, source) }
     }
 
@@ -158,7 +156,7 @@ public final class ServerDiscovery: NSObject {
         let hosts = addresses.sorted().prefix(512).map { ip in
             [24, 16, 8, 0].map { String((ip >> $0) & 255) }.joined(separator: ".")
         }
-        return (hosts, "Checking Bonjour and \(hosts.count) nearby IPv4 addresses on ports 80, 443, 8000, 18080 and 18081. " +
+        return (hosts, "Checking Bonjour and \(hosts.count) nearby IPv4 addresses on ports 80, 443, 5797 and 18081. " +
                 (limited || addresses.count > 512 ? "Large networks are limited to nearby /24 ranges (512 addresses maximum). " : "") +
                 "Custom ports, IPv6-only services without Bonjour, and servers requiring a custom DNS name may need their address entered below.")
     }

@@ -40,7 +40,7 @@ final class SettingsModel {
     func useConnectionLink(_ url: URL, apiKey: String?) {
         guard let apiKey, !apiKey.isEmpty else { useDiscoveredServer(url); return }
         #if os(macOS)
-        selectConnection(.remote)
+        selectConnection([ServerAddress.localAPI, ServerAddress.localServer].contains(url) ? .local : .remote)
         #endif
         serverChanged()
         serverText = url.absoluteString
@@ -110,6 +110,16 @@ final class SettingsModel {
     var connectionMode = ConnectionMode(rawValue: UserDefaults.standard.string(forKey: "connectionMode") ?? "remote") ?? .remote
     let localServer = LocalServer()
 
+    private func savedConfiguration(for mode: ConnectionMode) throws -> ServerConfiguration? {
+        if let saved = try AppEnvironment.configurationStore(account: "profile-\(mode.rawValue)").load() { return saved }
+        // Older companion handoffs saved localhost credentials as a remote
+        // profile. Reuse only that exact local server's key, never a remote key.
+        if mode == .local,
+           let saved = try AppEnvironment.configurationStore(account: "profile-remote").load(),
+           [ServerAddress.localAPI, ServerAddress.localServer].contains(saved.server) { return saved }
+        return nil
+    }
+
     func selectConnection(_ mode: ConnectionMode) {
         guard mode != connectionMode else { return }
         do {
@@ -118,7 +128,7 @@ final class SettingsModel {
             if let active = try AppEnvironment.store.load() {
                 try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").save(active)
             }
-            let config = try AppEnvironment.configurationStore(account: "profile-\(mode.rawValue)").load()
+            let config = try savedConfiguration(for: mode)
             serverChanged()
             connectionMode = mode
             UserDefaults.standard.set(mode.rawValue, forKey: "connectionMode")
@@ -160,7 +170,7 @@ final class SettingsModel {
             #if os(macOS)
             // Each connection mode owns its credentials; a local profile must
             // never inherit a remote server's URL or API key.
-            let config = try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").load()
+            let config = try savedConfiguration(for: connectionMode)
             #else
             let config = try AppEnvironment.store.load()
             #endif

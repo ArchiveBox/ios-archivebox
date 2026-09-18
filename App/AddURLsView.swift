@@ -10,7 +10,8 @@ struct AddURLsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     if let server = model.verifiedServer {
-                        ServerWebView(url: server.appending(path: "add/"), title: "Add URLs", session: pages.page(for: "add-\(server)", baseURL: model.displayedBaseURL), reloadID: reloadID)
+                        ServerWebView(url: server.appending(path: "add/"), title: "Add URLs", session: pages.page(for: "add-\(server)", baseURL: model.displayedBaseURL,
+                            server: model.verifiedServer, token: model.verifiedToken), reloadID: reloadID)
                             .id(server).frame(maxWidth: .infinity).frame(height: geometry.size.height * 0.8)
                     } else {
                         ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Set up Connection Settings to use the embedded Add URLs form."))

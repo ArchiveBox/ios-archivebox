@@ -44,6 +44,10 @@ final class SettingsModel: ObservableObject {
     @Published var managementError: String?
     @Published var tailscaleURL: URL?
     @Published var tailscaleIP: String?
+    @Published var tailscaleInstalled = TailscaleNetwork.executable != nil
+    var needsTailscale: Bool {
+        networkOptions.tailnet || networkOptions.internet || (networkOptions.https && networkOptions.certificate == .tailscale)
+    }
     var tailscaleConnectionURL: URL? {
         guard let tailscaleIP else { return nil }
         let applied = NetworkOptions.load()
@@ -102,6 +106,10 @@ final class SettingsModel: ObservableObject {
     init(runtime: Runtime) {
         self.runtime = runtime
         collectionDirectory = runtime.collectionDirectory
+        if !tailscaleInstalled, UserDefaults.standard.data(forKey: "networkAccessOptions") == nil {
+            networkOptions.tailnet = false
+            networkOptions.certificate = .own
+        }
         terminal.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
         terminal.nativeForegroundColor = .textColor
         terminal.nativeBackgroundColor = .textBackgroundColor
@@ -233,7 +241,13 @@ final class SettingsModel: ObservableObject {
         }
     }
 
+    func refreshTailscaleAvailability() {
+        tailscaleInstalled = TailscaleNetwork.executable != nil
+        if !tailscaleInstalled { tailscaleIP = nil; tailscaleURL = nil }
+    }
+
     private func refreshTailscale() async {
+        refreshTailscaleAvailability()
         do {
             let status = try await TailscaleNetwork.read()
             tailscaleIP = status.Self?.TailscaleIPs?.first(where: { !$0.contains(":") })
@@ -440,7 +454,7 @@ extension SettingsModel {
             let publicListeners = config["AllowFunnel"] as? [String: Bool] ?? [:]
             guard let entry = web.first(where: { key, value in
                 let handlers = value["Handlers"] as? [String: [String: String]]
-                return key.hasSuffix(":\(port)") && handlers?.count == 1 && handlers?["/"]?["Proxy"] == "http://127.0.0.1:18080"
+                return key.hasSuffix(":\(port)") && handlers?.count == 1 && handlers?["/"]?["Proxy"] == "http://127.0.0.1:5797"
             }), let url = URL(string: "https://" + entry.key) else {
                 throw ArchiveBoxError.message("The saved Tailscale HTTPS listener is missing. Apply access settings to restore it.")
             }
@@ -463,6 +477,11 @@ extension SettingsModel {
     enum SharingMode { case direct, serve, funnel }
     func startSharing(mode: SharingMode = .direct) {
         guard sharingTask == nil else { return }
+        refreshTailscaleAvailability()
+        guard tailscaleInstalled || (mode == .direct && !needsTailscale) else {
+            sharingError = "Install Tailscale to use Tailscale network access, Serve, or Funnel."
+            return
+        }
         UserDefaults.standard.set(String(describing: mode), forKey: "networkSetupChoice")
         sharingTask = Task { await enableSharing(mode: mode); sharingTask = nil }
     }
@@ -494,7 +513,7 @@ extension SettingsModel {
             let tcp = config["TCP"] as? [String: Any] ?? [:]
             let web = config["Web"] as? [String: [String: Any]] ?? [:]
             let funnel = config["AllowFunnel"] as? [String: Bool] ?? [:]
-            let backend = "http://127.0.0.1:18080"
+            let backend = "http://127.0.0.1:5797"
             let reusable = [443, 8443].first { port in
                 let key = "\(name):\(port)"
                 let handlers = web[key]?["Handlers"] as? [String: [String: String]]
@@ -567,7 +586,7 @@ extension SettingsModel {
                 do {
                     let args: [String]
                     if let wasPublic = changedListener.previousPublic {
-                        args = [wasPublic ? "funnel" : "serve", "--yes", "--bg", "--https=\(changedListener.port)", "http://127.0.0.1:18080"]
+                        args = [wasPublic ? "funnel" : "serve", "--yes", "--bg", "--https=\(changedListener.port)", "http://127.0.0.1:5797"]
                     } else { args = [publicAccess ? "funnel" : "serve", "--https=\(changedListener.port)", "off"] }
                     let result = try await ProcessCommand.runAsync(executable, args, timeout: 8)
                     if result.status != 0 { recovery += " Could not restore the Tailscale listener on \(changedListener.port)." }
@@ -671,7 +690,7 @@ extension SettingsModel {
         if !entries.isEmpty {
             guard entries.values.allSatisfy({ entry in
                 let handlers = entry["Handlers"] as? [String: [String: String]]
-                return handlers?.count == 1 && handlers?["/"]?["Proxy"] == "http://127.0.0.1:18080"
+                return handlers?.count == 1 && handlers?["/"]?["Proxy"] == "http://127.0.0.1:5797"
             }) else { throw ArchiveBoxError.message("The previous Tailscale listener now serves another app. Review it in Tailscale before changing access here.") }
             let disabled = try await ProcessCommand.runAsync(cli, ["serve", "--https=\(port)", "off"], timeout: 8)
             guard disabled.status == 0 else { throw ArchiveBoxError.message("Could not turn off the previous Tailscale HTTPS listener.") }

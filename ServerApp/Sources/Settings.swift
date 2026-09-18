@@ -5,6 +5,7 @@ import ArchiveBoxCore
 
 struct SettingsView: View {
     @ObservedObject var model: SettingsModel
+    @AppStorage("clientSuggestionDismissed") private var clientSuggestionDismissed = false
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -12,6 +13,9 @@ struct SettingsView: View {
                 if model.serverDetails != nil && !model.hasAdmin {
                     AddSuperuserView(model: model, onboarding: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if model.healthy && model.hasAdmin && !model.changingCollection && !model.managementBusy && !clientSuggestionDismissed {
+                    ClientAppSection(model: model) { clientSuggestionDismissed = true }
                 }
                 PrivateSharingSection(model: model)
                 GroupBox {
@@ -245,7 +249,7 @@ struct UsersView: View {
                         if let error = model.managementError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
                     }.padding(8)
                 } label: { Label("Users", systemImage: "person.2") }
-                ClientsView()
+                ClientsView(model: model)
                 MoreUsageMethods(model: model)
             }.padding(24)
         }

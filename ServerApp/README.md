@@ -11,13 +11,21 @@ Open ArchiveBox, Admin, Settings, Pause/Unpause Archiving, and Shut Down Server 
 Status refreshes when the menu opens, at most once every 30 seconds; there is no
 background menu timer. CPU needs two samples. Pause uses ArchiveBox’s crawl controls;
 unpause resumes all paused crawls without restarting sealed archives. Add URL and
-Admin open in your default browser. Open ArchiveBox launches the installed client or
-its App Store listing (subject to public release availability). There is no Dock icon.
+Admin use the browser or installed client as appropriate. Open ArchiveBox launches
+the installed client, falling back to the web interface. There is no Dock icon.
 Closing the window keeps the server running; Shut Down Server & Quit stops its container. Quitting the main client
 does not stop the companion.
 
-- Server: `http://archivebox.localhost:18080`
-- API: `http://api.archivebox.localhost:18080`
+Once the server is ready and its first administrator exists, Settings offers
+ArchiveBox.app. It detects the client in Applications or through Launch Services,
+offers the Mac download and installation steps when missing, and rechecks when
+you return to the server app or click **Check again**. **Open & Connect ArchiveBox.app**
+passes this server's address and administrator key directly to the installed client,
+which verifies the key and saves it in Keychain. **Not now** dismisses the suggestion
+across launches; downloads and connection help remain available in **Clients**.
+
+- Server: `http://archivebox.localhost:5797`
+- API: `http://api.archivebox.localhost:5797`
 - Collection: `~/Library/Application Support/ArchiveBox Server/data`
 - Runtime: `~/Library/Application Support/ArchiveBox Server/runtime`
 - Logs: `~/Library/Application Support/ArchiveBox Server/desktop.log`
@@ -59,9 +67,14 @@ session and scrollback while switching tabs, and expands to fill the window.
 
 **Network access** controls LAN and Tailscale separately; localhost is always
 available. The bundled Caddy helper binds only selected interface addresses. The
-default is HTTP on port 18080 with an automatic BASE_URL, so each device keeps
+default is HTTP on port 5797 with an automatic BASE_URL, so each device keeps
 using the address it connected through. Automatic security selects
 `safe-onedomain-nojsreplay`. Explicit BASE_URL and security overrides remain available.
+
+Tailscale network access, Serve/Funnel and their setup actions stay visible but
+are disabled when Tailscale is not installed. The section links to installation
+and rechecks availability when you return to the app. LAN and custom-certificate
+options remain available independently.
 
 When Tailscale is connected, a connection QR is always visible in the section's
 upper-right corner. Scan it with the iPhone Camera to open the client, fill its
@@ -126,7 +139,7 @@ cleared when switching collections. Failed init stays visible in Shell; choose t
 folder again to retry. A missing custom folder on later launches reports an error.
 
 The collection survives application updates, quitting, and switching the client to
-a remote server. No prototype data is migrated or reset. Port 18080 must be free.
+a remote server. No prototype data is migrated or reset. Port 5797 must be free.
 Apple Container's service labels are global: another active installation must be
 stopped before this one starts. The app does not take over someone else's runtime.
 
@@ -215,6 +228,16 @@ This creates a randomly named temporary admin through the same management code,
 checks password hashing/authentication, authenticated shortcut/progress responses,
 validation failures and log exclusion, then removes that account and session.
 It does not replace a visual check of onboarding, focus and the Activity webview.
+
+`bash ServerApp/Tests/run.sh ClientBrowser "/path/to/ArchiveBox Server.app"`
+checks the client's real WebKit pages with the existing administrator key,
+including a first-connection session reset before opening Crawls, Snapshots and
+Add URLs. It verifies authenticated rendered pages without printing credentials.
+
+With the local profile selected in a signed development client,
+`ARCHIVEBOX_SIGNING_IDENTITY=… bash ServerApp/Tests/run.sh ClientSettings "/path/to/ArchiveBox.app"`
+checks saved localhost credentials and the companion handoff through the real
+client settings model. It revalidates and saves that same connection in Keychain.
 
 To verify HTTP settings against a running companion (temporarily changes its URL
 and security mode, restarts twice, and restores the original effective settings):

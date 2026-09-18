@@ -1,0 +1,14 @@
+scripts/testflight.sh
+  h_923c208e183a7b 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0a624d7d3d0af9d41521366890d054baa1f60221",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

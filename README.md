@@ -29,20 +29,6 @@
 3. **Sign in.** Scan the connection QR in the Mac server's **Network access** settings with your iPhone Camera to fill the address and administrator key automatically. For another server, use **Get Key** to create a key, then paste it into the app.
 4. **Save your first link.** Choose **Share → ArchiveBox** from any app that shares URLs.
 
-The introduction stays out of the way after you skip it or connect a server,
-including when that server is temporarily offline. Reopen **Setup guide & server
-options** in Connection Settings whenever you need it. A server makes and stores
-the copies; this app connects to it to save links and browse your archive.
-
-Connection Settings automatically lists verified servers above **Server URL** on
-iPhone, iPad, and Mac. Discovery uses LAN Bonjour (`_archivebox._tcp`), localhost,
-and a bounded scan of nearby IPv4 addresses. On Mac it also checks Tailscale's
-device inventory by IP and DNS name. Bonjour stays active while Settings is open.
-Tailscale does not carry mDNS between networks: iPhone and iPad can discover a
-nearby server's advertised Tailscale address, but a remote-only server still
-needs its connection QR code or address. **Find a server** shows scan coverage
-and accepts specific hosts or Tailscale status JSON for additional checks.
-
 <p class="caption">Beta · Requires ArchiveBox 0.9.x or later · Mac downloads require Apple Silicon.</p>
 
 <div class="device-pair" align="center">
@@ -77,12 +63,12 @@ Your server must be reachable to save new links.
 
 ## Shortcuts and Siri
 
-The universal ArchiveBox app provides two actions on iPhone, iPad, and Mac:
+Save links and search your archive with Shortcuts or Siri on iPhone, iPad, and Mac.
 
-- **Search ArchiveBox** searches snapshot URLs, titles, and tags in the background. It returns up to **Maximum Results** (20 by default, up to the server's 500-result page limit). Each result exposes its title, original URL, archive URL, snapshot ID, and tags to subsequent Shortcut actions. It does not open the app or search archived page bodies.
-- **Save URLs to ArchiveBox** accepts one or more web URLs, including input from a preceding Shortcut action. It uses the saved connection and Default Persona, removes duplicate input URLs, and returns the links the server accepted. Capture completes on the server; there is no offline queue.
+- **Search ArchiveBox** finds saved pages by URL, title, or tag.
+- **Save URLs to ArchiveBox** adds links to your archive from your own shortcuts.
 
-Find both under **ArchiveBox** in Shortcuts, or say **“Search ArchiveBox”** / **“Save URLs to ArchiveBox”** to Siri and supply the requested input. First configure the server and API key in Connection Settings. Both actions require access to the unlocked device's Keychain and a reachable server. Empty searches return an error; a search with no matches returns an empty list.
+Connect your server in the app, then find both actions under **ArchiveBox** in Shortcuts.
 
 ## Your server, your choice
 

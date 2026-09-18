@@ -254,6 +254,24 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
         keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+  ArchiveBoxScreenshots:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [ScreenshotTests]
+    dependencies:
+      - target: ArchiveBox
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+  ArchiveBoxMacScreenshots:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [ScreenshotTests]
+    dependencies:
+      - target: ArchiveBoxMac
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   ArchiveBoxMacDirect:
     build:
@@ -274,6 +292,26 @@ schemes:
         ArchiveBoxUITests: [test]
     test:
       targets: [ArchiveBoxUITests]
+      environmentVariables:
+        ARCHIVEBOX_TEST_SERVER: '$(ARCHIVEBOX_TEST_SERVER)'
+        ARCHIVEBOX_TEST_TOKEN: '$(ARCHIVEBOX_TEST_TOKEN)'
+  ArchiveBoxScreenshots:
+    build:
+      targets:
+        ArchiveBox: all
+        ArchiveBoxScreenshots: [test]
+    test:
+      targets: [ArchiveBoxScreenshots]
+      environmentVariables:
+        ARCHIVEBOX_TEST_SERVER: '$(ARCHIVEBOX_TEST_SERVER)'
+        ARCHIVEBOX_TEST_TOKEN: '$(ARCHIVEBOX_TEST_TOKEN)'
+  ArchiveBoxMacScreenshots:
+    build:
+      targets:
+        ArchiveBoxMac: all
+        ArchiveBoxMacScreenshots: [test]
+    test:
+      targets: [ArchiveBoxMacScreenshots]
       environmentVariables:
         ARCHIVEBOX_TEST_SERVER: '$(ARCHIVEBOX_TEST_SERVER)'
         ARCHIVEBOX_TEST_TOKEN: '$(ARCHIVEBOX_TEST_TOKEN)'

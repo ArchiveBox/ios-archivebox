@@ -62,7 +62,7 @@ for platform in iOS macOS; do
     # Cloud signing at export keeps distribution private keys on Apple's servers.
     xcodebuild -project ArchiveBox.xcodeproj -scheme "$scheme" -configuration Release \
         -destination "generic/platform=$platform" -archivePath "$archive" \
-        DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_IDENTITY="$identity" -allowProvisioningUpdates \
+        DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_IDENTITY="Apple Development" -allowProvisioningUpdates \
         -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" \
         -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive
     # Both rsync processes must use Apple's version during export.

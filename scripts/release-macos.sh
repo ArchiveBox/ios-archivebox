@@ -32,10 +32,21 @@ for plist in MacApp/Info.plist MacShareExtension/Info.plist SafariWebExtension/I
  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $ARCHIVEBOX_BUILD_NUMBER" "$plist"
 done
 mkdir -p dist
+# Archive with the Developer ID assets already imported above. Automatic archive
+# signing asks Apple for a development certificate even though export is manual,
+# eventually exhausting the team's certificate quota on ephemeral CI runners.
+cat > "$credentials/signing.xcconfig" <<CONFIG
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = $ARCHIVEBOX_SIGNING_IDENTITY
+DEVELOPMENT_TEAM = Q3VA4FKRSA
+ARCHIVEBOX_PROFILE_ArchiveBoxMac = ArchiveBox GitHub Developer ID
+ARCHIVEBOX_PROFILE_ArchiveBoxMacShare = ArchiveBox Share GitHub Developer ID
+ARCHIVEBOX_PROFILE_ArchiveBoxMacSafari = ArchiveBox Safari GitHub Developer ID
+PROVISIONING_PROFILE_SPECIFIER = \$(ARCHIVEBOX_PROFILE_\$(TARGET_NAME))
+CONFIG
 xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxMacDirect -configuration ReleaseDirect \
- -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/ArchiveBox-direct.xcarchive" \
- DEVELOPMENT_TEAM=Q3VA4FKRSA -allowProvisioningUpdates \
- -authenticationKeyPath "$credentials/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive
+ -xcconfig "$credentials/signing.xcconfig" -destination 'generic/platform=macOS' \
+ -archivePath "$RUNNER_TEMP/ArchiveBox-direct.xcarchive" archive
 cat > "$credentials/export.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict><key>method</key><string>developer-id</string><key>teamID</key><string>Q3VA4FKRSA</string><key>signingStyle</key><string>manual</string><key>signingCertificate</key><string>$ARCHIVEBOX_SIGNING_IDENTITY</string>

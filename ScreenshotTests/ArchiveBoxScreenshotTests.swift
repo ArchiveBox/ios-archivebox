@@ -129,7 +129,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let safari = app.buttons["Safari"]
         reveal(safari, named: "Safari", app: app)
         press(safari)
+        #if os(macOS)
+        let setup = app.sheets.containing(NSPredicate(format: "CAST(value, 'NSString') == %@", "Enable ArchiveBox in Safari")).firstMatch
+        #else
         let setup = app.alerts["Enable ArchiveBox in Safari"]
+        #endif
         XCTAssertTrue(setup.waitForExistence(timeout: 5), app.debugDescription)
         capture("safari-setup", app: app)
         press(setup.buttons["Cancel"])

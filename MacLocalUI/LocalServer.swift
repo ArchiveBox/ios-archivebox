@@ -109,7 +109,7 @@ final class LocalServer {
         }
         let transfer = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
         defer { transfer.invalidateAndCancel() }
-        let (temporary, downloadResponse) = try await transfer.download(from: asset.browser_download_url)
+        let (temporary, downloadResponse) = try await transfer.download(from: asset.browser_download_url, delegate: delegate)
         guard (downloadResponse as? HTTPURLResponse)?.statusCode == 200 else { throw ArchiveBoxError.message("The companion download failed.") }
         let fm = FileManager.default
         let applications = fm.homeDirectoryForCurrentUser.appending(path: "Applications")

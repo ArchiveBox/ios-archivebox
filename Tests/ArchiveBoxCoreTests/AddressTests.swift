@@ -41,6 +41,20 @@ import Testing
         #expect(throws: (any Error).self) { try ServerAddress.normalize(text) }
     }
 }
+
+@Test func connectionLinksRoundTripCredentialsWithoutChangingTheirValue() throws {
+    let server = try #require(URL(string: "http://100.100.10.20:18080"))
+    let key = "test-only+/=&?#%credential"
+    let link = ConnectionLink.make(server: server, apiKey: key)
+    #expect(ConnectionLink.server(from: link) == server)
+    #expect(ConnectionLink.apiKey(from: link) == key)
+    #expect(ConnectionLink.apiKey(from: ConnectionLink.make(server: server)) == nil)
+    for address in ["https://connect?server=http://localhost&api_key=test", "archivebox://connect?server=ftp://host&api_key=test", "archivebox://connect?server=https://user:password@host&api_key=test"] {
+        let invalid = try #require(URL(string: address))
+        #expect(ConnectionLink.server(from: invalid) == nil)
+        #expect(ConnectionLink.apiKey(from: invalid) == nil)
+    }
+}
 @Test func correctsOnlyKnownHostVariants() throws {
     #expect(try ServerAddress.candidates(for: "https://admin.archive.example:8443").map(\.absoluteString)
             == ["https://admin.archive.example:8443", "https://api.archive.example:8443", "https://archive.example:8443"])

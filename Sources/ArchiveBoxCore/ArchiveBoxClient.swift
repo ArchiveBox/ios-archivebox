@@ -13,10 +13,10 @@ private final class NoRedirects: NSObject, URLSessionTaskDelegate, Sendable {
 public final class ArchiveBoxClient: Sendable {
     private let session: URLSession
 
-    public init() {
+    public init(discoveryTimeout: TimeInterval? = nil) {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 15
-        configuration.timeoutIntervalForResource = 30
+        configuration.timeoutIntervalForRequest = discoveryTimeout ?? 15
+        configuration.timeoutIntervalForResource = discoveryTimeout ?? 30
         configuration.httpShouldSetCookies = false
         configuration.urlCache = nil
         session = URLSession(configuration: configuration, delegate: NoRedirects(), delegateQueue: nil)

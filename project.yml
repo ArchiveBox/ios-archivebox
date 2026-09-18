@@ -44,6 +44,9 @@ targets:
     info:
       path: App/Info.plist
       properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: io.archivebox.navigation
+            CFBundleURLSchemes: [archivebox]
         CFBundleDisplayName: ArchiveBox
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         UILaunchScreen: {}
@@ -58,7 +61,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSLocalNetworkUsageDescription: Connect to your ArchiveBox server on your local network.
+        NSBonjourServices: ["_archivebox._tcp"]
+        NSLocalNetworkUsageDescription: Find ArchiveBox servers nearby and connect to your archive.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
     entitlements:
@@ -149,7 +153,8 @@ targets:
             NSPortName: ArchiveBox
             NSSendTypes: [public.url, public.utf8-plain-text, public.rtf]
             NSRequiredContext: {}
-        NSLocalNetworkUsageDescription: Connect to your ArchiveBox server on your local network.
+        NSBonjourServices: ["_archivebox._tcp"]
+        NSLocalNetworkUsageDescription: Find ArchiveBox servers nearby and connect to your archive.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
   ArchiveBoxMacShare:

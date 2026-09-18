@@ -14,7 +14,7 @@ struct SidebarSummary: View {
     @State private var appeared = false
     private var progress: SidebarProgress? { settings.sidebarStatus?.progress }
     private var latency: Int? { settings.sidebarStatus?.latency }
-    private var connected: Bool? { settings.sidebarStatus != nil ? true : initialConnection }
+    private var connected: Bool? { failure != nil || !settings.serverReachable ? false : settings.sidebarStatus != nil ? true : initialConnection }
     @State private var initialConnection: Bool?
     @State private var failure: String?
     @State private var loginKey = ""
@@ -114,4 +114,3 @@ struct SidebarSummary: View {
         }
     }
 }
-

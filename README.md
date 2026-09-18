@@ -25,9 +25,23 @@
 ## Get started
 
 1. **Install ArchiveBox.app.** [Join TestFlight](https://testflight.apple.com/join/wUG6DS6z) on iPhone, iPad, or Mac, or find the Mac app on [GitHub Releases](https://github.com/ArchiveBox/ios-archivebox/releases).
-2. **Connect your archive.** Open **Connection Settings** and enter your server URL. On Mac, you can also choose **Run Server Locally** to use the optional companion below.
-3. **Add your API key.** Use **Get Key** to create a key on your server, then paste it into the app.
+2. **Choose a home for your archive.** The first-run guide explains how saving works and helps you choose the Mac server app, paid hosting, Docker, or a Python installation. Already set up? Choose **I already have a server** to go straight to **Connection Settings**. On Mac, **Set up on this Mac** opens **Run Server Locally**.
+3. **Sign in.** Scan the connection QR in the Mac server's **Network access** settings with your iPhone Camera to fill the address and administrator key automatically. For another server, use **Get Key** to create a key, then paste it into the app.
 4. **Save your first link.** Choose **Share → ArchiveBox** from any app that shares URLs.
+
+The introduction stays out of the way after you skip it or connect a server,
+including when that server is temporarily offline. Reopen **Setup guide & server
+options** in Connection Settings whenever you need it. A server makes and stores
+the copies; this app connects to it to save links and browse your archive.
+
+Connection Settings automatically lists verified servers above **Server URL** on
+iPhone, iPad, and Mac. Discovery uses LAN Bonjour (`_archivebox._tcp`), localhost,
+and a bounded scan of nearby IPv4 addresses. On Mac it also checks Tailscale's
+device inventory by IP and DNS name. Bonjour stays active while Settings is open.
+Tailscale does not carry mDNS between networks: iPhone and iPad can discover a
+nearby server's advertised Tailscale address, but a remote-only server still
+needs its connection QR code or address. **Find a server** shows scan coverage
+and accepts specific hosts or Tailscale status JSON for additional checks.
 
 <p class="caption">Beta · Requires ArchiveBox 0.9.x or later · Mac downloads require Apple Silicon.</p>
 

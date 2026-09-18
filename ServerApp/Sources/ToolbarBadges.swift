@@ -18,10 +18,10 @@ struct ServerToolbarBrand: View {
 struct ServerToolbarStatus: View {
     @ObservedObject var model: SettingsModel
     var body: some View {
-        Circle().fill(model.restarting ? .orange : model.ready ? .green : .red)
+        Circle().fill(model.restarting || model.starting ? .orange : model.healthy ? .green : .red)
             .frame(width: 8, height: 8)
-            .accessibilityLabel(model.restarting ? "Restarting" : model.ready ? "Running" : "Stopped")
-            .help(model.restarting ? "Restarting server" : model.ready ? "Server running" : model.detail)
+            .accessibilityLabel(model.restarting ? "Restarting" : model.starting ? "Starting" : model.healthy ? "Running" : "Unavailable")
+            .help(model.restarting ? "Restarting server" : model.starting ? model.detail : model.healthy ? "Server running" : model.connectionError ?? model.detail)
     }
 }
 
@@ -30,21 +30,21 @@ struct ServerToolbarURL: View {
     @State private var copied = false
     var body: some View {
         Button {
-            guard let url = model.serverDetails?.base.absoluteString else { return }
+            guard let url = model.primaryConnectionURL?.absoluteString else { return }
             NSPasteboard.general.clearContents()
             copied = NSPasteboard.general.setString(url, forType: .string)
         } label: {
             HStack(spacing: 6) {
-                Text(model.serverDetails?.base.absoluteString ?? "Server unavailable")
+                Text(model.primaryConnectionURL?.absoluteString ?? "Server unavailable")
                     .lineLimit(1).truncationMode(.middle)
                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
             }.font(.system(size: 12))
         }
         .buttonStyle(.glass)
         .disabled(model.serverDetails == nil)
-        .help("Copy BASE_URL")
+        .help("Copy server connection address")
         .accessibilityLabel("Copy server URL")
-        .accessibilityValue(model.serverDetails?.base.absoluteString ?? "Unavailable")
+        .accessibilityValue(model.primaryConnectionURL?.absoluteString ?? "Unavailable")
         .task(id: copied) {
             guard copied else { return }
             try? await Task.sleep(for: .seconds(2))

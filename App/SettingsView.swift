@@ -3,6 +3,57 @@ import SwiftUI
 
 @MainActor @Observable
 final class SettingsModel {
+    var showsSetupGuide = !UserDefaults.standard.bool(forKey: "setupGuideDismissed")
+
+    func dismissSetupGuide() {
+        UserDefaults.standard.set(true, forKey: "setupGuideDismissed")
+        showsSetupGuide = false
+    }
+
+    func resetSetup() {
+        do {
+            try AppEnvironment.store.clear()
+            #if os(macOS)
+            try AppEnvironment.configurationStore(account: "profile-local").clear()
+            try AppEnvironment.configurationStore(account: "profile-remote").clear()
+            localServer.cancel()
+            connectionMode = .remote
+            UserDefaults.standard.removeObject(forKey: "connectionMode")
+            #endif
+            serverChanged()
+            serverText = ""
+            UserDefaults.standard.removeObject(forKey: "setupGuideDismissed")
+            showsSetupGuide = true
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func useDiscoveredServer(_ url: URL) {
+        #if os(macOS)
+        selectConnection(.remote)
+        #endif
+        serverChanged()
+        serverText = url.absoluteString
+        dismissSetupGuide()
+        scheduleValidation()
+    }
+
+    func useConnectionLink(_ url: URL, apiKey: String?) {
+        guard let apiKey, !apiKey.isEmpty else { useDiscoveredServer(url); return }
+        #if os(macOS)
+        selectConnection(.remote)
+        #endif
+        serverChanged()
+        serverText = url.absoluteString
+        dismissSetupGuide()
+        validation = Task {
+            await testServer()
+            guard !Task.isCancelled, verifiedServer != nil else { return }
+            tokenText = apiKey
+            await testToken() // Validates and persists to Keychain before loading personas.
+            if !Task.isCancelled, verifiedToken != nil { save() }
+        }
+    }
+
     var adminDestination: URL?
     var adminNavigationID = UUID()
     func openAdmin(_ url: URL?) {
@@ -30,6 +81,7 @@ final class SettingsModel {
     private var didLoad = false
     private var validation: Task<Void, Never>?
     var serverError: String?
+    var serverReachable = false
     var tokenError: String?
 
     var adminURL: URL? { verifiedServer?.appending(path: "admin/") }
@@ -85,6 +137,9 @@ final class SettingsModel {
 
     func localServerReady(_ server: URL) async throws {
         serverText = server.absoluteString; verifiedServer = server
+        serverReachable = true
+        UserDefaults.standard.set(true, forKey: "setupGuideDismissed")
+        serverError = nil
         serverMessage = "Connected to ArchiveBox Server on this Mac."
         if !tokenText.isEmpty {
             await testToken()
@@ -110,6 +165,7 @@ final class SettingsModel {
             let config = try AppEnvironment.store.load()
             #endif
             if let config {
+                dismissSetupGuide()
                 serverText = config.server.absoluteString
                 tokenText = config.token
                 persona = config.persona ?? ""
@@ -118,11 +174,15 @@ final class SettingsModel {
             #if os(macOS)
             if config == nil && connectionMode == .local { serverText = LocalServer.address }
             #endif
+            // Existing users can have an active connection from an older app
+            // version, before separate Mac connection profiles were introduced.
+            if try AppEnvironment.store.load() != nil { dismissSetupGuide() }
         } catch { errorMessage = error.localizedDescription }
         scheduleValidation()
     }
 
     func serverChanged() {
+        serverReachable = false
         sidebarStatus = nil
         validation?.cancel(); busy = false; serverError = nil; tokenError = nil
         // A changed destination must not silently receive the previous server’s key.
@@ -139,6 +199,7 @@ final class SettingsModel {
     }
 
     func testServer() async {
+        serverReachable = false
         busy = true; errorMessage = nil; savedMessage = nil; serverError = nil
         verifiedServer = nil; verifiedToken = nil; tokenMessage = nil
         personasLoaded = false; personaError = nil
@@ -149,6 +210,9 @@ final class SettingsModel {
             let changed = server.absoluteString != serverText
             serverText = server.absoluteString
             verifiedServer = server
+            serverReachable = true
+            // Remember success without closing a guide reopened during this check.
+            UserDefaults.standard.set(true, forKey: "setupGuideDismissed")
             serverMessage = changed ? "Connected. Using \(server.absoluteString)." : "Connected to ArchiveBox."
 
         } catch { if !Task.isCancelled { serverError = error.localizedDescription } }
@@ -171,6 +235,21 @@ final class SettingsModel {
             catch { errorMessage = error.localizedDescription; return }
             await fetchPersonas(server: server, token: token)
         } catch { if !Task.isCancelled { tokenError = error.localizedDescription } }
+    }
+
+    func refreshReachability() async {
+        guard let server = verifiedServer else { return }
+        do {
+            _ = try await client.discoverServer(server.absoluteString)
+            try Task.checkCancellation()
+            guard verifiedServer == server else { return }
+            serverReachable = true
+            serverError = nil
+        } catch {
+            guard !Task.isCancelled, verifiedServer == server else { return }
+            serverReachable = false
+            serverError = error.localizedDescription
+        }
     }
 
     private func fetchPersonas(server: URL, token: String) async {
@@ -217,23 +296,36 @@ final class SettingsModel {
 
 struct SettingsView: View {
     @Bindable var model: SettingsModel
+    @State private var networkGuide = false
+    @State private var discovery = false
+    @State private var nearby = ServerDiscovery()
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var confirmingReset = false
     @FocusState private var focusedField: Field?
     private enum Field { case server, token }
 
     var body: some View {
         Form {
                 Section {
+                    Button("Setup guide & server options", systemImage: "book") { model.showsSetupGuide = true }
+                        .accessibilityIdentifier("setup.reopen")
+                    Button("Find a server", systemImage: "network") { discovery = true }
+                        .accessibilityIdentifier("network.discover")
+                    Button("Tailscale & network guide", systemImage: "network.badge.shield.half.filled") { networkGuide = true }
+                        .accessibilityIdentifier("network.guide")
+                }
+                Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 12) {
                             Label {
-                                Text(model.verifiedServer == nil ? "Not connected" : "Connected")
+                                Text(model.serverReachable ? "Connected" : "Not connected")
                             } icon: {
                                 Image(systemName: "circle.fill")
                                     .font(.system(size: 8))
-                                    .foregroundStyle(model.verifiedServer == nil ? .red : .green)
+                                    .foregroundStyle(model.serverReachable ? .green : .red)
                             }
                             .font(.caption.weight(.semibold))
-                            .accessibilityLabel(model.verifiedServer == nil ? "Server not connected" : "Server connected")
+                            .accessibilityLabel(model.serverReachable ? "Server connected" : "Server not connected")
                             Spacer(minLength: 8)
                             if let url = model.displayedBaseURL {
                                 Button("Copy URL", systemImage: "doc.on.doc") {
@@ -275,6 +367,7 @@ struct SettingsView: View {
 
                 if showRemoteFields {
                     Section {
+                        nearbyServers
                         TextField("Server URL", text: Binding(get: { model.serverText }, set: {
                             model.serverChanged(); model.serverText = $0; model.scheduleValidation()
                         }), prompt: Text("https://archivebox.example.com"), axis: .vertical)
@@ -287,7 +380,12 @@ struct SettingsView: View {
                         .accessibilityIdentifier("serverURL")
                         HStack(alignment: .firstTextBaseline) {
                             if let message = model.serverMessage { status(message).font(.subheadline) }
-                            else if model.busy { ProgressView("Checking server…").controlSize(.small) }
+                            else if model.busy {
+                                VStack(alignment: .leading) {
+                                    Text("Checking server…")
+                                    StartupProgressView()
+                                }
+                            }
                             Spacer(minLength: 12)
                             Button("Admin") { model.openAdmin(model.adminURL) }
                                 .buttonStyle(.borderless)
@@ -295,7 +393,7 @@ struct SettingsView: View {
                         }
                         if let error = model.serverError { Text(error).foregroundStyle(.red) }
                     } header: { Text("Server") } footer: {
-                        Text("Paste your server URL; the connection is checked automatically. Requires ArchiveBox 0.9 or later. Use http:// if your server doesn’t use HTTPS.")
+                        Text("Paste the web address of your ArchiveBox server, not archivebox.io. The connection is checked automatically. Requires ArchiveBox 0.9 or later. Use http:// if your server doesn’t use HTTPS.")
                     }
                 }
                 Section {
@@ -317,7 +415,7 @@ struct SettingsView: View {
                     }
                     if let error = model.tokenError { Text(error).foregroundStyle(.red) }
                 } header: { Text("API key") } footer: {
-                    Text("Use Get Key to create a key on your server. Your key is checked and saved automatically.")
+                    Text("An API key gives this app access to your archive. After connecting, choose Get Key, sign in to your server, create a key, and paste it here. Your key is checked and saved automatically.")
                 }
 
 
@@ -328,11 +426,25 @@ struct SettingsView: View {
                     Section { status(message).accessibilityIdentifier("savedConnection") }
                 }
 
+                Section {
+                    Button("Reset app setup…", role: .destructive) { confirmingReset = true }
+                        .accessibilityIdentifier("setup.reset")
+                } footer: {
+                    Text("Remove saved connections from this device and start again. Archived pages and server accounts are kept.")
+                }
+
             }
             .formStyle(.grouped)
             .scrollDismissesKeyboard(.immediately)
             .onSubmit { focusedField = nil }
             .navigationTitle("Connection Settings")
+            .sheet(isPresented: $networkGuide) { TailscaleGuide(role: .client, connect: model.useDiscoveredServer) }
+            .sheet(isPresented: $discovery) { ServerDiscoveryView(select: model.useDiscoveredServer) }
+            .confirmationDialog("Reset this app’s setup?", isPresented: $confirmingReset) {
+                Button("Reset setup", role: .destructive) { model.resetSetup() }
+            } message: {
+                Text("Saved server addresses and API keys will be removed from this device, including its sharing extensions. Your archive files and server accounts will stay intact.")
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", systemImage: "checkmark") { focusedField = nil; model.save() }
@@ -340,10 +452,22 @@ struct SettingsView: View {
                         .accessibilityIdentifier("saveConnection")
                 }
                 ToolbarItem(placement: .status) {
-                    if model.busy { ProgressView("Testing connection…") }
+                    if model.busy {
+                        VStack(alignment: .leading) {
+                            Text("Testing connection…")
+                            StartupProgressView()
+                        }
+                    }
                 }
             }
-            .task { model.load() }
+            .task { model.load(); startDiscovery() }
+            .onDisappear { nearby.stop() }
+            .onChange(of: showRemoteFields) { startDiscovery() }
+            .onChange(of: discovery) { startDiscovery() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { startDiscovery() }
+                else if phase == .background { nearby.stop() }
+            }
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 480)
         #endif
@@ -355,6 +479,61 @@ struct SettingsView: View {
         #else
         true
         #endif
+    }
+
+    private func startDiscovery() {
+        if showRemoteFields && !discovery { nearby.start() }
+        else { nearby.stop() }
+    }
+
+    private var nearbyServers: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Available servers", systemImage: "network")
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityIdentifier("discovery.inline.heading")
+                Spacer()
+                if nearby.running { ProgressView().controlSize(.small) }
+                Button("Search again", systemImage: "arrow.clockwise") { nearby.start() }
+                    .labelStyle(.iconOnly).buttonStyle(.borderless)
+                    .accessibilityIdentifier("discovery.inline.refresh")
+            }
+            if nearby.results.isEmpty {
+                Text(nearby.running ? "Looking for ArchiveBox servers…" : "No servers found yet. Check that your server is running and Local Network access is allowed.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(nearby.results) { found in
+                            Button {
+                                focusedField = nil
+                                if (try? ServerAddress.normalize(model.serverText)) != found.url {
+                                    model.useDiscoveredServer(found.url)
+                                }
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "externaldrive.connected.to.line.below")
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(found.source).font(.subheadline)
+                                        Text(found.url.absoluteString).font(.caption.monospaced())
+                                            .foregroundStyle(.secondary).lineLimit(2)
+                                    }
+                                    Spacer(minLength: 0)
+                                    Image(systemName: (try? ServerAddress.normalize(model.serverText)) == found.url ? "checkmark.circle.fill" : "chevron.right")
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 4).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("discovery.inline.result")
+                        }
+                    }
+                }
+                .frame(height: min(CGFloat(nearby.results.count) * 62, 186))
+            }
+            Text("Choose a server, or enter its address below.")
+                .font(.caption).foregroundStyle(.secondary)
+        }.padding(.vertical, 4)
     }
 
     private func status(_ message: String) -> some View {

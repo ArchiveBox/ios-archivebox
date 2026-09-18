@@ -1,5 +1,56 @@
 import XCTest
 
+// Run on a fresh, disposable simulator. All preferences are changed through UI.
+@MainActor
+final class FirstRunUITests: XCTestCase {
+    func testIntroductionChoicesAndPersistentSkip() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Keep the web that matters to you."].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.textFields["serverURL"].exists)
+        capture("Welcome", app: app)
+        app.buttons["setup.choose"].tap()
+        XCTAssertTrue(app.staticTexts["Choose a home for your archive"].waitForExistence(timeout: 5))
+        capture("Server choices", app: app)
+        for route in ["mac", "hosting", "docker", "python"] {
+            let choice = app.buttons["setup.\(route)"]
+            let content = app.scrollViews["setup.content"]
+            // At accessibility sizes a card can be taller than the viewport.
+            // Bring its tap point into view, clear of the navigation and footer.
+            for _ in 0..<5 {
+                let center = CGPoint(x: choice.frame.midX, y: choice.frame.midY)
+                if content.frame.contains(center) && center.y > app.navigationBars.firstMatch.frame.maxY { break }
+                if center.y > content.frame.maxY { content.swipeUp() }
+                else { content.swipeDown() }
+            }
+            XCTAssertTrue(choice.isHittable, app.debugDescription)
+            choice.tap()
+            XCTAssertTrue(app.buttons["setup.connect"].waitForExistence(timeout: 5))
+            XCTAssertFalse(app.textFields["serverURL"].exists)
+            capture("Setup \(route)", app: app)
+            app.buttons["setup.back"].tap()
+        }
+        app.buttons["setup.skip"].tap()
+        XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 5))
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Keep the web that matters to you."].exists)
+        let guide = app.buttons["setup.reopen"]
+        for _ in 0..<5 where !guide.isHittable { app.swipeUp() }
+        guide.tap()
+        XCTAssertTrue(app.staticTexts["Keep the web that matters to you."].waitForExistence(timeout: 5))
+        app.buttons["setup.skip"].tap()
+        XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 5))
+    }
+
+    private func capture(_ name: String, app: XCUIApplication) {
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = name; screenshot.lifetime = .keepAlways; add(screenshot)
+    }
+}
+
 /// Run against a real, disposable ArchiveBox 0.9+ server. No intercepted requests or seeded app state.
 @MainActor
 final class ArchiveBoxUITests: XCTestCase {
@@ -73,6 +124,7 @@ final class ArchiveBoxUITests: XCTestCase {
         settings.terminate()
         let app = XCUIApplication()
         app.launch()
+        skipIntroductionIfNeeded(app)
         openScreen("Add URLs", app: app)
         let safari = app.buttons["Safari"]
         for _ in 0..<8 where !safari.isHittable { app.swipeUp() }
@@ -94,6 +146,7 @@ final class ArchiveBoxUITests: XCTestCase {
         let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
         let app = XCUIApplication()
         app.launch()
+        skipIntroductionIfNeeded(app)
         let field = app.textFields["serverURL"]
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         replace(field, with: server)
@@ -103,6 +156,7 @@ final class ArchiveBoxUITests: XCTestCase {
         // Never tap Save: verification itself must durably store the key.
         app.terminate()
         app.launch()
+        skipIntroductionIfNeeded(app)
         XCTAssertTrue(app.secureTextFields["apiKey"].waitForExistence(timeout: 10))
         let restored = app.secureTextFields["apiKey"].value as? String ?? ""
         XCTAssertFalse(restored.isEmpty || restored == "••••••••••••••••")
@@ -114,6 +168,7 @@ final class ArchiveBoxUITests: XCTestCase {
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let app = XCUIApplication()
         app.launch()
+        skipIntroductionIfNeeded(app)
         let field = app.textFields["serverURL"]
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         replace(field, with: "http://127.0.0.1:1")
@@ -168,6 +223,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertFalse(token.isEmpty)
         let app = XCUIApplication()
         app.launch()
+        skipIntroductionIfNeeded(app)
         let serverField = app.textFields["serverURL"]
         XCTAssertTrue(serverField.waitForExistence(timeout: 10))
         replace(serverField, with: server + "/admin/api/apitoken/")
@@ -191,6 +247,7 @@ final class ArchiveBoxUITests: XCTestCase {
         attach("Configured", app: app)
         app.terminate()
         app.launch()
+        skipIntroductionIfNeeded(app)
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
 
@@ -239,6 +296,7 @@ final class ArchiveBoxUITests: XCTestCase {
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let app = XCUIApplication()
         app.launch()
+        skipIntroductionIfNeeded(app)
         let settings = app.navigationBars["Connection Settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(settings.exists)
@@ -277,6 +335,7 @@ final class ArchiveBoxUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
+        skipIntroductionIfNeeded(app)
         // Run on a simulator configured through the app's normal connection UI.
         openScreen("Connection Settings", app: app)
         XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20), app.debugDescription)
@@ -307,6 +366,7 @@ final class ArchiveBoxUITests: XCTestCase {
         let app = XCUIApplication()
         for _ in 0..<2 {
             app.launch()
+            skipIntroductionIfNeeded(app)
             openScreen("Connection Settings", app: app)
             XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 25), app.debugDescription)
             openScreen("Snapshots", app: app)
@@ -324,6 +384,11 @@ final class ArchiveBoxUITests: XCTestCase {
             attach("Authenticated AI Agent", app: app)
             app.terminate()
         }
+    }
+
+    private func skipIntroductionIfNeeded(_ app: XCUIApplication) {
+        let skip = app.buttons["setup.skip"]
+        if skip.waitForExistence(timeout: 2) { skip.tap() }
     }
 
     private func openScreen(_ name: String, app: XCUIApplication) {
@@ -356,5 +421,104 @@ final class ArchiveBoxUITests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+}
+
+/// Run on a fresh simulator while the real companion advertises its Tailscale origin.
+@MainActor
+final class NetworkSetupUITests: XCTestCase {
+    // Requires a real ArchiveBox Server.app advertising on this Mac's network.
+    func testAutomaticDiscoveryAboveServerURL() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        addUIInterruptionMonitor(withDescription: "Local network access") { alert in
+            guard alert.buttons["Allow"].exists else { return false }
+            alert.buttons["Allow"].tap()
+            return true
+        }
+        app.launch()
+        if app.buttons["setup.skip"].waitForExistence(timeout: 5) { app.buttons["setup.skip"].tap() }
+        let nearby = app.staticTexts["discovery.inline.heading"]
+        XCTAssertTrue(nearby.waitForExistence(timeout: 5), app.debugDescription)
+        app.tap() // Handle the real system Local Network permission prompt.
+        let bonjour = app.buttons.matching(identifier: "discovery.inline.result")
+            .matching(NSPredicate(format: "label CONTAINS 'Bonjour'")).firstMatch
+        XCTAssertTrue(bonjour.waitForExistence(timeout: 25), app.debugDescription)
+        let url = app.textFields["serverURL"]
+        XCTAssertLessThan(bonjour.frame.minY, url.frame.minY)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Automatic discovery in Connection Settings"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        bonjour.tap()
+        XCTAssertTrue(app.staticTexts["Connected to ArchiveBox."].waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertFalse((url.value as? String ?? "").isEmpty)
+        let getKey = app.buttons["getAPIKey"]
+        for _ in 0..<6 where !getKey.isHittable { app.swipeUp() }
+        getKey.tap()
+        XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(app.webViews.secureTextFields.firstMatch.exists, app.debugDescription)
+        let login = XCTAttachment(screenshot: app.screenshot())
+        login.name = "Get Key opens the real server login"
+        login.lifetime = .keepAlways
+        add(login)
+    }
+
+    func testDiscoverPrivateServerAndReadAdvancedGuide() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        addUIInterruptionMonitor(withDescription: "Local network access") { alert in
+            if alert.buttons["Allow"].exists { alert.buttons["Allow"].tap(); return true }
+            return false
+        }
+        let find = app.buttons["setup.discover"].exists ? app.buttons["setup.discover"] : app.buttons["network.discover"]
+        XCTAssertTrue(find.waitForExistence(timeout: 10))
+        find.tap()
+        let server = app.buttons.matching(identifier: "discovery.result").matching(NSPredicate(format: "label CONTAINS 'http://100.'")).firstMatch
+        XCTAssertTrue(server.waitForExistence(timeout: 35), app.debugDescription)
+        capture("Discovered private ArchiveBox server", app)
+        server.tap()
+        XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Connected to ArchiveBox."].waitForExistence(timeout: 15), app.debugDescription)
+        let key = app.secureTextFields["apiKey"]
+        for _ in 0..<5 where !key.isHittable { app.swipeUp() }
+        XCTAssertEqual(key.value as? String, "Paste your API key")
+        let guide = app.buttons["network.guide"]
+        for _ in 0..<5 where !guide.isHittable { app.swipeDown() }
+        guide.tap()
+        XCTAssertTrue(app.staticTexts["Your archive, within reach"].waitForExistence(timeout: 5))
+        capture("Tailscale client guide", app)
+        let setup = app.buttons["network.serverSteps"]
+        for _ in 0..<6 where !setup.isHittable { app.swipeUp() }
+        setup.tap()
+        let worldwide = app.buttons["network.audience.internet"]
+        for _ in 0..<8 where !worldwide.isHittable { app.swipeUp() }
+        worldwide.tap()
+        let full = app.switches["network.fullReplay"]
+        for _ in 0..<4 where !full.isHittable { app.swipeUp() }
+        XCTAssertTrue(full.exists)
+        capture("Public access options", app)
+        full.tap()
+        let domain = app.textFields["network.wildcardDomain"]
+        for _ in 0..<8 where !domain.isHittable { app.swipeUp() }
+        XCTAssertTrue(domain.isHittable, app.debugDescription)
+        capture("Wildcard DNS guide", app)
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 5))
+        let address = app.textFields["serverURL"].value as! String
+        var link = URLComponents()
+        link.scheme = "archivebox"; link.host = "connect"
+        link.queryItems = [URLQueryItem(name: "server", value: address)]
+        app.terminate()
+        app.open(link.url!)
+        XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.textFields["serverURL"].value as? String, address)
+        XCTAssertTrue(app.staticTexts["Connected to ArchiveBox."].waitForExistence(timeout: 15))
+        capture("Cold launch from connection QR link", app)
+    }
+    private func capture(_ title: String, _ app: XCUIApplication) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = title; attachment.lifetime = .keepAlways; add(attachment)
     }
 }

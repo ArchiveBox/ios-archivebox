@@ -28,7 +28,7 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Connect to your ArchiveBox server on your local network.</string>
+	<string>Find ArchiveBox servers nearby and connect to your archive.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -48,6 +48,21 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_archivebox._tcp</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.archivebox.navigation</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>archivebox</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

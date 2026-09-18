@@ -43,7 +43,15 @@ fi
 # A new build marker makes startup import this payload and recreate the server.
 ARCHIVEBOX_BUILD_NUMBER="$(date -u +%Y%m%d%H%M%S)" uv run --no-project python bundle-metadata.py "$staged"
 cp .build/release/ArchiveBoxServer "$staged/Contents/MacOS/ArchiveBoxServer"
+bash prepare-network.sh
+cp vendor/caddy/caddy "$staged/Contents/Resources/caddy"
+cp vendor/caddy/LICENSE "$staged/Contents/Resources/CADDY-LICENSE"
+codesign --force --options runtime --sign "$identity" "$staged/Contents/Resources/caddy"
+/usr/libexec/PlistBuddy -c 'Delete :NSAppDataUsageDescription' "$staged/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c 'Add :NSAppDataUsageDescription string Discover browser profiles to import into ArchiveBox Personas. Browser folders are shared read-only with your local server.' "$staged/Contents/Info.plist"
 xcrun actool "$PWD/../App/Assets.xcassets" --compile "$staged/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --output-format human-readable-text
+/usr/bin/plutil -replace NSBonjourServices -json '["_archivebox._tcp"]' "$staged/Contents/Info.plist"
+/usr/bin/plutil -replace NSLocalNetworkUsageDescription -string 'Help your devices find this ArchiveBox server.' "$staged/Contents/Info.plist"
 codesign --force --options runtime --sign "$identity" "$staged"
 codesign --verify --deep --strict "$staged"
 uv run --no-project python - "$app" "$staged" <<'PY'

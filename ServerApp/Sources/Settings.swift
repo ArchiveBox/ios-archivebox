@@ -13,11 +13,12 @@ struct SettingsView: View {
                     AddSuperuserView(model: model, onboarding: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                PrivateSharingSection(model: model)
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Label(model.state, systemImage: model.ready ? "checkmark.circle.fill" : "exclamationmark.circle")
-                                .foregroundStyle(model.ready ? Color.green : Color.secondary)
+                            Label(model.state, systemImage: model.healthy ? "checkmark.circle.fill" : "exclamationmark.circle")
+                                .foregroundStyle(model.healthy ? Color.green : Color.secondary)
                             Spacer()
                             metric("CPU", model.cpu)
                             Spacer()
@@ -30,6 +31,31 @@ struct SettingsView: View {
                                 .help("Linux can reclaim most file cache when other processes need memory.")
                         }
                         if let error = model.memory.error { Text(error).font(.caption).foregroundStyle(.secondary) }
+                        if model.starting || model.restarting {
+                            VStack(alignment: .leading, spacing: 8) {
+                                StartupProgressView()
+                                VStack(alignment: .leading, spacing: 2) {
+                                    let lines = model.startupLog.isEmpty ? ["Waiting for startup log…"] : model.startupLog.components(separatedBy: "\n")
+                                    ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                                        Text(line)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                }
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .accessibilityLabel("Startup log, last five lines")
+                            }
+                            .task {
+                                while !Task.isCancelled {
+                                    await model.refreshStartupLog()
+                                    do { try await Task.sleep(for: .seconds(1)) }
+                                    catch { return }
+                                }
+                            }
+                        }
                         if !model.detail.isEmpty {
                             Text(model.detail).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                         }
@@ -41,7 +67,7 @@ struct SettingsView: View {
                         Label("Container", systemImage: "shippingbox")
                         Spacer()
                         Button("Restart", systemImage: "arrow.clockwise") { model.restartContainer() }
-                            .disabled(!model.ready || model.managementBusy || model.restarting)
+                            .disabled(!model.runtime.ownsService || model.starting || model.managementBusy || model.restarting)
                             .help("Restart the container using its saved settings.")
                         Button("Stop & Quit", systemImage: "power") { NSApp.terminate(nil) }
                             .help("Shut down the server and quit ArchiveBox Server.")
@@ -61,9 +87,19 @@ struct SettingsView: View {
                                 NSWorkspace.shared.open(model.collectionDirectory)
                             }
                             Button("Choose a path…", systemImage: "folder.badge.plus") { model.chooseCollection() }
-                                .disabled(!model.runtime.ownsService || model.managementBusy || model.restarting)
+                                .disabled(!model.runtime.ownsService || model.managementBusy || model.restarting || model.importingProfiles)
                         }
                         if let error = model.collectionError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
+                        if !model.profileImportMessage.isEmpty {
+                            HStack {
+                                if model.importingProfiles { ProgressView().controlSize(.small) }
+                                Text(model.profileImportMessage).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        if let error = model.profileImportError {
+                            Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                            Button("Retry browser import") { model.importBrowserProfiles() }.disabled(model.importingProfiles || !model.ready)
+                        }
                         Text(model.collectionDirectory.path)
                             .font(.system(.body, design: .monospaced)).textSelection(.enabled)
                     }.padding(8)
@@ -84,30 +120,7 @@ struct SettingsView: View {
                         }
                         if let error = model.tailscaleError { Text(error).font(.caption).foregroundStyle(.secondary) }
                         Divider()
-                        GroupBox {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("BASE_URL: Use the URL clients will visit. HTTPS requires a TLS proxy; custom hostnames require DNS. This does not change the local listener at 127.0.0.1:18080. Subdomain mode also requires admin, api, web and snapshot subdomains.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                                TextField("BASE_URL", text: $model.baseURLDraft, prompt: Text("http://archivebox.localhost:18080"))
-                                    .textFieldStyle(.roundedBorder)
-                                Picker("SERVER_SECURITY_MODE", selection: $model.securityModeDraft) {
-                                    ForEach(model.serverDetails?.securityModes ?? ["auto"], id: \.self) { Text($0).tag($0) }
-                                }
-                                if model.securityModeDraft == "unsafe-onedomain-noadmin" {
-                                    Text("This mode disables the web admin UI, including Archive’s admin shortcuts and Activity.").font(.caption).foregroundStyle(.secondary)
-                                } else if model.securityModeDraft == "danger-onedomain-fullreplay" {
-                                    Text("Archived pages can execute scripts on the same origin as the admin UI in this mode.").font(.caption).foregroundStyle(.secondary)
-                                }
-                                HStack {
-                                    Button("Apply & Restart") { model.restartContainer(savingHTTPSettings: true) }
-                                        .disabled(!model.ready || model.managementBusy || model.restarting || !model.httpChanged)
-                                    if model.restarting { ProgressView().controlSize(.small) }
-                                    if let message = model.httpMessage { Text(message).font(.callout).foregroundStyle(.secondary) }
-                                }
-                                if let error = model.httpError { Text(error).foregroundStyle(.red).textSelection(.enabled) }
-                            }.padding(8)
-                                .disabled(model.restarting)
-                        } label: { Label("HTTP, TLS, and DNS", systemImage: "network.badge.shield.half.filled") }
+
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
                 } label: {
                     HStack {
@@ -209,7 +222,7 @@ struct UsersView: View {
                         HStack {
                             Text("\(model.serverDetails?.users.count ?? 0) users").foregroundStyle(.secondary)
                             Spacer()
-                            if model.managementBusy { ProgressView().controlSize(.small) }
+                            if model.managementBusy { StartupProgressView().frame(width: 100) }
                             Button("Refresh", systemImage: "arrow.clockwise") { model.refreshDetails() }
                                 .disabled(!model.ready || model.managementBusy)
                             if model.hasAdmin { Button("Add superuser", systemImage: "person.badge.plus") {

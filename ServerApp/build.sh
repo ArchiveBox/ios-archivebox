@@ -24,6 +24,10 @@ case "$app" in
         exit 1 ;;
 esac
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+bash prepare-network.sh
+cp vendor/caddy/caddy "$app/Contents/Resources/caddy"
+cp vendor/caddy/LICENSE "$app/Contents/Resources/CADDY-LICENSE"
+codesign --force --options runtime --sign "$signing_identity" "$app/Contents/Resources/caddy"
 ditto "$assets/vendor/package/Payload" "$app/Contents/Resources/runtime"
 cp "$assets/payload/images.tar" "$assets/payload/vmlinux" "$app/Contents/Resources/"
 cp "$assets/vendor/container/LICENSE" "$app/Contents/Resources/APPLE-CONTAINER-LICENSE"
@@ -67,7 +71,9 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <key>SUVerifyUpdateBeforeExtraction</key><true/>
 <key>LSMinimumSystemVersion</key><string>26.0</string>
 <key>LSUIElement</key><true/>
-<key>NSLocalNetworkUsageDescription</key><string>Connect to your local ArchiveBox server.</string>
+<key>NSLocalNetworkUsageDescription</key><string>Help your devices find this ArchiveBox server.</string>
+<key>NSBonjourServices</key><array><string>_archivebox._tcp</string></array>
+<key>NSAppDataUsageDescription</key><string>Discover browser profiles to import into ArchiveBox Personas. Browser folders are shared read-only with your local server.</string>
 <key>NSAppTransportSecurity</key><dict>
 <key>NSAllowsLocalNetworking</key><true/>
 <key>NSAllowsArbitraryLoadsInWebContent</key><true/>

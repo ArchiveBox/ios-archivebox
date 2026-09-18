@@ -21,6 +21,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         defer { removeUIInterruptionMonitor(interruption) }
         let app = XCUIApplication()
         app.launch()
+        let skip = app.buttons["setup.skip"]
+        if skip.waitForExistence(timeout: 2) { press(skip) }
         XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 20), app.debugDescription)
         // A normal app interaction lets XCTest handle a system permission interruption.
         #if os(macOS)
@@ -68,6 +70,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertFalse(token.isEmpty)
         let app = XCUIApplication()
         app.launch()
+        let skip = app.buttons["setup.skip"]
+        if skip.waitForExistence(timeout: 2) { press(skip) }
         let field = app.textFields["serverURL"]
         XCTAssertTrue(field.waitForExistence(timeout: 20), app.debugDescription)
         #if os(macOS)
@@ -203,13 +207,27 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         sharePickerScreenshot.name = "share-picker-diagnostic"
         sharePickerScreenshot.lifetime = .keepAlways
         add(sharePickerScreenshot)
-        // Safari presents the picker in the system ShareSheetUI process.
-        // Require its rendered sharing control, not a hidden Recent Items match.
+        // The remote sharing service exposes its controls in Safari's popover.
         capture("share-picker", app: safari)
-        let extensionItem = shareSheet.descendants(matching: .any).matching(
-            NSPredicate(format: "label == %@ AND hittable == true", "ArchiveBox")
-        ).firstMatch
-        XCTAssertTrue(extensionItem.waitForExistence(timeout: 5), shareSheet.debugDescription)
+        let extensionItem = picker.buttons["ArchiveBox"]
+        if !extensionItem.exists {
+            press(picker.buttons["Edit Extensions…"])
+            let settings = XCUIApplication(bundleIdentifier: "com.apple.systempreferences")
+            XCTAssertTrue(settings.wait(for: .runningForeground, timeout: 10), safari.debugDescription)
+            let description = settings.debugDescription
+            let hierarchy = XCTAttachment(string: description)
+            hierarchy.name = "share-extension-settings-hierarchy"
+            hierarchy.lifetime = .keepAlways
+            add(hierarchy)
+            print(description)
+            let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            screenshot.name = "share-extension-settings-diagnostic"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+            XCTFail("ArchiveBox is absent from Safari's Share picker; inspect the actual extension settings UI.")
+            return
+        }
+        XCTAssertTrue(extensionItem.waitForExistence(timeout: 5), safari.debugDescription)
         press(extensionItem)
         XCTAssertTrue(safari.staticTexts["Submitted to ArchiveBox Server"].waitForExistence(timeout: 30),
             "Safari:\n\(safari.debugDescription)\nShareSheetUI:\n\(shareSheet.debugDescription)")

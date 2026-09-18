@@ -1,12 +1,13 @@
 #if os(macOS)
 import SwiftUI
 import AppKit
+import ArchiveBoxCore
 
 struct LocalServerSection: View {
     @Bindable var model: SettingsModel
     var body: some View {
         Section("ArchiveBox Server on this Mac") {
-            if let server = model.verifiedServer {
+            if let server = model.verifiedServer, model.serverReachable {
                 HStack {
                     Text("🟢 Running: port \(String(server.port ?? (server.scheme == "https" ? 443 : 80)))")
                     Spacer()
@@ -21,11 +22,10 @@ struct LocalServerSection: View {
             } else {
                 Button("Download ArchiveBox Server.app…", systemImage: "arrow.down.app") { model.localServer.launch(settings: model) }
                     .disabled(model.localServer.busy)
-                Text("The companion is distributed separately; an App Store listing is not available yet.").font(.footnote).foregroundStyle(.secondary)
             }
             if model.localServer.busy {
-                if let progress = model.localServer.progress { ProgressView(value: progress) }
-                else { ProgressView() }
+                Text(model.localServer.message).foregroundStyle(.secondary)
+                StartupProgressView(progress: model.localServer.progress)
                 Button("Cancel") { model.localServer.cancel() }
             }
             Text("ArchiveBox Server runs in the menu bar and keeps your archive on this Mac. Open its Settings to create an administrator, then use Get Key below to configure sharing. Closing this app does not stop the server.")

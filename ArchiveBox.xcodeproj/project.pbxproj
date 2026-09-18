@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB2000000000000000000001 /* SetupGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000003 /* SetupGuide.swift */; };
+		AB2000000000000000000002 /* SetupGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000003 /* SetupGuide.swift */; };
 		AB1000000000000000000001 /* ArchiveBoxIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000003 /* ArchiveBoxIntents.swift */; };
 		AB1000000000000000000002 /* ArchiveBoxIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000000000000000000003 /* ArchiveBoxIntents.swift */; };
 		026056B5D84F86BE619609D0 /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = FDD644D4A77BA2C5BB937B46 /* _locales */; };
@@ -144,6 +146,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AB2000000000000000000003 /* SetupGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupGuide.swift; sourceTree = "<group>"; };
 		AB1000000000000000000003 /* ArchiveBoxIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveBoxIntents.swift; sourceTree = "<group>"; };
 		06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedBrowser.swift; sourceTree = "<group>"; };
 		06F8051E8FD4E6F293429D02 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -327,6 +330,7 @@
 				06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */,
 				2E58417FC1E8AADB7CBC6FE2 /* Info.plist */,
 				99E6DEFA1F8FE0EA95C84DBE /* MainView.swift */,
+				AB2000000000000000000003 /* SetupGuide.swift */,
 				9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */,
 				BE45EBF447663409775DECBA /* SettingsView.swift */,
 				7057DAB07211675BE79ABD7F /* SidebarSummary.swift */,
@@ -676,6 +680,7 @@
 				AB1000000000000000000001 /* ArchiveBoxIntents.swift in Sources */,
 				CD23055FB0FEE64BC2236B6D /* EmbeddedBrowser.swift in Sources */,
 				70BE6D3D37E544D5520E512B /* MainView.swift in Sources */,
+				AB2000000000000000000001 /* SetupGuide.swift in Sources */,
 				61993E0DC6606E24A95457A9 /* SettingsView.swift in Sources */,
 				47235BE8DA69795376081DB1 /* SidebarSummary.swift in Sources */,
 			);
@@ -712,6 +717,7 @@
 				0E3C58B58371085727B8502F /* LocalServer.swift in Sources */,
 				60982E3F0D1D32C620815D79 /* LocalServerSection.swift in Sources */,
 				E6BA134DC3B681B72F04F1C8 /* MainView.swift in Sources */,
+				AB2000000000000000000002 /* SetupGuide.swift in Sources */,
 				70DAF88A8D9F4EB1A02CD8B4 /* SettingsView.swift in Sources */,
 				5B881B8DB2AD829ABA2EC5D3 /* SidebarSummary.swift in Sources */,
 			);

@@ -78,6 +78,10 @@ import ArchiveBoxCore
     private var baseURL: URL?
     var hasCredentials: Bool { server != nil && token != nil }
 
+    func reconnectFailedPages() {
+        for page in pages.values where page.errorMessage != nil { page.reconnect() }
+    }
+
     func configure(server: URL?, baseURL: URL?, token: String?) async {
         guard self.server != server || self.token != token || self.baseURL != baseURL else { return }
         // A cached page belongs to the server it was created for. Changing its

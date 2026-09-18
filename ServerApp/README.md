@@ -22,6 +22,28 @@ does not stop the companion.
 - Runtime: `~/Library/Application Support/ArchiveBox Server/runtime`
 - Logs: `~/Library/Application Support/ArchiveBox Server/desktop.log`
 
+The server automatically mounts existing Chrome, Chrome Beta, Chromium, and Brave profile
+folders from your Mac's `~/Library/Application Support` read-only. On startup it
+creates one private Persona per detected profile, exporting cookies with the macOS
+Keychain and copying browser preferences automatically. No host CLI setup is needed.
+Restart after adding a profile to import it. Imports copy into the collection; the original profiles are
+never writable by the container. Allow the browser-data permissions requested by
+macOS. If previously denied, enable the browser entries under **System Settings →
+Privacy & Security → Files & Folders → ArchiveBox Server**, then restart the app.
+Denied access is reported before replacing an existing server container.
+Allow the browser's **Safe Storage** Keychain prompt as well. Decryption happens
+inside the signed macOS app; the Keychain password never enters the container.
+Completed imports are recorded in `.host-browser-personas.json` independently of
+the database: deleting or renaming a Persona does not recreate it on later launches.
+Existing Personas are never overwritten. Profile imports run after the server and
+network connections are ready. A denied Keychain prompt or an unreadable cookie
+shows a per-profile error and a retry button in Settings; other profiles continue.
+**Personas → Add** can reuse the portable
+exports in `.host-browser-profiles`, including after deleting a seeded Persona.
+These are snapshots of cookies/preferences at import time, not a continuous sync of
+browser history, saved passwords, or local storage. To refresh cookies or import
+from another browser, use the [ArchiveBox browser extension](https://archivebox.github.io/archivebox-browser-extension/).
+
 The bundled container always sets `OPENCODE_ENABLED=true`, including during
 initialization. Each newly created server container resolves
 the declared agent dependencies at runtime, without changing the bundled image. The client’s **AI Agent** screen
@@ -35,25 +57,40 @@ complete setup. Creating an active admin unlocks **Admin**, **Activity**, **Shel
 Django session scoped to the admin host. The companion stores an API key for the first active administrator in Keychain, scoped to the collection. It uses the same `/api/v1/auth/browser_session` exchange as the iOS/macOS client; browser cookies stay in memory and login is restored after relaunch. Revoked keys produce an authentication error rather than silently selecting another account. Additional superusers can be created in **Users**. **Shell** keeps the same terminal
 session and scrollback while switching tabs, and expands to fill the window.
 
-Settings shows the server's actual BASE_URL, admin and API URLs with copy buttons,
-plus its Tailscale DNS name (or IP) when connected. The Tailscale row is detection
-only: the server remains bound to localhost, so remote access needs a proxy.
-Shortcuts open the current machine's config editor, Personas, API Keys & Webhooks,
-and Debug Logs inside Archive. The machine config editor syncs with ArchiveBox.conf.
+**Network access** controls LAN and Tailscale separately; localhost is always
+available. The bundled Caddy helper binds only selected interface addresses. The
+default is HTTP on port 18080 with an automatic BASE_URL, so each device keeps
+using the address it connected through. Automatic security selects
+`safe-onedomain-nojsreplay`. Explicit BASE_URL and security overrides remain available.
 
-The upper-right toolbar shows server status, a BASE_URL glass button (click once
-to copy), and plain CPU/RAM readings. Activity and Users show active snapshot and
-superuser counts. Resource readings refresh every 10 seconds while the window is
-open; CPU needs two samples. **HTTP, TLS, and DNS** provides BASE_URL and
-SERVER_SECURITY_MODE fields. **Apply & Restart** validates and saves both using
-ArchiveBox's config CLI, then stops/starts the existing container. Its writable
-layer and mounted collection are preserved; bundle updates still recreate it.
-The `auto` choice stays automatic rather than becoming its currently derived mode.
+When Tailscale is connected, a connection QR is always visible in the section's
+upper-right corner. Scan it with the iPhone Camera to open the client, fill its
+address, and sign in using this Mac's existing administrator API key. The client
+verifies the key and saves it in Keychain. Treat the QR and shared connection link
+as administrator credentials. The toolbar copies only the primary connection
+address; derived localhost URLs remain available for the native admin session.
 
-BASE_URL is the advertised origin, not a bind-address or certificate installer.
-The local listener stays at `127.0.0.1:18080`; configure DNS and a TLS/reverse proxy
-separately for a custom public URL. Changing the admin hostname may require signing
-in again. Embedded destinations refresh after applying the settings.
+**Apply & verify access** validates settings through ArchiveBox's config CLI,
+restarts the container, checks the selected API addresses, and signs the native
+browser in. Failed changes restore the configured values, including a blank
+BASE_URL. Network changes preserve the collection and container's writable layer.
+
+Optional Tailscale HTTPS runs Serve or, after choosing public access, Funnel.
+The app verifies the API and Tailscale access setting. Changing back to HTTP
+removes the HTTPS listener it owns. Tailscale account approval may still require
+a browser. Imported PEM certificates are supported. Cloudflare and Let's Encrypt
+wildcard options currently provide setup guidance and existing-address checks;
+automatic DNS authorization and certificate provisioning are not implemented.
+Tailscale's built-in certificate does not provide wildcard snapshot subdomains.
+
+Bonjour advertises enabled addresses on the local network. Mac discovery also
+checks connected Tailscale peers. iOS cannot enumerate the Tailscale app's peers:
+it uses nearby Bonjour, bounded LAN discovery, entered addresses, or a QR link
+for servers elsewhere on the tailnet. mDNS itself does not cross the tailnet.
+
+Shortcuts open the machine configuration, Personas, API Keys & Webhooks and logs.
+CPU/RAM readings refresh every 10 seconds while the window is open; CPU needs two
+samples. Activity and Users display active snapshot and superuser counts.
 
 Activity shares Archive's cookie store and displays only the server's live-progress
 component. The pinned image has `/progress.json` and an embedded admin component,

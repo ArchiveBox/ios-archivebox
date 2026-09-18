@@ -38,9 +38,9 @@ extension AppDelegate {
     }
 
     func renderServerMenu() {
-        let running = settings.ready && !settings.restarting
+        let running = settings.healthy
         let reason = settings.restarting ? "Restarting…" : settings.detail.isEmpty ? settings.state : settings.detail
-        menuStatus.title = running ? "🟢 Running: port \(runtime.address.port!)" : "🔴 Stopped: \(String(reason.prefix(90)))"
+        menuStatus.title = settings.starting || settings.restarting ? "🟠 Starting: \(String(settings.detail.prefix(90)))" : running ? "🟢 Running: port \(runtime.address.port!)" : "🔴 Unavailable: \(String(reason.prefix(90)))"
         menuStatus.toolTip = reason
         let metrics = NSMutableAttributedString()
         for (index, entry) in [("arrow.down.circle", running ? (crawlActivity.map { String($0.downloads) } ?? "—") : "—"),

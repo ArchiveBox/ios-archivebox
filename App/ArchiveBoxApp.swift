@@ -16,7 +16,6 @@ struct ArchiveBoxApp: App {
         // A Window scene has one identity; openWindow focuses it instead of creating another.
         Window("ArchiveBox", id: "main") {
             MainView(settings: settings, settingsNavigationID: settingsNavigationID, addNavigationID: addNavigationID)
-                .task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) }
         }
         .defaultSize(width: 800, height: 760)
         .windowResizability(.contentMinSize)
@@ -39,8 +38,6 @@ struct ArchiveBoxApp: App {
         #else
         WindowGroup {
             MainView(settings: settings)
-                // Share extensions use the containing app’s notification permission.
-                .task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) }
         }
         #endif
     }

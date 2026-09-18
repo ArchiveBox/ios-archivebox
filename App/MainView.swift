@@ -1,11 +1,15 @@
 import SwiftUI
 import ArchiveBoxCore
+import UserNotifications
 
 struct MainView: View {
     @Environment(\.openURL) private var openURL
     @Bindable var settings: SettingsModel
     var settingsNavigationID: UUID? = nil
     var addNavigationID: UUID? = nil
+    @State private var incomingServer: URL?
+    @State private var incomingAPIKey: String?
+    @State private var confirmingServer = false
     @State private var didChooseLaunchScreen = false
     @State private var selection: Screen? = .settings
     @State private var pages = WebPages()
@@ -57,6 +61,99 @@ struct MainView: View {
         #else
         let visibility = $columnVisibility
         #endif
+        Group {
+            if !didChooseLaunchScreen {
+                ProgressView("Opening ArchiveBox…")
+            } else if settings.showsSetupGuide {
+                SetupGuide(connect: {
+                    settings.dismissSetupGuide()
+                    activate(.settings)
+                }, chooseServer: { url in
+                    settings.useDiscoveredServer(url); activate(.settings)
+                }, useMac: {
+                    #if os(macOS)
+                    settings.selectConnection(.local)
+                    #endif
+                    settings.dismissSetupGuide()
+                    activate(.settings)
+                })
+            } else {
+                mainNavigation(visibility: visibility)
+            }
+        }
+        .task {
+            guard !didChooseLaunchScreen else { return }
+            settings.load()
+            didChooseLaunchScreen = true
+            #if os(iOS)
+            // A saved connection should open normally even when offline.
+            if !settings.serverText.isEmpty && !settings.tokenText.isEmpty {
+                selection = .snapshots
+                compactColumn = .sidebar
+                columnVisibility = .all
+            }
+            #endif
+        }
+        .task(id: settings.verifiedToken) {
+            // Ask after setup gives this permission context, not over the welcome.
+            guard settings.verifiedToken != nil else { return }
+            _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert])
+        }
+        .task(id: settings.verifiedServer) {
+            guard settings.verifiedServer != nil else { return }
+            while !Task.isCancelled {
+                await settings.refreshReachability()
+                do { try await Task.sleep(for: .seconds(5)) }
+                catch { return }
+            }
+        }
+        .onChange(of: settings.serverReachable) { _, reachable in
+            if reachable { pages.reconnectFailedPages() }
+        }
+        .task(id: "\(settings.verifiedServer?.absoluteString ?? "")\n\(settings.verifiedToken ?? "")") {
+            await pages.configure(server: settings.verifiedServer, baseURL: settings.displayedBaseURL, token: settings.verifiedToken)
+        }
+        .confirmationDialog("Connect to this ArchiveBox server?", isPresented: $confirmingServer) {
+            Button("Use this server") {
+                if let incomingServer { settings.useConnectionLink(incomingServer, apiKey: incomingAPIKey); activate(.settings) }
+                incomingAPIKey = nil
+            }
+            Button("Cancel", role: .cancel) { incomingAPIKey = nil; incomingServer = nil }
+        } message: { Text(incomingServer?.absoluteString ?? "") }
+        .onOpenURL { url in
+            if let server = ConnectionLink.server(from: url) {
+                settings.load()
+                incomingServer = server
+                incomingAPIKey = ConnectionLink.apiKey(from: url)
+                if settings.serverText.isEmpty {
+                    settings.useConnectionLink(server, apiKey: incomingAPIKey); activate(.settings)
+                    incomingAPIKey = nil
+                } else { confirmingServer = true }
+            }
+            #if os(macOS)
+            if url.scheme == "archivebox", url.host == "admin" { activate(.admin) }
+            if url.scheme == "archivebox", url.host == "safari-extension-settings" {
+                BrowserExtensionSetup.openSafariSettings { error in
+                    if let error { settings.errorMessage = error.localizedDescription; activate(.add) }
+                }
+            }
+            #endif
+        }
+        .onChange(of: addNavigationID) { activate(.add) }
+        .onChange(of: settingsNavigationID) {
+            settings.dismissSetupGuide()
+            activate(.settings)
+        }
+        .onChange(of: settings.adminNavigationID) {
+            selection = .admin
+            compactColumn = .detail
+        }
+        .onChange(of: settings.verifiedServer) {
+            if settings.verifiedServer == nil, let selection, !selection.isHelp, selection != .add { self.selection = .settings }
+        }
+    }
+
+    private func mainNavigation(visibility: Binding<NavigationSplitViewVisibility>) -> some View {
         NavigationSplitView(columnVisibility: visibility, preferredCompactColumn: $compactColumn) {
             List {
                 rows([.add, .agent])
@@ -146,46 +243,6 @@ struct MainView: View {
         // but let web content fill the transparent titlebar in the detail column.
         .toolbarBackgroundVisibility(selection == nil || selection == .settings ? .automatic : .hidden, for: .windowToolbar)
         #endif
-        .task {
-            guard !didChooseLaunchScreen else { return }
-            didChooseLaunchScreen = true
-            settings.load()
-            #if os(iOS)
-            // A stored connection was already verified when saved. Open the menu
-            // immediately while rechecking it, including when the device is offline.
-            if !settings.serverText.isEmpty && !settings.tokenText.isEmpty {
-                selection = .snapshots
-                compactColumn = .sidebar
-                columnVisibility = .all
-            }
-            #endif
-        }
-        .task(id: "\(settings.verifiedServer?.absoluteString ?? "")\n\(settings.verifiedToken ?? "")") {
-            await pages.configure(server: settings.verifiedServer, baseURL: settings.displayedBaseURL, token: settings.verifiedToken)
-        }
-        #if os(macOS)
-        .onOpenURL { url in
-            // Navigation only: external links must never replace the saved server or credentials.
-            if url.scheme == "archivebox", url.host == "admin" { activate(.admin) }
-            if url.scheme == "archivebox", url.host == "safari-extension-settings" {
-                BrowserExtensionSetup.openSafariSettings { error in
-                    if let error { settings.errorMessage = error.localizedDescription; activate(.add) }
-                }
-            }
-        }
-        #endif
-        .onChange(of: addNavigationID) { activate(.add) }
-        .onChange(of: settingsNavigationID) {
-            selection = .settings
-            compactColumn = .detail
-        }
-        .onChange(of: settings.adminNavigationID) {
-            selection = .admin
-            compactColumn = .detail
-        }
-        .onChange(of: settings.verifiedServer) {
-            if settings.verifiedServer == nil, let selection, !selection.isHelp, selection != .add { self.selection = .settings }
-        }
     }
 
     @ViewBuilder private func rows(_ screens: [Screen]) -> some View {

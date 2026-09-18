@@ -13,6 +13,7 @@ struct ServerUser: Decodable, Identifiable, Sendable {
 
 struct ServerDetails: Decodable, Sendable {
     struct Shortcuts: Decodable, Sendable { let host: URL; let personas: URL; let api: URL; let logs: URL }
+    let configuredBaseURL: String?
     let base: URL
     let admin: URL
     let api: URL
@@ -28,9 +29,13 @@ struct ServerDetails: Decodable, Sendable {
 extension Runtime {
     @discardableResult
     func browserAPIKey(save token: String? = nil) throws -> String? {
-        // Scope credentials to the collection, not its editable hostname/port.
+        // A newly initialized collection can reuse the same folder after a
+        // reset. Its persistent identity must not inherit the old database's key.
+        let collectionID = try String(contentsOf: collectionDirectory.appendingPathComponent(".archivebox_id"), encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !collectionID.isEmpty else { throw ArchiveBoxError.message("The collection identity is missing.") }
         let item = KeychainItem(service: "io.archivebox.Server.browser-api-key",
-                               account: collectionDirectory.standardizedFileURL.path)
+                               account: collectionDirectory.standardizedFileURL.path + "#" + collectionID)
         if let token { try item.save(Data(token.utf8)); return token }
         return try item.load().map { String(decoding: $0, as: UTF8.self) }
     }
@@ -68,12 +73,22 @@ extension Runtime {
                 owner = next((u for u in User.objects.filter(is_superuser=True, is_active=True).order_by('date_joined', 'pk') if u.has_usable_password()), None)
                 if owner:
                     token = APIToken.objects.create(created_by=owner, expires=None).token
-            admin = get_admin_base_url()
             machine = Machine.current()
+            configured_base = os.environ.get('BASE_URL') or machine.config.get('BASE_URL') or ''
+            def desktop_url(value):
+                # Requestless URLs use the container's listen port. Translate
+                # only its loopback origin to the actual macOS published port.
+                from urllib.parse import urlsplit, urlunsplit
+                parts = urlsplit(value)
+                if not configured_base and (parts.hostname == 'archivebox.localhost' or (parts.hostname or '').endswith('.archivebox.localhost')):
+                    return urlunsplit(parts._replace(netloc=f'{parts.hostname}:{request["local_port"]}'))
+                return value
+            admin = desktop_url(get_admin_base_url())
             from archivebox.machine.admin import MachineAdmin
             # Django anchors fieldset headings by index; derive it so field reordering stays safe.
             config_section = next(i for i, (_, options) in enumerate(MachineAdmin.fieldsets) if 'config' in options['fields'])
-            result = dict(base=get_base_url(), admin=get_admin_base_url() + '/admin/', api=get_api_base_url(),
+            result = dict(base=desktop_url(get_base_url()), admin=admin + '/admin/', api=desktop_url(get_api_base_url()),
+                          configuredBaseURL=configured_base,
                           # get_config resolves auto for localhost. Keep the user's
                           # configured choice in the editor, not that derived mode.
                           securityMode=os.environ.get('SERVER_SECURITY_MODE') or machine.config.get('SERVER_SECURITY_MODE') or 'auto',
@@ -93,7 +108,7 @@ extension Runtime {
             result = dict(error='A user with that username already exists.')
         print('ARCHIVEBOX_SETTINGS_JSON:' + json.dumps(result))
         """#
-        var request: [String: Any] = ["issue_api_key": try browserAPIKey() == nil]
+        var request: [String: Any] = ["issue_api_key": try browserAPIKey() == nil, "local_port": address.port!]
         if let username { request.merge(["username": username, "email": email, "password": password]) { _, new in new } }
         let output = try command(["exec", "--interactive", "--workdir", "/data", name,
                                   "/app/bin/docker_entrypoint.sh", "archivebox", "manage", "shell", "-c", script],
@@ -114,22 +129,19 @@ extension Runtime {
     }
 
     func tailscaleAddress(port: Int) throws -> URL? {
-        let paths = ["/Applications/Tailscale.app/Contents/MacOS/Tailscale", "/opt/homebrew/bin/tailscale", "/usr/local/bin/tailscale"]
-        guard let path = paths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else { return nil }
-        let output = try command(["status", "--json"], logOutput: false, executable: URL(fileURLWithPath: path))
-        struct Status: Decodable {
-            struct Device: Decodable { let DNSName: String?; let TailscaleIPs: [String]?; let Online: Bool? }
-            let BackendState: String
-            let `Self`: Device?
+        guard let executable = TailscaleNetwork.executable else { return nil }
+        let output = try command(["serve", "status", "--json"], logOutput: false, executable: executable)
+        let config = try JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any]
+        let web = config?["Web"] as? [String: [String: Any]] ?? [:]
+        for (host, entry) in web.sorted(by: { $0.key < $1.key }) {
+            let handlers = entry["Handlers"] as? [String: [String: String]]
+            if handlers?["/"]?["Proxy"] == "http://127.0.0.1:\(port)" {
+                return URL(string: "https://" + host)
+            }
         }
-        let status = try JSONDecoder().decode(Status.self, from: Data(output.utf8))
-        guard status.BackendState == "Running", let device = status.Self, device.Online == true else { return nil }
-        let dns = device.DNSName?.trimmingCharacters(in: CharacterSet(charactersIn: ".")) ?? ""
-        guard let host = dns.isEmpty ? device.TailscaleIPs?.first : dns else { return nil }
-        var url = URLComponents()
-        url.scheme = "http"; url.host = host.contains(":") ? "[\(host)]" : host; url.port = port
-        return url.url
+        return nil
     }
+
 }
 
 struct CrawlActivity: Decodable, Sendable {

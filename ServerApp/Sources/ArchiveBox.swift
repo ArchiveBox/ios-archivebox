@@ -31,11 +31,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
     var crawlActivity: CrawlActivity?
     var menuError: String?
     var changingArchiving = false
+    private var terminationSignal: DispatchSourceSignal?
     var renewingBrowserSession = false
     var lastRenewedLogin: URL?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = SettingsModel(runtime: runtime)
+        signal(SIGTERM, SIG_IGN)
+        let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        // Leave the dispatch callback before AppKit enters its nested shutdown
+        // runloop, so our asynchronous terminateLater cleanup can use the main queue.
+        source.setEventHandler {
+            MainActor.assumeIsolated {
+                NSApp.perform(#selector(NSApplication.terminate(_:)), with: nil, afterDelay: 0)
+            }
+        }
+        source.resume(); terminationSignal = source
         menuBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         menuBarItem.button?.image = NSImage(systemSymbolName: "archivebox", accessibilityDescription: "ArchiveBox Server")
         configureServerMenu()
@@ -92,7 +103,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
             guard let self else { return }
             browserNavigation.baseURL = details.base
             do {
-                if details.hasAdmin, let token = try runtime.browserAPIKey() {
+                if details.hasAdmin {
+                    guard let token = try await Task.detached(operation: { [runtime] in try runtime.browserAPIKey() }).value else {
+                        throw ArchiveBoxError.message("No browser sign-in key is available for this collection.")
+                    }
                     try await browserAuthentication.authenticate(server: details.api, token: token)
                 }
                 if settings.restarting || displayedAdmin != details.admin || web.url?.path.contains("/login") == true {
@@ -101,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
                 }
                 displayedAdmin = details.admin
             } catch {
-                settings.detail = "Could not sign in to the server: \(error.localizedDescription)"
+                throw ArchiveBoxError.message("Could not sign in to the server: \(error.localizedDescription)")
             }
             screens = details.hasAdmin ? Screen.allCases : allowSetupShell ? [.shell, .settings] : [.settings]
             tabs.segmentCount = screens.count
@@ -127,7 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
                         Task { @MainActor in self.settings.detail = text }
                     }
                 }.value
-                settings.didStart()
+                try await settings.finishStartup()
             } catch {
                 settings.didStart(error: error.localizedDescription)
             }
@@ -260,6 +274,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         settings.shutdown()
         Task {
             await startup?.value
+            await settings.finishPrivateSharing()
+            await settings.stopNetworkAccess()
             await settings.finishHTTPChange()
             await settings.finishCollectionChange()
             await menuRefresh?.value

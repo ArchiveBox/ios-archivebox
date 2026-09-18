@@ -2,11 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleURLTypes</key>
-    <array><dict>
-        <key>CFBundleURLName</key><string>io.archivebox.navigation</string>
-        <key>CFBundleURLSchemes</key><array><string>archivebox</string></array>
-    </dict></array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.archivebox.navigation</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>archivebox</string>
+			</array>
+		</dict>
+	</array>
 	<key>ArchiveBoxKeychainGroup</key>
 	<string>$(ARCHIVEBOX_KEYCHAIN_GROUP)</string>
 	<key>CFBundleDevelopmentRegion</key>
@@ -35,7 +41,7 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Connect to your ArchiveBox server on your local network.</string>
+	<string>Find ArchiveBox servers nearby and connect to your archive.</string>
 	<key>NSServices</key>
 	<array>
 		<dict>
@@ -57,6 +63,10 @@
 				<string>public.rtf</string>
 			</array>
 		</dict>
+	</array>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_archivebox._tcp</string>
 	</array>
 </dict>
 </plist>

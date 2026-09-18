@@ -18,6 +18,60 @@ final class Runtime: Sendable {
     var cli: URL { resources.appendingPathComponent("runtime/bin/container") }
     let name = "archivebox-server"
     let address = ServerAddress.localServer
+
+    // Expose only installed browser roots, read-only, at the Linux paths used
+    // by ArchiveBox's Persona discovery. Never mount all of Application Support.
+    var browserProfileMounts: [(source: String, destination: String)] {
+        let support = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
+        return [
+            ("Google/Chrome", "google-chrome"),
+            ("Google/Chrome Beta", "google-chrome-beta"),
+            ("Chromium", "chromium"),
+            ("BraveSoftware/Brave-Browser", "BraveSoftware/Brave-Browser"),
+        ].compactMap { source, destination in
+            let directory = support.appendingPathComponent(source)
+            // Keep denied roots in the plan so validation reports them instead
+            // of silently removing browsers from the Persona picker.
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory), isDirectory.boolValue else { return nil }
+            return (directory.path, "/home/archivebox/.config/" + destination)
+        }
+    }
+
+    var browserProfileMountArguments: [String] {
+        browserProfileMounts.flatMap { ["--volume", "\($0.source):\($0.destination):ro"] }
+    }
+
+    private func validateBrowserProfileAccess() throws {
+        for profile in browserProfileMounts {
+            do {
+                _ = try FileManager.default.contentsOfDirectory(atPath: profile.source)
+            } catch {
+                let message = "Allow ArchiveBox Server access to \(profile.source) in System Settings → Privacy & Security → Files & Folders, then restart ArchiveBox Server. macOS denied browser profile access: \(error.localizedDescription)"
+                if let log = try? FileHandle(forWritingTo: home.appendingPathComponent("desktop.log")) {
+                    log.seekToEndOfFile()
+                    log.write(Data(("\n" + message + "\n").utf8))
+                    try? log.close()
+                }
+                throw ArchiveBoxError.message(message)
+            }
+        }
+    }
+
+    func hasCurrentBrowserProfileMounts(_ container: [String: Any]) -> Bool {
+        let configuration = container["configuration"] as? [String: Any]
+        let mounts = (configuration?["mounts"] as? [[String: Any]] ?? []).filter {
+            ($0["destination"] as? String)?.hasPrefix("/home/archivebox/.config/") == true
+        }
+        let expected = browserProfileMounts
+        let environment = (configuration?["initProcess"] as? [String: Any])?["environment"] as? [String] ?? []
+        return environment.contains("ARCHIVEBOX_HOST_BROWSER_PROFILES=/data/.host-browser-profiles") && mounts.count == expected.count && expected.allSatisfy { profile in
+            mounts.contains {
+                $0["source"] as? String == profile.source && $0["destination"] as? String == profile.destination
+                    && ($0["options"] as? [String] ?? []).contains("ro")
+            }
+        }
+    }
     // Startup and background sampling share this single mutable ownership flag.
     private let serviceOwnership = Mutex(false)
     var ownsService: Bool {
@@ -99,9 +153,11 @@ final class Runtime: Sendable {
         let existing = try command(["list", "--all", "--format", "json"])
         let containers = (try JSONSerialization.jsonObject(with: Data(existing.utf8))) as? [[String: Any]] ?? []
         let container = containers.first { ($0["configuration"] as? [String: Any])?["id"] as? String == name }
-        // Container environments are immutable. Bundle updates recreate only
-        // this app's container while preserving its mounted collection.
-        if let container, !bundleChanged {
+        // Environments and mounts are immutable. Refresh this app's container
+        // after updates or browser installs/removals, preserving its collection.
+        // Check before stopping a working server; never silently hide denied browsers.
+        try validateBrowserProfileAccess()
+        if let container, !bundleChanged, hasCurrentBrowserProfileMounts(container) {
             if (container["status"] as? [String: Any])?["state"] as? String != "running" { _ = try command(["start", name]) }
         } else {
             if container != nil {
@@ -109,7 +165,7 @@ final class Runtime: Sendable {
                 _ = try command(["delete", name])
             }
             if !fm.fileExists(atPath: collectionDirectory.appendingPathComponent("index.sqlite3").path) {
-                _ = try command(["run", "--rm", "--env", "OPENCODE_ENABLED=true", "--volume", collectionDirectory.path + ":/data",
+                _ = try command(["run", "--rm", "--env", "OPENCODE_ENABLED=true", "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + [
                                  "archivebox/archivebox:dev", "/bin/sh", "-c",
                                  "archivebox init && archivebox config --set BASE_URL=\(address.absoluteString)"])
             }
@@ -138,7 +194,7 @@ final class Runtime: Sendable {
     var initializeCollectionArguments: [String] {
         let newCollection = !FileManager.default.fileExists(atPath: collectionDirectory.appendingPathComponent("index.sqlite3").path)
         return ["run", "--rm", "--interactive", "--tty", "--name", name + "-init", "--env", "TERM=xterm-256color", "--env", "OPENCODE_ENABLED=true",
-                "--workdir", "/data", "--volume", collectionDirectory.path + ":/data", "archivebox/archivebox:dev",
+                "--workdir", "/data", "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:dev",
                 "/bin/bash", "--noprofile", "--norc", "-c",
                 "printf '$ archivebox init\\n'; archivebox init" + (newCollection ? " && archivebox config --set BASE_URL=\(address.absoluteString)" : "")]
     }
@@ -146,11 +202,13 @@ final class Runtime: Sendable {
     func startCollection() async throws { try runContainer(); try await waitUntilReady() }
 
     private func runContainer() throws {
+        try validateBrowserProfileAccess()
         // The bundled product always includes the agent. Keep HTTP/DNS settings
         // in ArchiveBox.conf, but deliberately override the optional-plugin default.
         _ = try command(["run", "--detach", "--name", name, "--cpus", "4", "--memory", "4G",
-                         "--env", "OPENCODE_ENABLED=true", "--publish", "127.0.0.1:\(address.port!):8000",
-                         "--volume", collectionDirectory.path + ":/data", "archivebox/archivebox:dev"])
+                         "--env", "OPENCODE_ENABLED=true", "--env", "ARCHIVEBOX_HOST_BROWSER_PROFILES=/data/.host-browser-profiles",
+                         "--publish", "127.0.0.1:\(address.port!):8000",
+                         "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:dev"])
         // Dependency installs in a previous container's writable layer do not
         // survive recreation. Resolve them again without modifying the image.
         _ = try command(["exec", "--workdir", "/data", name, "/app/bin/docker_entrypoint.sh",
@@ -158,15 +216,21 @@ final class Runtime: Sendable {
     }
 
     func applyHTTPSettings(baseURL: String, securityMode: String) async throws -> ServerDetails {
-        guard var url = URLComponents(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)),
-              ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
-              let host = url.host, !host.isEmpty, !host.contains(where: { $0.isWhitespace }),
-              url.user == nil, url.password == nil, url.query == nil, url.fragment == nil,
-              url.path.isEmpty || url.path == "/", url.port == nil || (1...65535).contains(url.port!) else {
-            throw ArchiveBoxError.message("Enter an http:// or https:// server origin, including its port when needed, without a path or credentials.")
+        let value = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized: String
+        if value.isEmpty { normalized = "" }
+        else {
+            guard var url = URLComponents(string: value),
+                  ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+                  let host = url.host, !host.isEmpty, !host.contains(where: { $0.isWhitespace }),
+                  url.user == nil, url.password == nil, url.query == nil, url.fragment == nil,
+                  url.path.isEmpty || url.path == "/", url.port == nil || (1...65535).contains(url.port!) else {
+                throw ArchiveBoxError.message("Enter an http:// or https:// server origin, including its port when needed, without a path or credentials; or leave it empty for automatic routing.")
+            }
+            url.path = ""
+            guard let result = url.url?.absoluteString else { throw ArchiveBoxError.message("Invalid BASE_URL.") }
+            normalized = result
         }
-        url.path = ""
-        guard let normalized = url.url?.absoluteString else { throw ArchiveBoxError.message("Invalid BASE_URL.") }
         let current = try management()
         guard current.securityModes.contains(securityMode) else { throw ArchiveBoxError.message("Choose a security mode supported by this server.") }
         // Use the real config CLI so validation and file/DB synchronization run.
@@ -174,7 +238,7 @@ final class Runtime: Sendable {
                          "/app/bin/docker_entrypoint.sh", "archivebox", "config", "--set",
                          "BASE_URL=\(normalized)", "SERVER_SECURITY_MODE=\(securityMode)"])
         let updated = try await restartContainer()
-        guard updated.base.absoluteString == normalized, updated.securityMode == securityMode else {
+        guard (updated.configuredBaseURL ?? updated.base.absoluteString) == normalized, updated.securityMode == securityMode else {
             throw ArchiveBoxError.message("The server restarted but its effective settings do not match the requested values. Check ArchiveBox.conf and the server logs.")
         }
         return updated
@@ -197,8 +261,9 @@ final class Runtime: Sendable {
             var request = URLRequest(url: URL(string: "http://127.0.0.1:\(address.port!)/health/")!)
             request.timeoutInterval = 2
             do {
-                let (_, response) = try await URLSession.shared.data(for: request)
-                if let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode) { return }
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let http = response as? HTTPURLResponse, http.statusCode == 200,
+                   String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) == "OK" { return }
             } catch let error as URLError where error.code == .appTransportSecurityRequiresSecureConnection {
                 throw error // A transport policy failure cannot heal while waiting for boot.
             } catch { /* The server may still be initializing its collection. */ }

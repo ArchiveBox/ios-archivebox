@@ -1,0 +1,14 @@
+scripts/release-macos.sh
+  h_923c208e183a7b 35-46,48-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ce19691a2c6d4ae1ed51aec95b86441aaeb79173",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -248,7 +248,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         }
         #endif
         XCTAssertTrue(item.isEnabled, app.debugDescription)
+        #if os(iOS)
+        // The section header's accessibility frame spans the row; its clickable label does not.
+        if id == "admin" { press(item.staticTexts["Admin"]) }
+        else { press(item) }
+        #else
         press(item)
+        #endif
     }
 
     private func reveal(_ element: XCUIElement, named name: String, app: XCUIApplication) {

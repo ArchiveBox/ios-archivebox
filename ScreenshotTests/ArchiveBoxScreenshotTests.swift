@@ -20,15 +20,20 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 20), app.debugDescription)
         // A normal app interaction lets XCTest handle a system permission interruption.
-        let header = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
         #if os(macOS)
-        header.click()
+        let window = app.windows.firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 10), app.debugDescription)
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).click()
         #else
-        header.tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
         #endif
         XCTAssertFalse(app.alerts.firstMatch.exists, app.debugDescription)
         XCTAssertTrue(app.textFields["serverURL"].isHittable, app.debugDescription)
+        #if os(macOS)
+        let attachment = XCTAttachment(screenshot: window.screenshot())
+        #else
         let attachment = XCTAttachment(screenshot: app.screenshot())
+        #endif
         attachment.name = "connection-settings"
         attachment.lifetime = .keepAlways
         add(attachment)

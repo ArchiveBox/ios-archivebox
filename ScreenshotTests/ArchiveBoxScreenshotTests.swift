@@ -122,7 +122,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             capture(id, app: app)
         }
         openScreen("openActivity", app: app)
-        assertPage("Recent Actions", app: app)
+        assertPage("Downloads", app: app)
         capture("activity", app: app)
 
         openScreen("add", app: app)

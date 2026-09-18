@@ -22,11 +22,11 @@ import ArchiveBoxCore
             guard page.url?.path.contains("/login") == true else { renewedLogin = nil; return }
             // Renew an expired session once per login URL, including navigations
             // initiated inside a page rather than only the initial sidebar load.
-            guard owner.hasCredentials, renewedLogin != page.url, let destination else { return }
+            guard self.owner.hasCredentials, renewedLogin != page.url, let destination else { return }
             renewedLogin = page.url
             navigation = Task {
                 do {
-                    try await owner.authenticate(force: true)
+                    try await self.owner.authenticate(force: true)
                     try Task.checkCancellation()
                     page.load(URLRequest(url: destination))
                 } catch { if !Task.isCancelled { errorMessage = error.localizedDescription } }

@@ -150,7 +150,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(app.menuItems["About ArchiveBox"])
         let credits = NSPredicate(format: "label CONTAINS %@ OR CAST(value, 'NSString') CONTAINS %@",
             "Save URLs from your apps and browsers to ArchiveBox", "Save URLs from your apps and browsers to ArchiveBox")
-        let about = app.windows.containing(.any, identifier: "ArchiveBox Documentation").firstMatch
+        let about = app.dialogs.containing(credits).firstMatch
         XCTAssertTrue(about.waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(about.descendants(matching: .any).matching(credits).firstMatch.exists, app.debugDescription)
         let aboutAttachment = XCTAttachment(screenshot: about.screenshot())

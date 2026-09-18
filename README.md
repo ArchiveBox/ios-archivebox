@@ -33,7 +33,7 @@
 
 <div class="device-pair" align="center">
 <a href="docs/screenshots/home-iphone.png"><img src="docs/screenshots/home-iphone.png" width="300" loading="lazy" alt="ArchiveBox on iPhone: Add URLs, AI Agent, collection and admin screens, with a connected server"></a>
-<a href="docs/screenshots/connection-iphone.png"><img src="docs/screenshots/connection-iphone.png" width="300" loading="lazy" alt="Connection Settings on iPhone with a verified server URL and API key"></a>
+<a href="docs/screenshots/connection-iphone.png?v=2"><img src="docs/screenshots/connection-iphone.png?v=2" width="300" loading="lazy" alt="Connection Settings on iPhone with a verified server URL and API key"></a>
 </div>
 
 <div class="feature" markdown="1">
@@ -110,7 +110,7 @@ Your saved archive stays on your Mac when you quit either app.
 
 ## Save from your browser, too
 
-<p class="phone-screenshot" align="right"><a href="docs/screenshots/extension-iphone.png"><img src="docs/screenshots/extension-iphone.png" width="280" loading="lazy" alt="The ArchiveBox browser extension in mobile Safari, showing a page successfully archived to the server"></a></p>
+<p class="phone-screenshot" align="right"><a href="docs/screenshots/extension-iphone.png?v=2"><img src="docs/screenshots/extension-iphone.png?v=2" width="280" loading="lazy" alt="The ArchiveBox browser extension in mobile Safari, showing a page successfully archived to the server"></a></p>
 
 **Collect from Safari, Chrome, Firefox, Brave, and Edge with the ArchiveBox browser extension.**
 

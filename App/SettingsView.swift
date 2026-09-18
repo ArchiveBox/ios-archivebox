@@ -223,27 +223,42 @@ struct SettingsView: View {
     var body: some View {
         Form {
                 Section {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 12) {
+                            Label {
+                                Text(model.verifiedServer == nil ? "Not connected" : "Connected")
+                            } icon: {
+                                Image(systemName: "circle.fill")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(model.verifiedServer == nil ? .red : .green)
+                            }
+                            .font(.caption.weight(.semibold))
+                            .accessibilityLabel(model.verifiedServer == nil ? "Server not connected" : "Server connected")
+                            Spacer(minLength: 8)
+                            if let url = model.displayedBaseURL {
+                                Button("Copy URL", systemImage: "doc.on.doc") {
+                                    #if os(macOS)
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(url.absoluteString, forType: .string)
+                                    #else
+                                    UIPasteboard.general.string = url.absoluteString
+                                    #endif
+                                }.labelStyle(.iconOnly).buttonStyle(.borderless)
+                                Button("Open server", systemImage: "arrow.up.right.square") { model.openAdmin(url) }
+                                    .labelStyle(.iconOnly).buttonStyle(.borderless)
+                            }
+                        }
+                        // Give addresses the full row: action buttons must not squeeze
+                        // a hostname into fragments on phones or at larger text sizes.
                         if let url = model.displayedBaseURL {
-                            Text(url.absoluteString).textSelection(.enabled)
+                            Text(url.absoluteString)
+                                .font(.subheadline.monospaced())
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityIdentifier("configuredBaseURL")
-                            Button("Copy URL", systemImage: "doc.on.doc") {
-                                #if os(macOS)
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(url.absoluteString, forType: .string)
-                                #else
-                                UIPasteboard.general.string = url.absoluteString
-                                #endif
-                            }.labelStyle(.iconOnly).buttonStyle(.borderless)
-                            Button("Open server", systemImage: "arrow.up.right.square") { model.openAdmin(url) }
-                                .labelStyle(.iconOnly).buttonStyle(.borderless)
                         } else {
                             Text("No server configured").foregroundStyle(.secondary)
                         }
-                        Spacer(minLength: 8)
-                        Text(model.verifiedServer == nil ? "🔴 NOT CONNECTED" : "🟢 CONNECTED")
-                            .font(.caption.weight(.semibold))
-                            .accessibilityLabel(model.verifiedServer == nil ? "Server not connected" : "Server connected")
                     }
                 }
                 #if os(macOS)
@@ -260,46 +275,49 @@ struct SettingsView: View {
 
                 if showRemoteFields {
                     Section {
-                        HStack {
-                            TextField("Server URL", text: Binding(get: { model.serverText }, set: {
-                                model.serverChanged(); model.serverText = $0; model.scheduleValidation()
-                            }), prompt: Text("https://archivebox.example.com"))
-                            #if os(iOS)
-                            .textContentType(.URL).keyboardType(.URL).textInputAutocapitalization(.never)
-                            #endif
-                            .autocorrectionDisabled().focused($focusedField, equals: .server)
-                            .accessibilityIdentifier("serverURL")
-                            if model.verifiedServer != nil { Text("🟢").accessibilityLabel("Server connected") }
-                            else if model.serverError != nil { Text("🔴").accessibilityLabel("Server unreachable") }
-                            else if model.busy { ProgressView().controlSize(.small) }
+                        TextField("Server URL", text: Binding(get: { model.serverText }, set: {
+                            model.serverChanged(); model.serverText = $0; model.scheduleValidation()
+                        }), prompt: Text("https://archivebox.example.com"), axis: .vertical)
+                        #if os(iOS)
+                        .textContentType(.URL).keyboardType(.URL).textInputAutocapitalization(.never)
+                        #endif
+                        .lineLimit(1...3)
+                        .textFieldStyle(.plain)
+                        .autocorrectionDisabled().focused($focusedField, equals: .server)
+                        .accessibilityIdentifier("serverURL")
+                        HStack(alignment: .firstTextBaseline) {
+                            if let message = model.serverMessage { status(message).font(.subheadline) }
+                            else if model.busy { ProgressView("Checking server…").controlSize(.small) }
+                            Spacer(minLength: 12)
                             Button("Admin") { model.openAdmin(model.adminURL) }
+                                .buttonStyle(.borderless)
                                 .disabled(model.adminURL == nil).accessibilityIdentifier("openAdmin")
                         }
-                        if let message = model.serverMessage { status(message) }
                         if let error = model.serverError { Text(error).foregroundStyle(.red) }
                     } header: { Text("Server") } footer: {
-                        Text("ArchiveBox 0.9 or later. Your address is checked automatically. Paste a server or admin URL; we’ll find its API address. Include http:// for a server without HTTPS.")
+                        Text("Paste your server URL; the connection is checked automatically. Requires ArchiveBox 0.9 or later. Use http:// if your server doesn’t use HTTPS.")
                     }
                 }
                 Section {
-                    HStack {
-                        SecureField("API key", text: Binding(get: { model.tokenText }, set: {
-                            model.tokenChanged(); model.tokenText = $0; model.scheduleValidation()
-                        }), prompt: Text("••••••••••••••••").foregroundStyle(.tertiary))
-                        #if os(iOS)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                        .autocorrectionDisabled().focused($focusedField, equals: .token)
-                        .accessibilityIdentifier("apiKey")
-                        if model.verifiedToken != nil { Text("🟢").accessibilityLabel("API key verified") }
-                        else if model.tokenError != nil { Text("🔴").accessibilityLabel("API key rejected") }
+                    SecureField("API key", text: Binding(get: { model.tokenText }, set: {
+                        model.tokenChanged(); model.tokenText = $0; model.scheduleValidation()
+                    }), prompt: Text("Paste your API key"))
+                    #if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    #endif
+                    .textFieldStyle(.plain)
+                    .autocorrectionDisabled().focused($focusedField, equals: .token)
+                    .accessibilityIdentifier("apiKey")
+                    HStack(alignment: .firstTextBaseline) {
+                        if let message = model.tokenMessage { status(message).font(.subheadline) }
+                        Spacer(minLength: 12)
                         Button("Get Key") { model.openAdmin(model.apiKeysURL) }
+                            .buttonStyle(.borderless)
                             .disabled(model.apiKeysURL == nil).accessibilityIdentifier("getAPIKey")
                     }
-                    if let message = model.tokenMessage { status(message) }
                     if let error = model.tokenError { Text(error).foregroundStyle(.red) }
                 } header: { Text("API key") } footer: {
-                    Text("Get an administrator API key from your server. It is checked automatically and saved securely in Keychain as soon as verification succeeds.")
+                    Text("Use Get Key to create a key on your server. Your key is checked and saved automatically.")
                 }
 
 

@@ -91,6 +91,8 @@ YAML
         process.stdout.write(device.udid);
       });')
     destination="platform=iOS Simulator,id=$device_id"
+    # Wait for first-boot setup/data migration, not just the simulator's Booted state.
+    xcrun simctl bootstatus "$device_id" -b
     ;;
   *) echo "Unknown platform: $platform" >&2; exit 2 ;;
 esac

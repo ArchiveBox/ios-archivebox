@@ -91,6 +91,12 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         ]
         for (id, marker) in screens {
             openScreen(id, app: app)
+            if id == "agent" {
+                let start = app.webViews.buttons["Start using Agent"]
+                XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
+                capture("agent-welcome", app: app)
+                press(start)
+            }
             assertPage(marker, app: app)
             capture(id, app: app)
         }

@@ -1,0 +1,38 @@
+name: Native screenshot feasibility
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [iphone, ipad, macos]
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+      - name: Prepare pinned Safari extension
+        run: node scripts/prepare-safari.mjs
+      - name: Generate screenshot test schemes
+        run: brew install xcodegen && xcodegen generate
+      - name: Capture the real app with XCTest
+        run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}'
+      - name: Preserve native capture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-capture-${{ matrix.platform }}
+          path: |
+            build/screenshots/*/attachments/
+            build/screenshots/*/Capture.xcresult/
+            ArchiveBox.xcodeproj/
+          if-no-files-found: error
+          retention-days: 7

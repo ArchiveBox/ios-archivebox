@@ -97,6 +97,9 @@ if [[ "$ready" != 1 ]]; then
 fi
 export ARCHIVEBOX_TEST_TOKEN
 ARCHIVEBOX_TEST_TOKEN=$(cat "$SCREENSHOT_API_KEY_FILE")
+if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+    printf '::add-mask::%s\n' "$ARCHIVEBOX_TEST_TOKEN"
+fi
 # Validate the same authenticated API the native app consumes without logging the key.
 curl --fail --silent --show-error --max-time 15 \
     -H "X-ArchiveBox-API-Key: $ARCHIVEBOX_TEST_TOKEN" \

@@ -187,7 +187,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         sharePickerHierarchy.lifetime = .keepAlways
         add(sharePickerHierarchy)
         print(sharePickerDescription)
-        let shareSheet = XCUIApplication(bundleIdentifier: "com.apple.sharing.ShareSheetUI")
+        let shareSheet = XCUIApplication(url: URL(fileURLWithPath:
+            "/System/Library/PrivateFrameworks/ShareKit.framework/Versions/A/PlugIns/ShareSheetUI.appex"))
         guard shareSheet.wait(for: .runningBackground, timeout: 5) else {
             XCTFail("Safari's sharing service did not start.\n\(safari.debugDescription)")
             return

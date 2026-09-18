@@ -111,8 +111,11 @@ import WebKit
                     base.after(responsive);
                 }
                 const style = document.createElement('style');
+                // Native Add URLs already provides sharing/extension help; hide
+                // the server's shortcut banner together with its empty wrapper.
                 style.textContent = `#container { min-width: 0; width: 100%; }
                     #content { min-width: 0; max-width: 100%; box-sizing: border-box; }
+                    .add-page .crawl-explanation:has(.crawl-tip) { display: none !important; }
                     `;
                 document.head.append(style);
             }

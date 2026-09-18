@@ -47,6 +47,10 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outli
 .hero-screenshot img { display: block; width: 100%; }
 .markdown-body .screenshot { max-width: 900px; margin-top: 36px; }
 .screenshot img { display: block; width: 100%; }
+.screenshot-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; max-width: 900px; margin: 28px auto; }
+.screenshot-strip a { display: block; color: var(--muted); font-size: 12px; text-decoration: none; }
+.screenshot-strip img { display: block; width: 100%; }
+.screenshot-strip br { display: none; }
 .markdown-body .caption { color: var(--muted); font-size: 12px; line-height: 1.65; }
 .feature { display: flow-root; max-width: 900px; margin: 80px auto 0; padding: 40px; border: 1px solid #eee4e7; border-radius: 30px; background: linear-gradient(140deg, #fff, #f8edf2); }
 .feature h2 { margin-top: 0; }
@@ -76,6 +80,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outli
 .site-footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 24px; border-top: 1px solid var(--line); padding: 28px 24px; color: var(--muted); font-size: 12px; }
 @media (max-width: 700px) {
   .site-header { padding: 12px 18px; }
+  .screenshot-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .wordmark span, .site-header nav > a:not(.nav-download) { display: none; }
   .site-header nav { gap: 0; }
   .markdown-body { padding: 0 22px 40px; font-size: 16px; }

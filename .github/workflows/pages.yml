@@ -1,132 +1,47 @@
-name: App website and screenshots
+name: App website
 on:
   push:
     branches: [main]
   pull_request:
-    paths: [README.md, 'docs/site/**', 'docs/screenshots/**', 'docs/icons/**', 'App/AppIcon.icon/Assets/ArchiveBox.png', 'App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png', '.github/workflows/pages.yml']
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Capture native app screenshots']
+    types: [completed]
+    branches: [main]
 permissions:
   contents: read
+  actions: read
 concurrency:
-  group: app-website-${{ github.ref }}
+  group: fast-pages-${{ github.ref }}
   cancel-in-progress: false
-env:
-  # Pin the real server so app captures are reproducible and record both revisions.
-  BACKEND_REVISION: 9f6535006ab4df9849e0a7dab0a99eea9d745ebd
 jobs:
-  capture:
-    if: github.event_name != 'pull_request'
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [iphone, ipad, macos]
-    # Simulators plus the real server need the Intel runner's 14 GB of RAM.
-    # The shipping Mac target is Apple Silicon and stays on the ARM runner.
-    runs-on: ${{ matrix.platform == 'macos' && 'macos-26' || 'macos-26-intel' }}
-    environment: testflight
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: '10.33.2'
-      - name: Prepare pinned Safari extension
-        run: node scripts/prepare-safari.mjs
-      - name: Generate screenshot test schemes
-        run: brew install xcodegen && xcodegen generate
-      - uses: actions/checkout@v4
-        with:
-          repository: ArchiveBox/ArchiveBox
-          ref: ${{ env.BACKEND_REVISION }}
-          path: backend
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@v7
-        with:
-          python-version: '3.13'
-      - name: Install the real ArchiveBox server
-        run: uv sync --frozen --project backend
-      - name: Populate and start a disposable archive
-        run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"
-      - name: Record capture provenance
-        env:
-          CAPTURE_PLATFORM: ${{ matrix.platform }}
-        run: |
-          uv run --no-project python - <<'PY'
-          import json, os
-          from pathlib import Path
-          platform = os.environ['CAPTURE_PLATFORM']
-          output = Path('build/screenshots') / platform
-          output.mkdir(parents=True, exist_ok=True)
-          (output / 'metadata.json').write_text(json.dumps({
-              'platform': platform,
-              'revision': os.environ['GITHUB_SHA'],
-              'backend_revision': os.environ['BACKEND_REVISION'],
-              'run_id': os.environ['GITHUB_RUN_ID'],
-          }) + '\n')
-          PY
-      - name: Capture every native app screen with XCTest
-        env:
-          DEVELOPER_ID_PROFILES: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_PROFILES || '' }}
-          DEVELOPER_ID_P12: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_P12 || '' }}
-          DEVELOPER_ID_PASSWORD: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_PASSWORD || '' }}
-        run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}' 'build/screenshots/${{ matrix.platform }}' full
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-screenshots-${{ matrix.platform }}
-          path: |
-            build/screenshots/${{ matrix.platform }}/attachments/
-            build/screenshots/${{ matrix.platform }}/metadata.json
-          if-no-files-found: error
-          retention-days: 14
-      - name: Preserve failure diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-screenshot-diagnostics-${{ matrix.platform }}
-          path: |
-            build/screenshots/${{ matrix.platform }}/Capture.xcresult/
-            ${{ runner.temp }}/screenshot-server/server.log
-          retention-days: 7
-
   build:
-    needs: capture
-    # PRs retain the existing README preview build without receiving signing credentials.
-    if: always() && (needs.capture.result == 'success' || github.event_name == 'pull_request')
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        if: github.event_name != 'pull_request'
         with:
-          pattern: app-screenshots-*
-          path: build/capture-artifacts
+          ref: ${{ github.event_name == 'pull_request' && github.ref || 'main' }}
       - uses: astral-sh/setup-uv@v7
-      - name: Assemble and validate all three platforms
-        if: github.event_name != 'pull_request'
-        run: |
-          mkdir -p build/screenshots
-          for platform in iphone ipad macos; do
-            mv "build/capture-artifacts/app-screenshots-$platform" "build/screenshots/$platform"
-          done
-          uv run --no-project python scripts/build-screenshot-gallery.py --revision "$GITHUB_SHA" --backend-revision "$BACKEND_REVISION"
+      - name: Restore latest complete screenshots
+        run: uv run --no-project python scripts/restore-site-screenshots.py ios build/screenshots/gallery
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
           bundler-cache: true
           working-directory: docs/site
-      - name: Build from the README and native captures
+      - name: Build current README and site with existing captures
         run: bash docs/site/build.sh
         env:
           JEKYLL_ENV: production
-          ALLOW_INCOMPLETE_SCREENSHOTS: ${{ github.event_name == 'pull_request' && '1' || '0' }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs/site/_site
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -137,5 +52,5 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
-      - uses: actions/deploy-pages@v5
+      - uses: actions/deploy-pages@v4
         id: deployment

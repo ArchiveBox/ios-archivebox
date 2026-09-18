@@ -17,18 +17,23 @@ cp "$repo_dir/App/AppIcon.icon/Assets/ArchiveBox.png" "$stage_dir/App/AppIcon.ic
 cp "$repo_dir/App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png" "$stage_dir/App/Assets.xcassets/ShareSheetGuide.imageset/"
 gallery_dir="${SCREENSHOT_GALLERY_DIR:-$repo_dir/build/screenshots/gallery}"
 if [[ ! -f "$gallery_dir/manifest.json" ]]; then
-    if [[ "${ALLOW_INCOMPLETE_SCREENSHOTS:-0}" != 1 ]]; then
-        echo "Build the native screenshot gallery first with scripts/build-screenshot-gallery.py" >&2
-        exit 1
-    fi
+    # First deployment still publishes the complete README and curated screenshots.
+    mkdir -p "$stage_dir/screenshots"
+    cp "$site_dir/screenshots/index.html" "$stage_dir/screenshots/index.html"
 else
 uv run --no-project python - "$gallery_dir/manifest.json" <<'CHECK'
 import json, os, sys
 manifest = json.load(open(sys.argv[1]))
 if not manifest['complete'] and os.environ.get('ALLOW_INCOMPLETE_SCREENSHOTS') != '1':
     raise SystemExit('Incomplete screenshot galleries are local previews only')
-if os.environ.get('GITHUB_SHA') and manifest['revision'] != os.environ['GITHUB_SHA']:
-    raise SystemExit('Screenshot revision does not match this site build')
+# Capture provenance is independent of the revision of the website layout.
+if not manifest.get('revision') or not manifest.get('captures'):
+    raise SystemExit('Screenshot manifest must retain its capture provenance')
+from pathlib import Path
+for capture in manifest['captures']:
+    image = Path(sys.argv[1]).parent / capture['path']
+    if not image.is_file():
+        raise SystemExit(f'Missing screenshot: {image}')
 CHECK
 mkdir -p "$stage_dir/_data" "$stage_dir/screenshots"
 cp "$gallery_dir/manifest.json" "$stage_dir/_data/screenshots.json"

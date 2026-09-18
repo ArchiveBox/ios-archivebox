@@ -1,0 +1,114 @@
+name: Capture native app screenshots
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: app-captures-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  # Pin the real server so app captures are reproducible and record both revisions.
+  BACKEND_REVISION: 9f6535006ab4df9849e0a7dab0a99eea9d745ebd
+jobs:
+  capture:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [iphone, ipad, macos]
+    # Simulators plus the real server need the Intel runner's 14 GB of RAM.
+    # The shipping Mac target is Apple Silicon and stays on the ARM runner.
+    runs-on: ${{ matrix.platform == 'macos' && 'macos-26' || 'macos-26-intel' }}
+    environment: testflight
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+      - name: Prepare pinned Safari extension
+        run: node scripts/prepare-safari.mjs
+      - name: Generate screenshot test schemes
+        run: brew install xcodegen && xcodegen generate
+      - uses: actions/checkout@v4
+        with:
+          repository: ArchiveBox/ArchiveBox
+          ref: ${{ env.BACKEND_REVISION }}
+          path: backend
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.13'
+      - name: Install the real ArchiveBox server
+        run: uv sync --frozen --project backend
+      - name: Populate and start a disposable archive
+        run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"
+      - name: Record capture provenance
+        env:
+          CAPTURE_PLATFORM: ${{ matrix.platform }}
+        run: |
+          uv run --no-project python - <<'PY'
+          import json, os
+          from pathlib import Path
+          platform = os.environ['CAPTURE_PLATFORM']
+          output = Path('build/screenshots') / platform
+          output.mkdir(parents=True, exist_ok=True)
+          (output / 'metadata.json').write_text(json.dumps({
+              'platform': platform,
+              'revision': os.environ['GITHUB_SHA'],
+              'backend_revision': os.environ['BACKEND_REVISION'],
+              'run_id': os.environ['GITHUB_RUN_ID'],
+          }) + '\n')
+          PY
+      - name: Capture every native app screen with XCTest
+        env:
+          DEVELOPER_ID_PROFILES: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_PROFILES || '' }}
+          DEVELOPER_ID_P12: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_P12 || '' }}
+          DEVELOPER_ID_PASSWORD: ${{ matrix.platform == 'macos' && secrets.DEVELOPER_ID_PASSWORD || '' }}
+        run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}' 'build/screenshots/${{ matrix.platform }}' full
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-screenshots-${{ matrix.platform }}
+          path: |
+            build/screenshots/${{ matrix.platform }}/attachments/
+            build/screenshots/${{ matrix.platform }}/metadata.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-screenshot-diagnostics-${{ matrix.platform }}
+          path: |
+            build/screenshots/${{ matrix.platform }}/Capture.xcresult/
+            ${{ runner.temp }}/screenshot-server/server.log
+          retention-days: 7
+
+  build:
+    needs: capture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: app-screenshots-*
+          path: build/capture-artifacts
+      - uses: astral-sh/setup-uv@v7
+      - name: Assemble and validate all three platforms
+        run: |
+          mkdir -p build/screenshots
+          for platform in iphone ipad macos; do
+            mv "build/capture-artifacts/app-screenshots-$platform" "build/screenshots/$platform"
+          done
+          uv run --no-project python scripts/build-screenshot-gallery.py --revision "$GITHUB_SHA" --backend-revision "$BACKEND_REVISION"
+      - name: Save validated native gallery
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-screenshots
+          path: build/screenshots/gallery
+          if-no-files-found: error
+          retention-days: 90

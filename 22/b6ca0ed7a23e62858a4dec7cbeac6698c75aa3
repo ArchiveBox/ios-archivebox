@@ -1,0 +1,23 @@
+README.md
+  s_ffefb637465167::t_e27c7aac74223d 34-37,43,109-110,113-114,123-124
+docs/site/README.md
+  s_ffefb637465167::t_a8e94189303d87 27-35
+docs/site/build.sh
+  s_ffefb637465167::t_e5ba94db3e09ec 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "22b6ca0ed7a23e62858a4dec7cbeac6698c75aa3",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

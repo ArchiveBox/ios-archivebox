@@ -6,11 +6,12 @@ import UIKit
 #endif
 
 /// One boundary for the SwiftUI client and the companion's WKWebViews.
-@MainActor public final class BrowserNavigation: WebPage.NavigationDeciding {
+@MainActor public final class BrowserNavigation: NSObject, WKNavigationDelegate, WKUIDelegate {
     public var baseURL: URL?
-    public weak var page: WebPage?
+    public var didFinish: ((WKWebView) -> Void)?
+    public var didFail: ((Error) -> Void)?
 
-    public init(baseURL: URL? = nil) { self.baseURL = baseURL }
+    public init(baseURL: URL? = nil) { self.baseURL = baseURL; super.init() }
 
     public nonisolated static func belongsToServer(_ url: URL, baseURL: URL?) -> Bool {
         guard ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
@@ -39,16 +40,91 @@ import UIKit
         return true
     }
 
-    public func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
-        guard let url = action.request.url else { return .cancel }
+    public func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
+                        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
+        guard let url = action.request.url else { decisionHandler(.cancel); return }
         if openExternallyIfNeeded(url, isLink: action.navigationType == .linkActivated,
-                                  targetIsMainFrame: action.target?.isMainFrame) { return .cancel }
-        // WebView has no tab/window UI: keep internal target=_blank links in the
-        // existing authenticated page instead of silently dropping the click.
-        if action.target == nil {
-            page?.load(action.request)
-            return .cancel
+                                  targetIsMainFrame: action.targetFrame?.isMainFrame) {
+            decisionHandler(.cancel); return
         }
-        return .allow
+        decisionHandler(action.shouldPerformDownload ? .download : .allow)
     }
+
+    public func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse,
+                        decisionHandler: @escaping @MainActor (WKNavigationResponsePolicy) -> Void) {
+        let disposition = (response.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Disposition") ?? ""
+        decisionHandler(!response.canShowMIMEType || disposition.lowercased().hasPrefix("attachment") ? .download : .allow)
+    }
+
+    public func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        BrowserDownloads.shared.track(download)
+    }
+    public func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        BrowserDownloads.shared.track(download)
+    }
+    public func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                        for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        // Reuse the authenticated view for internal new-window links. External
+        // links have already been cancelled by the navigation policy above.
+        if action.targetFrame == nil { webView.load(action.request) }
+        return nil
+    }
+    public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { didFinish?(webView) }
+    public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { report(error) }
+    public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { report(error) }
+    private func report(_ error: Error) {
+        // A cancelled navigation is expected when handing a link to the browser
+        // or converting it into a download; it must not cover the page in an error.
+        let error = error as NSError
+        if error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled { return }
+        if error.domain == "WebKitErrorDomain" && error.code == 102 { return }
+        didFail?(error)
+    }
+
+    public func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
+                        initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor () -> Void) {
+        dialog(webView, message: message, cancel: false) { _ in completionHandler() }
+    }
+    public func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String,
+                        initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor (Bool) -> Void) {
+        dialog(webView, message: message, cancel: true) { completionHandler($0 != nil) }
+    }
+    public func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?,
+                        initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor (String?) -> Void) {
+        dialog(webView, message: prompt, cancel: true, input: defaultText ?? "", completion: completionHandler)
+    }
+    private func dialog(_ webView: WKWebView, message: String, cancel: Bool, input: String? = nil,
+                        completion: @escaping @MainActor (String?) -> Void) {
+        #if os(macOS)
+        let alert = NSAlert()
+        alert.messageText = webView.url?.host ?? "ArchiveBox"
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        if cancel { alert.addButton(withTitle: "Cancel") }
+        let field = input.map { NSTextField(string: $0) }
+        if let field { field.frame.size = NSSize(width: 300, height: 24); alert.accessoryView = field }
+        let finish: (NSApplication.ModalResponse) -> Void = { completion($0 == .alertFirstButtonReturn ? field?.stringValue ?? "" : nil) }
+        if let window = webView.window { alert.beginSheetModal(for: window, completionHandler: finish) }
+        else { finish(alert.runModal()) }
+        #else
+        var presenter = webView.window?.rootViewController
+        while let presented = presenter?.presentedViewController { presenter = presented }
+        guard let presenter else { completion(nil); return }
+        let alert = UIAlertController(title: webView.url?.host ?? "ArchiveBox", message: message, preferredStyle: .alert)
+        if let input { alert.addTextField { $0.text = input } }
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in completion(alert.textFields?.first?.text ?? "") })
+        if cancel { alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completion(nil) }) }
+        presenter.present(alert, animated: true)
+        #endif
+    }
+
+    #if os(macOS)
+    public func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters,
+                        initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor ([URL]?) -> Void) {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+        panel.canChooseDirectories = parameters.allowsDirectories
+        panel.begin { response in completionHandler(response == .OK ? panel.urls : nil) }
+    }
+    #endif
 }

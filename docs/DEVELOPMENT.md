@@ -72,4 +72,3 @@ ARCHIVEBOX_TEST_TOKEN="$ARCHIVEBOX_TEST_TOKEN" swift run ArchiveBoxIntegration
 ```
 
 See [validation evidence](VALIDATION.md) for tested behavior and remaining release checks.
-

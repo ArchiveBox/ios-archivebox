@@ -118,3 +118,17 @@ Only the installed iPhone simulator and native Mac were run. iPad uses the same 
 - Live Safari options opened and an independently entered API key validated as user 7. Safari popup submission created crawl 06aac4b74f99747580000b18be16a3c9 with Private; native macOS sharing created 06aac4cc1e797d5f80003a37dc7ee6ad with Default. Both authenticate as squash, the configured key owner.
 - Real iPhone `testConfigureAndShareFromSafari` passed (`sidebar-share-phone3.xcresult`): selected AppleAcceptance, saved/reloaded, submitted through Safari's actual share sheet, and displayed success. Independent server query confirmed crawl 06aac4d4091f713d8000ea831d592b36 uses AppleAcceptance and the key owner. The first attempt found a test input-clearing bug; selecting all through the keyboard fixed it without changing validation assertions.
 - Cookie scope remains distinct: native sharing selects server-side persona cookies; it cannot read the browser's cookie jar. Browser sharing uses its selected browser persona and existing explicit cookie-sync consent. The selected browser persona contained zero cookies during this check, so authenticated-site cookie capture was not validated and no private browser cookies were imported.
+
+## Webview downloads (2026-09-17)
+
+Both native apps use the shared WebKit download delegate. Downloads retain the
+webview's session, including attachment responses, HTML download links, and blob
+URLs. Completed Mac downloads move to Downloads without replacing existing files,
+then Finder selects the file and brings its window forward. iPhone/iPad use the
+Files export picker. Partial downloads are kept out of the final destination.
+
+Verified: 13 Swift tests (including real-file collision/content checks), signed
+macOS client build, iOS Simulator build, and release companion build. Both Mac
+apps were installed locally. A real snapshot ZIP endpoint returned HTTP 200 with
+attachment headers; the desktop session changed during the in-app click check,
+so Finder completion and the iOS export picker still require manual acceptance.

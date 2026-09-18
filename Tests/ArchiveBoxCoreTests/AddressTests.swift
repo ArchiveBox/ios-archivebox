@@ -89,3 +89,27 @@ import Testing
     #expect(!BrowserNavigation.belongsToServer(URL(string: "http://sub.127.0.0.1")!, baseURL: URL(string: "http://127.0.0.1")!))
     #expect(!BrowserNavigation.belongsToServer(base, baseURL: nil))
 }
+
+@MainActor @Test func completedDownloadsNeverOverwriteExistingFiles() throws {
+    let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    let downloads = root.appending(path: "Downloads")
+    let staging = root.appending(path: "staging")
+    try FileManager.default.createDirectory(at: downloads, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    for name in ["archive.pdf", "README"] {
+        let existing = downloads.appendingPathComponent(name)
+        try Data("original".utf8).write(to: existing)
+        for number in 2...3 {
+            let source = staging.appendingPathComponent(name)
+            let data = Data("download \(number)".utf8)
+            try data.write(to: source)
+            let saved = try BrowserDownloads.moveCompletedFile(source, to: downloads)
+            let expected = name == "README" ? "README (\(number))" : "archive (\(number)).pdf"
+            #expect(saved.lastPathComponent == expected)
+            #expect(try Data(contentsOf: saved) == data)
+            #expect(!FileManager.default.fileExists(atPath: source.path))
+        }
+        #expect(try String(contentsOf: existing, encoding: .utf8) == "original")
+    }
+}

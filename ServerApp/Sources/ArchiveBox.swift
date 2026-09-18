@@ -215,9 +215,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
                                                    targetIsMainFrame: action.targetFrame?.isMainFrame) {
             decisionHandler(.cancel); return
         }
+        if action.shouldPerformDownload { decisionHandler(.download); return }
         if webView === activity, action.navigationType == .linkActivated, let url = action.request.url {
             openArchive(url); decisionHandler(.cancel)
         } else { decisionHandler(.allow) }
+    }
+    func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse,
+                 decisionHandler: @escaping @MainActor (WKNavigationResponsePolicy) -> Void) {
+        browserNavigation.webView(webView, decidePolicyFor: response, decisionHandler: decisionHandler)
+    }
+    func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        BrowserDownloads.shared.track(download)
+    }
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        BrowserDownloads.shared.track(download)
     }
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {

@@ -1,0 +1,14 @@
+ScreenshotTests/ArchiveBoxScreenshotTests.swift
+  h_923c208e183a7b 136-145,151-191,193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3e7f65766b34edf4bad324ccf58e425affb0e089",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

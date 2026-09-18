@@ -111,7 +111,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["More ways to add"].exists, app.debugDescription)
         capture("add-guide", app: app)
         press(persona)
-        let choice = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Research Browser")).firstMatch
+        let choice = app.descendants(matching: .any)["Research Browser"].firstMatch
         XCTAssertTrue(choice.waitForExistence(timeout: 10), app.debugDescription)
         capture("persona-picker", app: app)
         press(choice)
@@ -251,7 +251,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     private func assertPage(_ marker: String, app: XCUIApplication) {
-        let content = app.webViews.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", marker)).firstMatch
+        #if os(macOS)
+        // WebKit exposes rendered text through AXValue on macOS; its AXLabel is often empty.
+        let predicate = NSPredicate(format: "value CONTAINS[c] %@", marker)
+        #else
+        let predicate = NSPredicate(format: "label CONTAINS[c] %@", marker)
+        #endif
+        let content = app.webViews.descendants(matching: .any).matching(predicate).firstMatch
         XCTAssertTrue(content.waitForExistence(timeout: 30), "Expected rendered page: \(marker)\n\(app.debugDescription)")
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
     }

@@ -12,7 +12,7 @@ if [[ -n "$(ls -A "$data")" ]]; then
     exit 1
 fi
 port=${SCREENSHOT_SERVER_PORT:-8000}
-export BASE_URL="http://localhost:$port" BIND_ADDR="127.0.0.1:$port"
+export BASE_URL="http://127.0.0.1:$port" BIND_ADDR="127.0.0.1:$port"
 export ARCHIVEBOX_TEST_SERVER="$BASE_URL"
 export SCREENSHOT_USERNAME=archivebox-screenshots
 export SCREENSHOT_PASSWORD

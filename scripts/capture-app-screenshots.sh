@@ -101,5 +101,16 @@ xcodebuild -project ArchiveBox.xcodeproj -scheme "$scheme" \
   -only-testing:"$scheme/ArchiveBoxScreenshotTests/$method" \
   "${signing[@]}" \
   ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}" \
-  ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}" test
+  ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}" test || {
+    result=$?
+    # Distinguish an app assertion from a stopped server or an exhausted runner.
+    uptime
+    sysctl vm.swapusage
+    ps -A -o pid,ppid,%cpu,%mem,comm | sort -nr -k3 | head -20 || true
+    if [[ -n "${ARCHIVEBOX_TEST_SERVER:-}" ]]; then
+      curl --fail --silent --show-error --max-time 15 \
+        "$ARCHIVEBOX_TEST_SERVER/api/v1/openapi.json" -o /dev/null || true
+    fi
+    exit "$result"
+  }
 xcrun xcresulttool export attachments --path "$output/Capture.xcresult" --output-path "$output/attachments"

@@ -8,7 +8,7 @@ import re
 import shutil
 import struct
 
-COMMON = "connection-disconnected connection-connected sidebar add add-guide persona-picker safari-setup agent activity crawls schedules snapshots results tags admin users personas keys webhooks processes machines interfaces binaries plugins workers logs".split()
+COMMON = "connection-disconnected connection-connected sidebar add add-guide persona-picker safari-setup agent-welcome agent activity crawls schedules snapshots results tags admin users personas keys webhooks processes machines interfaces binaries plugins workers logs".split()
 EXPECTED = {p: COMMON + (['connection-local', 'about'] if p == 'macos' else ['share-accepted', 'share-tags', 'share-removal-confirmation', 'share-removed']) for p in ['iphone', 'ipad', 'macos']}
 LABELS = {'iphone': 'iPhone', 'ipad': 'iPad', 'macos': 'Mac'}
 

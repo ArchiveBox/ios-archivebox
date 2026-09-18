@@ -47,7 +47,14 @@ PYPORT
 )
 # Use the built-in SQLite search backend; Sonic has no supported Intel macOS binary.
 abx config --set SEARCH_BACKEND_SONIC_ENABLED=False SEARCH_BACKEND_SQLITE_ENABLED=True \
-    PLUGINS=title,headers,wget,screenshot,search_backend_sqlite OPENCODE_ENABLED=True "OPENCODE_PORT=$opencode_port"
+    PLUGINS=title,headers,wget,screenshot,search_backend_sqlite,opencode OPENCODE_ENABLED=True "OPENCODE_PORT=$opencode_port"
+abx manage shell --no-imports -c '
+from archivebox.config.common import get_config
+config = get_config()
+assert config.OPENCODE_ENABLED is True, "The AI Agent must be enabled for capture"
+assert config.SEARCH_BACKEND_SQLITE_ENABLED is True, "SQLite search must be enabled"
+assert config.SEARCH_BACKEND_SONIC_ENABLED is False, "This collection uses SQLite search"
+'
 abx install opencode --binproviders=env,pnpm
 # Install only the dependencies used by this gallery, through the real installer.
 abx install chrome wget title headers screenshot

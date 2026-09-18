@@ -1,0 +1,72 @@
+App/AddURLsView.swift
+  h_923c208e183a7b 13-14
+App/EmbeddedBrowser.swift
+  h_923c208e183a7b 32,79,86,97-101,108-109,116-119,126
+App/MainView.swift
+  h_923c208e183a7b 113-114,219-220
+App/SettingsView.swift
+  h_923c208e183a7b 43,113-122,131,173
+App/SetupGuide.swift
+  h_923c208e183a7b 207,219
+ServerApp/README.md
+  h_923c208e183a7b 14-15,19-28,70,74-78,142,232-241
+ServerApp/Sources/ClientsView.swift
+  h_923c208e183a7b 6,11-48,50-95
+ServerApp/Sources/NetworkAccess.swift
+  h_923c208e183a7b 16,67,77
+ServerApp/Sources/Runtime.swift
+  h_923c208e183a7b 210
+ServerApp/Sources/ServerMenu.swift
+  h_923c208e183a7b 2,99
+ServerApp/Sources/Settings.swift
+  h_923c208e183a7b 8,17-19,252
+ServerApp/Sources/SettingsModel.swift
+  h_923c208e183a7b 47-50,109-112,244-248,250,457,480-484,516,589,693
+ServerApp/Sources/TailscaleSetup.swift
+  h_923c208e183a7b 22,33,35-38,63-65,70,93,116-118,125,173
+ServerApp/Tests/ClientBrowserAcceptance.swift
+  h_923c208e183a7b 1-58
+ServerApp/Tests/ClientSettingsAcceptance.swift
+  h_923c208e183a7b 1-27
+ServerApp/Tests/ConnectionCodeAcceptance.swift
+  h_923c208e183a7b 15
+ServerApp/Tests/HTTPSettingsAcceptance.swift
+  h_923c208e183a7b 27-28
+ServerApp/Tests/ManagementAcceptance.swift
+  h_923c208e183a7b 20-22,93
+ServerApp/Tests/NetworkAccessAcceptance.swift
+  h_923c208e183a7b 15
+ServerApp/Tests/ReplayFormatsAcceptance.swift
+  h_923c208e183a7b 16
+ServerApp/Tests/TailscaleAcceptance.swift
+  h_923c208e183a7b 18,20
+ServerApp/Tests/run.sh
+  h_923c208e183a7b 5-6,12-16,19,21-33
+Sources/ArchiveBoxCore/ConnectionLink.swift
+  h_923c208e183a7b 45
+Sources/ArchiveBoxCore/ServerAddress.swift
+  h_923c208e183a7b 5-6
+Sources/ArchiveBoxCore/ServerDiscovery.swift
+  h_923c208e183a7b 41,128,159
+Sources/ArchiveBoxCore/TailscaleGuide.swift
+  h_923c208e183a7b 8,22,27,29,62,160,239
+Sources/ArchiveBoxCore/TailscaleNetwork.swift
+  h_923c208e183a7b 21-23
+Tests/ArchiveBoxCoreTests/AddressTests.swift
+  h_923c208e183a7b 46,63-64,99
+docs/VALIDATION.md
+  h_923c208e183a7b 62
+scripts/start-screenshot-server.sh
+  h_923c208e183a7b 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4efb149843d6d394a141c1cfd690e3ecb215739a",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

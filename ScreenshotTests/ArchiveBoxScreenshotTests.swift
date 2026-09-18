@@ -115,7 +115,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
         openScreen("add", app: app)
         let persona = app.descendants(matching: .any)["defaultPersona"].firstMatch
-        reveal(persona, app: app)
+        reveal(persona, named: "defaultPersona", app: app)
         XCTAssertTrue(app.staticTexts["More ways to add"].exists, app.debugDescription)
         capture("add-guide", app: app)
         press(persona)
@@ -124,7 +124,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         capture("persona-picker", app: app)
         press(choice)
         let safari = app.buttons["Safari"]
-        reveal(safari, app: app)
+        reveal(safari, named: "Safari", app: app)
         press(safari)
         let setup = app.alerts["Enable ArchiveBox in Safari"]
         XCTAssertTrue(setup.waitForExistence(timeout: 5), app.debugDescription)
@@ -253,10 +253,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(item)
     }
 
-    private func reveal(_ element: XCUIElement, app: XCUIApplication) {
+    private func reveal(_ element: XCUIElement, named name: String, app: XCUIApplication) {
         for _ in 0..<10 where !element.isHittable {
             #if os(macOS)
-            app.scrollViews.element(boundBy: app.scrollViews.count - 1).scroll(byDeltaX: 0, deltaY: -350)
+            app.scrollViews.containing(.any, identifier: name).firstMatch.scroll(byDeltaX: 0, deltaY: -350)
             #else
             app.swipeUp()
             #endif

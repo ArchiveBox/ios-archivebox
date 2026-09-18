@@ -51,7 +51,13 @@ struct MainView: View {
     }
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility, preferredCompactColumn: $compactColumn) {
+        #if os(macOS)
+        // The Mac sidebar is permanent navigation; only iPhone/iPad collapse it.
+        let visibility = Binding.constant(NavigationSplitViewVisibility.all)
+        #else
+        let visibility = $columnVisibility
+        #endif
+        NavigationSplitView(columnVisibility: visibility, preferredCompactColumn: $compactColumn) {
             List {
                 rows([.add, .agent])
                 Section("Collection") { rows([.crawls, .schedules, .snapshots, .results, .tags]) }
@@ -102,6 +108,7 @@ struct MainView: View {
                 .sharedBackgroundVisibility(.hidden)
                 }
             }
+            .toolbar(removing: .sidebarToggle)
             #endif
             .navigationSplitViewColumnWidth(min: 210, ideal: 240)
         } detail: {

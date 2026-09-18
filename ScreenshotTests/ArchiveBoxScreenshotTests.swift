@@ -1,4 +1,7 @@
 import XCTest
+#if os(iOS)
+import UIKit
+#endif
 
 /// Captures the shipping app through the real system UI test runner.
 @MainActor
@@ -153,7 +156,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(about.buttons[XCUIIdentifierCloseWindow])
         captureMacShareScreens(app: app)
         #else
-        try captureShareScreens(server: server)
+        captureShareScreens()
         #endif
     }
 
@@ -300,13 +303,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     #if os(iOS)
-    private func captureShareScreens(server: String) throws {
+    private func captureShareScreens() {
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
         safari.launch()
         let address = safari.textFields["Address"]
         XCTAssertTrue(address.waitForExistence(timeout: 10), safari.debugDescription)
         press(address)
-        address.typeText(server + "/?native-gallery-share=\(UUID().uuidString)\n")
+        address.typeText("https://example.com/?native-gallery-share=\(UUID().uuidString)\n")
+        assertPage("Example Domain", app: safari)
         let share = safari.buttons["Share"]
         if !share.exists { press(safari.buttons["Page Menu"]) }
         XCTAssertTrue(share.waitForExistence(timeout: 15), safari.debugDescription)
@@ -328,7 +332,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(safari.buttons["Remove from server"])
         XCTAssertTrue(safari.buttons["Keep it"].waitForExistence(timeout: 5), safari.debugDescription)
         capture("share-removal-confirmation", app: safari)
-        press(safari.sheets.buttons["Remove from server"])
+        let confirmation = UIDevice.current.userInterfaceIdiom == .pad
+            ? safari.popovers.buttons["Remove from server"]
+            : safari.sheets.buttons["Remove from server"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5), safari.debugDescription)
+        press(confirmation)
         XCTAssertTrue(safari.staticTexts["Removed from server"].waitForExistence(timeout: 15), safari.debugDescription)
         capture("share-removed", app: safari)
         press(safari.buttons["Done"])

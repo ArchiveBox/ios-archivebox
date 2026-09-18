@@ -1,0 +1,19 @@
+.github/workflows/screenshot-smoke.yml
+  s_ffefb637465167::t_6d466d85dd73be 4-8,16-17,33-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dcddbfab62ed9d3a16cf9e645fab13030a0c5f67",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

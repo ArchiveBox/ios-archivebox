@@ -1,0 +1,22 @@
+App/ArchiveBoxIntents.swift
+  h_923c208e183a7b 1-91
+ArchiveBox.xcodeproj/project.pbxproj
+  h_923c208e183a7b 10-11,147,325,676,710
+IntegrationTests/Smoke.swift
+  h_923c208e183a7b 79-85
+README.md
+  h_923c208e183a7b 61-69
+Sources/ArchiveBoxCore/ArchiveBoxClient.swift
+  h_923c208e183a7b 86-98,227-234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a6eb073a4e00c7fcbcf58939dc236317c6008f4e",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

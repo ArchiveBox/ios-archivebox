@@ -1,0 +1,27 @@
+.github/workflows/pages.yml
+  s_ffefb637465167::t_34336b1c4ded49 1,7-10,13,15,19,21,25,27-30,36,44,55
+.github/workflows/screenshots.yml
+  s_ffefb637465167::t_86bb2b493778a1 1-114
+docs/site/build.sh
+  s_ffefb637465167::t_8200e05bc5eb60 20-22,29-36
+docs/site/screenshots/index.html
+  s_ffefb637465167::t_ccaab0b4387d25 8,27-46
+scripts/restore-site-screenshots.py
+  s_ffefb637465167::t_14f12830cd6bd9 1-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d88feb62127249c7fdb8ecad23114703a4dd0c4d",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

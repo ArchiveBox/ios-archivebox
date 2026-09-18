@@ -1,0 +1,31 @@
+.github/workflows/pages.yml
+  s_ffefb637465167::t_6171de79e0cbcf 5,7
+docs/icons/LICENSE.txt
+  s_ffefb637465167::t_2fefce78b12675 1-165
+docs/icons/app-store.svg
+  s_ffefb637465167::t_e4c81375ee86a4 1
+docs/icons/apple.svg
+  s_ffefb637465167::t_f91c14d81333e6 1
+docs/icons/download.svg
+  s_ffefb637465167::t_910a9d83405104 1
+docs/icons/phone.svg
+  s_ffefb637465167::t_4becffa1fe1900 1
+docs/site/build.sh
+  s_ffefb637465167::t_c7f30eac5a6603 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "22e6ba8b41b655c81f3a47491ae1bf26dd3b8fdb",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

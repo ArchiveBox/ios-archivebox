@@ -45,7 +45,9 @@ with socket.socket() as sock:
     print(sock.getsockname()[1])
 PYPORT
 )
-abx config --set OPENCODE_ENABLED=True "OPENCODE_PORT=$opencode_port"
+# Use the built-in SQLite search backend; Sonic has no supported Intel macOS binary.
+abx config --set SEARCH_BACKEND_SONIC_ENABLED=False SEARCH_BACKEND_SQLITE_ENABLED=True \
+    OPENCODE_ENABLED=True "OPENCODE_PORT=$opencode_port"
 abx install opencode --binproviders=env,pnpm
 # Install only the dependencies used by this gallery, through the real installer.
 abx install chrome wget title headers screenshot

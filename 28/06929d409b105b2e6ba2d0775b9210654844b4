@@ -1,0 +1,21 @@
+App/SettingsView.swift
+  s_ffefb637465167::t_b8bd8d342b9e07 226-252,254-257,278-291,293,298,302-313,315,320
+README.md
+  s_ffefb637465167::t_93fe7a2dd2c016 36,113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2806929d409b105b2e6ba2d0775b9210654844b4",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

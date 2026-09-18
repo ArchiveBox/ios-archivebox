@@ -1,0 +1,21 @@
+scripts/capture-app-screenshots.sh
+  s_ffefb637465167::t_d4f73ba73837c1 104-115
+scripts/start-screenshot-server.sh
+  s_ffefb637465167::t_a43062e6999fe1 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "94847a4504689e5081699fdc7c701418659e9d5f",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

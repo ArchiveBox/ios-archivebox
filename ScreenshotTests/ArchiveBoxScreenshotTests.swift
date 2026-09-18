@@ -133,14 +133,64 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(app.radioButtons["Connect to remote server"])
         press(app.menuBars.menuBarItems["ArchiveBox"])
         press(app.menuItems["About ArchiveBox"])
-        XCTAssertTrue(app.staticTexts["ArchiveBox"].firstMatch.waitForExistence(timeout: 5), app.debugDescription)
-        capture("about", app: app)
+        let credits = NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@",
+            "Save URLs from your apps and browsers to ArchiveBox", "Save URLs from your apps and browsers to ArchiveBox")
+        let about = app.windows.containing(.any, identifier: "ArchiveBox Documentation").firstMatch
+        XCTAssertTrue(about.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(about.descendants(matching: .any).matching(credits).firstMatch.exists, app.debugDescription)
+        let aboutAttachment = XCTAttachment(screenshot: about.screenshot())
+        aboutAttachment.name = "about"
+        aboutAttachment.lifetime = .keepAlways
+        add(aboutAttachment)
+        press(about.buttons[XCUIIdentifierCloseWindow])
         #else
         try captureShareScreens(server: server)
         #endif
     }
 
+    #if os(macOS)
+    /// Run separately after testAllScreens has configured the real saved connection.
+    /// Failure means the standard host UI needs inspection, never a synthetic extension host.
+    func testMacShareScreens() throws {
+        continueAfterFailure = false
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.Safari")
+        safari.launch()
+        safari.typeKey("l", modifierFlags: .command)
+        safari.typeText(server + "/?native-gallery-share=\(UUID().uuidString)\n")
+        let page = safari.webViews.firstMatch
+        XCTAssertTrue(page.waitForExistence(timeout: 20), safari.debugDescription)
+        let share = safari.buttons["Share"]
+        XCTAssertTrue(share.waitForExistence(timeout: 10), safari.debugDescription)
+        press(share)
+        let extensionItem = safari.menuItems["ArchiveBox"]
+        XCTAssertTrue(extensionItem.waitForExistence(timeout: 5), safari.debugDescription)
+        press(extensionItem)
+        XCTAssertTrue(safari.staticTexts["Submitted to ArchiveBox Server"].waitForExistence(timeout: 30), safari.debugDescription)
+        capture("share-accepted", app: safari)
+        let tags = safari.textFields["shareTagInput"]
+        press(tags)
+        tags.typeText("read later, research\n")
+        XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)
+        XCTAssertTrue(safari.buttons["Remove tag research"].exists, safari.debugDescription)
+        capture("share-tags", app: safari)
+        press(safari.buttons["Remove from server"])
+        XCTAssertTrue(safari.buttons["Keep it"].waitForExistence(timeout: 5), safari.debugDescription)
+        capture("share-removal-confirmation", app: safari)
+        let confirmation = safari.popovers.buttons["Remove from server"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5), safari.debugDescription)
+        press(confirmation)
+        XCTAssertTrue(safari.staticTexts["Removed from server"].waitForExistence(timeout: 15), safari.debugDescription)
+        capture("share-removed", app: safari)
+        press(safari.buttons["Done"])
+    }
+    #endif
+
     private func press(_ element: XCUIElement) {
+
         XCTAssertTrue(element.isHittable, element.debugDescription)
         #if os(macOS)
         element.click()

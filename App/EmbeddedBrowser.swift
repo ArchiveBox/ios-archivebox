@@ -6,13 +6,16 @@ import ArchiveBoxCore
 // the session after relaunch without persisting browser credentials.
 @MainActor @Observable final class PageSession {
     let page: WebPage
+    let routing: BrowserNavigation
     var errorMessage: String?
     private var started = false
     private var requestID: UUID?
     private var navigation: Task<Void, Never>?
     private unowned let owner: WebPages
     private var destination: URL?
-    init(_ page: WebPage, owner: WebPages) { self.page = page; self.owner = owner }
+    init(_ page: WebPage, routing: BrowserNavigation, owner: WebPages) {
+        self.page = page; self.routing = routing; self.owner = owner
+    }
 
     func reconnect() {
         if let destination { load(destination, requestID: requestID, force: true) }
@@ -52,11 +55,14 @@ import ArchiveBoxCore
     let authentication = BrowserAuthentication()
     private var server: URL?
     private var token: String?
+    private var baseURL: URL?
     var hasCredentials: Bool { server != nil && token != nil }
 
-    func configure(server: URL?, token: String?) async {
-        guard self.server != server || self.token != token else { return }
+    func configure(server: URL?, baseURL: URL?, token: String?) async {
+        guard self.server != server || self.token != token || self.baseURL != baseURL else { return }
         self.server = server; self.token = token
+        self.baseURL = baseURL
+        for page in pages.values { page.routing.baseURL = baseURL }
         if server == nil || token == nil { await authentication.clear() }
         for page in pages.values { page.reconnect() }
     }
@@ -68,14 +74,19 @@ import ArchiveBoxCore
 
     // Retain each screen's page independently, but allocate it only when visited.
     // All pages share the same authenticated in-memory cookie store.
-    func page(for key: String) -> PageSession {
+    func page(for key: String, baseURL: URL?) -> PageSession {
         if let page = pages[key] { return page }
         var configuration = WebPage.Configuration()
         // Match the companion's standalone monitor without stripping the admin
         // chrome from other screens or altering its server-owned polling code.
         configuration.websiteDataStore = authentication.dataStore
         configuration.userContentController.addUserScript(EmbeddedPage.script(activity: key.hasPrefix("activity-")))
-        let page = PageSession(WebPage(configuration: configuration), owner: self)
+        // Supply the boundary synchronously: SwiftUI can create/load the page
+        // before the asynchronous connection task has configured authentication.
+        let routing = BrowserNavigation(baseURL: baseURL)
+        let webPage = WebPage(configuration: configuration, navigationDecider: routing)
+        routing.page = webPage
+        let page = PageSession(webPage, routing: routing, owner: self)
         pages[key] = page
         return page
     }

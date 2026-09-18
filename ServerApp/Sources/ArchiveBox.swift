@@ -4,10 +4,11 @@ import WebKit
 import SwiftUI
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSWindowDelegate, WKNavigationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, NSMenuDelegate {
     enum Screen: String, CaseIterable { case users = "Clients", activity = "Activity", archive = "Admin", shell = "Shell", settings = "Settings" }
     let runtime = Runtime()
     let browserAuthentication = BrowserAuthentication()
+    let browserNavigation = BrowserNavigation()
     var window: NSWindow!
     var web: WKWebView!
     var activity: WKWebView!
@@ -58,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         web = WKWebView(frame: window.contentView!.bounds, configuration: webConfiguration)
         web.setAccessibilityLabel("ArchiveBox administration")
         web.navigationDelegate = self
+        web.uiDelegate = self
         web.autoresizingMask = [.width, .height]
         let activityConfiguration = WKWebViewConfiguration()
         activityConfiguration.websiteDataStore = web.configuration.websiteDataStore
@@ -66,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         activity.autoresizingMask = [.width, .height]
         activity.setAccessibilityLabel("Archiving activity")
         activity.navigationDelegate = self
+        activity.uiDelegate = self
         settingsView = NSHostingView(rootView: SettingsView(model: settings))
         shellView = NSHostingView(rootView: ShellView(model: settings))
         usersView = NSHostingView(rootView: UsersView(model: settings))
@@ -87,6 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         }
         settings.didUpdateDetails = { [weak self] details in
             guard let self else { return }
+            browserNavigation.baseURL = details.base
             do {
                 if details.hasAdmin, let token = try runtime.browserAPIKey() {
                     try await browserAuthentication.authenticate(server: details.api, token: token)
@@ -206,9 +210,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         showSettings(); return true
     }
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
+        if let url = action.request.url,
+           browserNavigation.openExternallyIfNeeded(url, isLink: action.navigationType == .linkActivated,
+                                                   targetIsMainFrame: action.targetFrame?.isMainFrame) {
+            decisionHandler(.cancel); return
+        }
         if webView === activity, action.navigationType == .linkActivated, let url = action.request.url {
             openArchive(url); decisionHandler(.cancel)
         } else { decisionHandler(.allow) }
+    }
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                 for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        // External windows were already handed to the default browser by the
+        // navigation policy. Internal new-window links share the existing login.
+        if action.targetFrame == nil { webView.load(action.request) }
+        return nil
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard let url = webView.url else { return }

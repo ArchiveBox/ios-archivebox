@@ -70,3 +70,22 @@ import Testing
     let updated = ServerConfiguration(server: configuration.server, token: configuration.token, persona: "Work")
     #expect(try JSONDecoder().decode(ServerConfiguration.self, from: JSONEncoder().encode(updated)) == updated)
 }
+
+@Test func embeddedNavigationKeepsOnlyTheConfiguredServerAndItsSubdomains() {
+    let base = URL(string: "https://archive.example:8443")!
+    for address in ["https://archive.example:8443/admin/", "http://archive.example/add/",
+                    "https://ADMIN.archive.example:8443/admin/", "https://snap-123.archive.example:8443/index.html",
+                    "https://nested.snap-123.archive.example/file.pdf", "https://archive.example./"] {
+        #expect(BrowserNavigation.belongsToServer(URL(string: address)!, baseURL: base))
+    }
+    for address in ["https://example.org/", "https://notarchive.example/", "https://archive.example.attacker.test/",
+                    "https://archive.example@attacker.test/", "mailto:someone@archive.example", "file:///archive.example"] {
+        #expect(!BrowserNavigation.belongsToServer(URL(string: address)!, baseURL: base))
+    }
+    for address in ["http://127.0.0.1:8000", "http://[::1]:8000", "http://archivebox.localhost:18080"] {
+        let local = URL(string: address)!
+        #expect(BrowserNavigation.belongsToServer(local.appending(path: "admin/"), baseURL: local))
+    }
+    #expect(!BrowserNavigation.belongsToServer(URL(string: "http://sub.127.0.0.1")!, baseURL: URL(string: "http://127.0.0.1")!))
+    #expect(!BrowserNavigation.belongsToServer(base, baseURL: nil))
+}

@@ -119,7 +119,7 @@ struct MainView: View {
                     Group {
                         if screen == .add { AddURLsView(model: settings, pages: pages, reloadID: reloadIDs[.add]) }
                         else if let url = destination(screen) {
-                            ServerWebView(url: url, title: screen.info.title, session: pages.page(for: "\(screen.rawValue)-\(url)"),
+                            ServerWebView(url: url, title: screen.info.title, session: pages.page(for: "\(screen.rawValue)-\(url)", baseURL: settings.displayedBaseURL),
                                           reloadID: screen == .admin ? settings.adminNavigationID : reloadIDs[screen])
                                 .id("\(screen.rawValue)-\(url)")
                         } else {
@@ -161,7 +161,7 @@ struct MainView: View {
             #endif
         }
         .task(id: "\(settings.verifiedServer?.absoluteString ?? "")\n\(settings.verifiedToken ?? "")") {
-            await pages.configure(server: settings.verifiedServer, token: settings.verifiedToken)
+            await pages.configure(server: settings.verifiedServer, baseURL: settings.displayedBaseURL, token: settings.verifiedToken)
         }
         #if os(macOS)
         .onOpenURL { url in

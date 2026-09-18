@@ -151,26 +151,21 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         aboutAttachment.lifetime = .keepAlways
         add(aboutAttachment)
         press(about.buttons[XCUIIdentifierCloseWindow])
+        captureMacShareScreens(app: app)
         #else
         try captureShareScreens(server: server)
         #endif
     }
 
     #if os(macOS)
-    /// Run separately after testAllScreens has configured the real saved connection.
-    /// Failure means the standard host UI needs inspection, never a synthetic extension host.
-    func testMacShareScreens() throws {
-        continueAfterFailure = false
-        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
-        let app = XCUIApplication()
-        app.launch()
+    /// Exercise Safari's standard Share menu with the connection configured above.
+    private func captureMacShareScreens(app: XCUIApplication) {
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         let safari = XCUIApplication(bundleIdentifier: "com.apple.Safari")
         safari.launch()
         safari.typeKey("l", modifierFlags: .command)
-        safari.typeText(server + "/?native-gallery-share=\(UUID().uuidString)\n")
-        let page = safari.webViews.firstMatch
-        XCTAssertTrue(page.waitForExistence(timeout: 20), safari.debugDescription)
+        safari.typeText("https://example.com/?native-gallery-share=\(UUID().uuidString)\n")
+        assertPage("Example Domain", app: safari)
         let share = safari.buttons["Share"]
         XCTAssertTrue(share.waitForExistence(timeout: 10), safari.debugDescription)
         press(share)

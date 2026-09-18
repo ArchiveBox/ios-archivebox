@@ -1,0 +1,24 @@
+docs/site/README.md
+  h_923c208e183a7b 40-65
+docs/site/_layouts/default.html
+  h_923c208e183a7b 16,19
+docs/site/assets/style.scss
+  h_923c208e183a7b 84,119-132
+docs/site/build.sh
+  h_923c208e183a7b 18-37
+docs/site/screenshots/index.html
+  h_923c208e183a7b 1-33
+scripts/build-screenshot-gallery.py
+  h_923c208e183a7b 1-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "78fb0e0df3b63c1ce96fdcac1f4971832bf4377e",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

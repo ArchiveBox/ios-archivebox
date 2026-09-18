@@ -1,0 +1,19 @@
+ShareExtension/ShareView.swift
+  s_ffefb637465167::t_5163e1e588a9f4 8,31-52,54-69,73-83,86-87,89-128,130-138,140-148,150,152,181-183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a5af842c4ba54a0707aa0e26993c4e3e41211c33",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

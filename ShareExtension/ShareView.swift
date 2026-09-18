@@ -72,21 +72,33 @@ struct ShareView: View {
                                     Text(error).font(.caption)
                                     Button("Retry removal", role: .destructive) { confirmingRemoval = true }
                                 }
-                                Spacer(minLength: 0)
+                                Spacer(minLength: 32)
+                                    .frame(maxWidth: .infinity)
+                                    .overlay {
+                                        GeometryReader { space in
+                                            Image("BrandLogo")
+                                                .resizable().scaledToFit()
+                                                .frame(width: min(space.size.width, 180), height: min(space.size.height, 180))
+                                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                .accessibilityHidden(true)
+                                        }
+                                    }
                                 Divider()
                                 GroupBox {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        // Adaptive columns keep long tags and large Dynamic Type
-                                        // inside the sheet on both iPhone and Mac.
+                                        // Wrap between badges, keeping each tag at its natural
+                                        // width unless it exceeds the whole available row.
                                         if !model.tags.isEmpty {
-                                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), alignment: .leading)], alignment: .leading) {
+                                            TagFlow {
                                                 ForEach(model.tags, id: \.self) { tag in
                                                     Button { model.removeTag(tag) } label: {
                                                         HStack {
-                                                            Text(tag).lineLimit(2)
+                                                            Text(tag).lineLimit(1).truncationMode(.tail)
                                                             Image(systemName: "xmark").font(.caption)
                                                         }
-                                                        .padding(8).background(.quaternary, in: Capsule())
+                                                        .padding(.horizontal, 10).padding(.vertical, 8)
+                                                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
                                                     }
                                                     .buttonStyle(.plain)
                                                     .accessibilityLabel("Remove tag \(tag)")
@@ -111,11 +123,12 @@ struct ShareView: View {
                                         }
                                         let suggested = model.suggestedTags
                                         if !suggested.isEmpty {
-                                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), alignment: .leading)], alignment: .leading) {
+                                            TagFlow {
                                                 ForEach(suggested, id: \.self) { tag in
                                                     Button { model.addTags(suggestion: tag); editingTags = false } label: {
-                                                        Label(tag, systemImage: "plus").lineLimit(2)
-                                                            .padding(8).background(.quaternary, in: Capsule())
+                                                        Label(tag, systemImage: "plus").lineLimit(1).truncationMode(.tail)
+                                                            .padding(.horizontal, 10).padding(.vertical, 8)
+                                                            .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
                                                     }
                                                     .buttonStyle(.plain)
                                                     .accessibilityLabel("Add suggested tag \(tag)")
@@ -185,5 +198,35 @@ struct ShareView: View {
             .interactiveDismissDisabled(model.state == .sending || model.isSavingTags || model.isRemoving || !model.tagDraft.isEmpty || model.tagError != nil)
         }
         .tint(Color("AccentColor"))
+    }
+}
+
+private struct TagFlow: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(subviews, width: proposal.width ?? .infinity)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        _ = arrange(subviews, width: bounds.width, origin: bounds.origin)
+    }
+
+    // Measurement and placement use the same wrapping rule so Dynamic Type and
+    // long single tags cannot disagree about row heights or overflow the sheet.
+    private func arrange(_ subviews: Subviews, width: CGFloat, origin: CGPoint? = nil) -> CGSize {
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0, usedWidth: CGFloat = 0
+        for view in subviews {
+            let proposed = ProposedViewSize(width: min(view.sizeThatFits(.unspecified).width, width), height: nil)
+            let size = view.sizeThatFits(proposed)
+            if x > 0, x + size.width > width {
+                x = 0
+                y += rowHeight + 8
+                rowHeight = 0
+            }
+            if let origin { view.place(at: CGPoint(x: origin.x + x, y: origin.y + y), anchor: .topLeading, proposal: proposed) }
+            usedWidth = max(usedWidth, x + size.width)
+            x += size.width + 8
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: width.isFinite ? width : usedWidth, height: y + rowHeight)
     }
 }

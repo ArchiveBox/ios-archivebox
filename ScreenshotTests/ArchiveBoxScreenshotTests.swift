@@ -90,7 +90,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             ("add", "Create a new Crawl"), ("agent", "New session"),
             ("crawls", "Add Crawl"), ("schedules", "Add Scheduled Crawl"),
             ("snapshots", "Example Domain"), ("results", "Add Archive Result"),
-            ("tags", "Add Tag"), ("admin", "Recent Actions"),
+            ("tags", "All tags"), ("admin", "Recent Actions"),
             ("users", "Add user"), ("personas", "Add persona"),
             ("keys", "Add API Key"), ("webhooks", "Add API Outbound Webhook"),
             ("processes", "Add process"), ("machines", "Add machine"),
@@ -285,7 +285,25 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
     }
 
+    #if os(iOS)
+    private func declinePasswordPrompt() {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let alert = springboard.alerts.containing(.staticText, identifier: "Save Password?").firstMatch
+        if alert.exists {
+            let notNow = alert.buttons["Not Now"]
+            XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
+            notNow.tap()
+            expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: alert)
+            waitForExpectations(timeout: 5)
+        }
+        XCTAssertFalse(alert.exists, "The disposable API key must not be saved to Passwords")
+    }
+    #endif
+
     private func capture(_ name: String, app: XCUIApplication) {
+        #if os(iOS)
+        declinePasswordPrompt()
+        #endif
         #if os(macOS)
         let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
         #else

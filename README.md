@@ -19,17 +19,17 @@
 - 📥 **Save from other apps** with the iPhone, iPad, and Mac share sheet.
 - 🏛️ **Browse your archive** with snapshots, search, tags, and saved output formats.
 - 🧭 **Collect from Safari, Chrome, Firefox, Brave, and other browsers** using the included browser extension.
-- 👤 **Choose a persona** to use the right server-side cookies for shared links.
+- 👤 **Save pages that require a login** using personas.
 - 🔑 **Connect to your own server** with a URL and API key.
 
 ## Get started
 
 1. **Install ArchiveBox.app.** [Join TestFlight](https://testflight.apple.com/join/wUG6DS6z) on iPhone, iPad, or Mac, or find the Mac app on [GitHub Releases](https://github.com/ArchiveBox/ios-archivebox/releases).
 2. **Connect your archive.** Open **Connection Settings** and enter your server URL. On Mac, you can also choose **Run Server Locally** to use the optional companion below.
-3. **Add your API key.** Click **Get Key**, sign in to your server, and create an administrator API key. Paste it into the app; the connection is checked automatically.
-4. **Save your first link.** In any app that shares URLs, choose **Share → ArchiveBox**. The link is sent immediately; optionally add tags, then tap **Done** after confirmation.
+3. **Add your API key.** Use **Get Key** to create a key on your server, then paste it into the app.
+4. **Save your first link.** Choose **Share → ArchiveBox** from any app that shares URLs.
 
-<p class="caption">Beta software. TestFlight builds depend on Apple’s review; Mac downloads appear on the releases page as they are published. Connect to ArchiveBox 0.9.x or later. Mac downloads require Apple Silicon.</p>
+<p class="caption">Beta · Requires ArchiveBox 0.9.x or later · Mac downloads require Apple Silicon.</p>
 
 <p class="screenshot" align="center"><img src="docs/screenshots/connection-mac.png" width="900" loading="lazy" alt="ArchiveBox.app Connection Settings with a running local server and a verified API key"></p>
 
@@ -41,14 +41,12 @@
 
 - Open a link in Safari, Chrome, Firefox, Brave, Mail, Messages, or another app.
 - Tap the **Share** button and choose **ArchiveBox**.
-- The link is sent immediately. Add tags while the sheet stays open, then tap **Done** after the server confirms.
+- Add tags to keep your collection organized.
 - Find the result in **Snapshots** after the server finishes archiving.
 
-Set **Default Persona** under **Add URLs → Share Sheet** to choose the server profile used for shared links. Personas can carry the cookies needed to archive pages that require a login.
+Choose a **Default Persona** in **Add URLs** for pages that require a login.
 
-**Your server must be reachable when you share.** The app sends links directly; offline queueing is not supported. A success message means the server accepted the URL.
-
-Tags are saved separately through the REST API, without submitting the URL again. Suggestions stay on this device: your two most recently saved tags for this server, the shared site’s domain name, and ⭐️. Use commas to add several new tags; tap a tag’s × to remove it. **Done** also saves any text still in the tag field. If a tag update fails, the sheet keeps the successful link submission and offers **Retry tags**. **Remove** cancels and deletes this share’s crawl after confirmation; previous captures of the same URL are kept.
+Your server must be reachable to save new links.
 
 <details markdown="1">
 <summary>Can’t see ArchiveBox in the share sheet?</summary>
@@ -85,26 +83,24 @@ Use an existing ArchiveBox server anywhere you can reach it, or keep your archiv
 2. Download and open **ArchiveBox Server.app**, then create your first administrator in its Settings.
 3. Return to the client and use **Get Key** to finish connecting.
 
-The companion is a separate download, installed only when you choose to run locally. The main app stays small. Your archive stays on disk when you quit either app.
+Your saved archive stays on your Mac when you quit either app.
 
 <details markdown="1">
 <summary>Connect from your iPhone, iPad, or another Mac</summary>
 
 - Use a server address reachable from that device, over your network or VPN.
-- `localhost` on an iPhone means the iPhone itself, not your Mac.
-- The Mac companion starts with a local-only listener. Remote access needs a separately configured proxy or tunnel; see [ArchiveBox networking and setup](https://github.com/ArchiveBox/ArchiveBox/wiki/Configuration).
+- To access your Mac’s server from other devices, follow the [ArchiveBox networking guide](https://github.com/ArchiveBox/ArchiveBox/wiki/Configuration).
 - The Mac running your server must be awake and reachable to receive new links.
 
 </details>
 
 ## Save from your browser, too
 
-**Collect from Safari, Chrome, Firefox, Brave, and Edge with the ArchiveBox browser extension.** Save pages from your browser’s toolbar.
+**Collect from Safari, Chrome, Firefox, Brave, and Edge with the ArchiveBox browser extension.**
 
-- Save individual pages or import URLs from bookmarks where supported.
-- Use the app’s server connection automatically, or configure the extension separately.
-- Choose a browser persona and sync cookies for pages that need a login.
-- Keep the browser’s persona separate from the share sheet’s Default Persona.
+- Save pages from your browser’s toolbar.
+- Import bookmarks where supported.
+- Save pages that require a login using browser personas.
 
 <p class="browser-links"><a href="https://github.com/ArchiveBox/archivebox-browser-extension">Browser setup &amp; extension guide ↗</a> &nbsp; · &nbsp; <a href="https://chrome.google.com/webstore/detail/habonpimjphpdnmcfkaockjnffodikoj">Chrome / Brave</a> &nbsp; · &nbsp; <a href="https://addons.mozilla.org/firefox/addon/archivebox-exporter/">Firefox</a> &nbsp; · &nbsp; <a href="https://microsoftedge.microsoft.com/addons/detail/archivebox/dmlljpjhnfjgchbkcgheebcffocgooeh">Edge</a></p>
 

@@ -4,6 +4,9 @@ Product copy lives only in the repository's [README](../../README.md). The build
 renders it with Jekyll and the GitHub Pages Primer theme, with a custom layout and
 stylesheet here. Edit the README to change either the GitHub introduction or site.
 Keep privacy and developer sections in closed `<details>` blocks.
+Keep the visible copy focused on user benefits, screenshots, and a short getting
+started guide. Do not add API mechanics, persistence rules, retry behavior, or
+control-by-control instructions; detailed usage belongs in the apps and docs.
 
 ```sh
 cd docs/site

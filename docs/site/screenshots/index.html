@@ -18,7 +18,7 @@ title: App screenshots
     <h2>{{ capture.title }}</h2>
     <p>{{ capture.platform_label }} · {{ capture.device | escape }}</p>
     {% assign image_path = '/screenshots/' | append: capture.path %}
-    <a href="{{ image_path | relative_url }}"><img src="{{ image_path | relative_url }}" alt="{{ capture.title }} on {{ capture.platform_label }}" width="{{ capture.width }}" height="{{ capture.height }}" loading="lazy"></a>
+    <a href="{{ image_path | relative_url }}?v={{ gallery.revision }}"><img src="{{ image_path | relative_url }}?v={{ gallery.revision }}" alt="{{ capture.title }} on {{ capture.platform_label }}" width="{{ capture.width }}" height="{{ capture.height }}" loading="lazy"></a>
     <figcaption>{{ capture.width }} × {{ capture.height }} · <time datetime="{{ capture.captured_at }}">{{ capture.captured_at }}</time></figcaption>
   </figure>
 {% endfor %}

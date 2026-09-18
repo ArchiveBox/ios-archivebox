@@ -228,6 +228,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     private func showSidebar(_ app: XCUIApplication) {
         #if os(iOS)
+        declinePasswordPrompt()
         let sidebar = app.collectionViews["Sidebar"]
         if !sidebar.isHittable {
             let back = app.navigationBars.buttons.firstMatch

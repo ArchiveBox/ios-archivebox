@@ -2,9 +2,9 @@ name: App website
 on:
   push:
     branches: [main]
-    paths: [README.md, 'docs/site/**', 'docs/screenshots/**', 'App/AppIcon.icon/Assets/ArchiveBox.png', 'App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png', '.github/workflows/pages.yml']
+    paths: [README.md, 'docs/site/**', 'docs/screenshots/**', 'docs/icons/**', 'App/AppIcon.icon/Assets/ArchiveBox.png', 'App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png', '.github/workflows/pages.yml']
   pull_request:
-    paths: [README.md, 'docs/site/**', 'docs/screenshots/**', 'App/AppIcon.icon/Assets/ArchiveBox.png', 'App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png', '.github/workflows/pages.yml']
+    paths: [README.md, 'docs/site/**', 'docs/screenshots/**', 'docs/icons/**', 'App/AppIcon.icon/Assets/ArchiveBox.png', 'App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read

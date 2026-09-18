@@ -35,22 +35,24 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outli
 .hero h1 { font-size: clamp(48px, 8vw, 82px); font-weight: 760; margin: 0 0 20px; padding: 0; letter-spacing: -.065em; }
 .hero .hero-description { font-size: clamp(22px, 3.1vw, 32px); line-height: 1.35; color: #69616b; letter-spacing: -.025em; margin-bottom: 28px; }
 .actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
-.button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 23px; border-radius: 30px; font-size: 14px; font-weight: 650; transition: transform .15s, box-shadow .15s; text-decoration: none !important; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 10px 23px; border-radius: 30px; font-size: 14px; font-weight: 650; transition: transform .15s, box-shadow .15s; text-decoration: none !important; }
+.markdown-body .button-icon { width: 18px; height: 18px; object-fit: contain; flex: 0 0 18px; }
+.button.primary .button-icon { filter: brightness(0) invert(1); }
 .button:hover { transform: translateY(-2px); }
 .button.primary { background: var(--accent); color: white; box-shadow: 0 5px 16px #9b285425, inset 0 1px 0 #ffffff25; }
 .button.secondary { color: var(--ink); border: 1px solid #fff; background: #ffffffad; box-shadow: 0 4px 20px #5428370a; }
 .hero .platforms, .hero .hero-links { color: var(--muted); font-size: 12px; margin: 12px 0; }
 .hero .hero-links { margin-top: 20px; }
-.markdown-body .hero-screenshot { max-width: none; margin: 25px -16px 65px; padding: 10px; background: linear-gradient(130deg, #ffffffaa, #f1dce870); border: 1px solid #fff; border-radius: 22px; box-shadow: 0 30px 70px -25px #54213940; }
-.hero-screenshot img { display: block; border-radius: 13px; width: 100%; }
+.markdown-body .hero-screenshot { max-width: none; margin: 25px -16px 65px; }
+.hero-screenshot img { display: block; width: 100%; }
 .markdown-body .screenshot { max-width: 900px; margin-top: 36px; }
-.screenshot img { display: block; width: 100%; max-height: 520px; object-fit: cover; object-position: top; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 18px 42px -18px #54213930; }
+.screenshot img { display: block; width: 100%; }
 .markdown-body .caption { color: var(--muted); font-size: 12px; line-height: 1.65; }
 .feature { display: flow-root; max-width: 900px; margin: 80px auto 0; padding: 40px; border: 1px solid #eee4e7; border-radius: 30px; background: linear-gradient(140deg, #fff, #f8edf2); }
 .feature h2 { margin-top: 0; }
 .feature p, .feature li { font-size: 16px; }
 .feature .phone-screenshot { float: right; width: 31%; margin: 0 0 24px 30px; }
-.phone-screenshot img { display: block; border-radius: 26px; box-shadow: 0 20px 45px -25px #42213970; border: 1px solid #d9d2d9; }
+.phone-screenshot img { display: block; }
 .feature > ul { padding-left: 22px; }
 .markdown-body table { display: table; width: 100%; max-width: 820px; margin: 30px auto; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; font-size: 14px; }
 .markdown-body table th, .markdown-body table td { border: 0; border-bottom: 1px solid var(--line); padding: 16px 20px; background: transparent; }
@@ -80,8 +82,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outli
   .hero .platforms { max-width: 260px; margin: 16px auto; }
   .hero .hero-links { font-size: 11px; }
   .button { padding: 10px 18px; font-size: 13px; }
-  .markdown-body .hero-screenshot { margin: 24px -8px 44px; padding: 5px; border-radius: 14px; }
-  .hero-screenshot img { border-radius: 9px; }
+  .markdown-body .hero-screenshot { margin: 24px -8px 44px; }
   .markdown-body h2 { margin-top: 60px; }
   .feature { padding: 24px; margin: 54px -4px 0; border-radius: 22px; }
   .feature h2 { margin-top: 0; }

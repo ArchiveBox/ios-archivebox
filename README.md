@@ -4,9 +4,9 @@
 <h1>ArchiveBox.app</h1>
 <p class="hero-description">Save the web you want to keep.<br>At home on iPhone, iPad, and Mac.</p>
 <p class="actions">
-<a class="button primary" href="https://testflight.apple.com/join/wUG6DS6z">Join the TestFlight beta ↗</a>
-&nbsp;
-<a class="button secondary" href="https://github.com/ArchiveBox/ios-archivebox/releases">Mac downloads ↗</a>
+<a class="button primary" href="https://testflight.apple.com/join/wUG6DS6z"><img class="button-icon" src="docs/icons/phone.svg" width="18" height="18" alt=""> ArchiveBox for iOS <img class="button-icon" src="docs/icons/app-store.svg" width="18" height="18" alt=""></a>
+<a class="button secondary" href="https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.app.zip"><img class="button-icon" src="docs/icons/apple.svg" width="18" height="18" alt=""> ArchiveBox for macOS <img class="button-icon" src="docs/icons/download.svg" width="18" height="18" alt=""></a>
+<a class="button secondary" href="https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.Server.app.zip"><img class="button-icon" src="docs/icons/apple.svg" width="18" height="18" alt=""> ArchiveBox Server for macOS <img class="button-icon" src="docs/icons/download.svg" width="18" height="18" alt=""></a>
 </p>
 <p class="platforms">iOS 26+ · iPadOS 26+ · macOS 26+ · Free &amp; open source</p>
 <p class="hero-links"><a href="#get-started">Get started</a> &nbsp; · &nbsp; <a href="#your-server-your-choice">Run a server on your Mac</a> &nbsp; · &nbsp; <a href="https://github.com/ArchiveBox/ios-archivebox/issues">Feedback</a></p>
@@ -18,7 +18,7 @@
 
 - 📥 **Save from other apps** with the iPhone, iPad, and Mac share sheet.
 - 🏛️ **Browse your archive** with snapshots, search, tags, and saved output formats.
-- 🧭 **Collect from Safari** with the included browser extension.
+- 🧭 **Collect from Safari, Chrome, Firefox, Brave, and other browsers** using the included browser extension.
 - 👤 **Choose a persona** to use the right server-side cookies for shared links.
 - 🔑 **Connect to your own server** with a URL and API key.
 
@@ -39,7 +39,7 @@
 
 <p class="phone-screenshot" align="right"><img src="App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png" width="245" loading="lazy" alt="The iPhone share sheet’s Apps list, with ArchiveBox available as a sharing destination"></p>
 
-- Open a link in Safari, Mail, Messages, or another app.
+- Open a link in Safari, Chrome, Firefox, Brave, Mail, Messages, or another app.
 - Tap the **Share** button and choose **ArchiveBox**.
 - The link is sent immediately. Add tags while the sheet stays open, then tap **Done** after the server confirms.
 - Find the result in **Snapshots** after the server finishes archiving.
@@ -99,14 +99,14 @@ The companion is a separate download, installed only when you choose to run loca
 
 ## Save from your browser, too
 
-**The Safari extension is included with ArchiveBox.app.** Enable it in Safari’s Extensions settings, then save pages from the toolbar.
+**Collect from Safari, Chrome, Firefox, Brave, and Edge with the ArchiveBox browser extension.** Save pages from your browser’s toolbar.
 
 - Save individual pages or import URLs from bookmarks where supported.
 - Use the app’s server connection automatically, or configure the extension separately.
 - Choose a browser persona and sync cookies for pages that need a login.
 - Keep the browser’s persona separate from the share sheet’s Default Persona.
 
-<p class="browser-links"><a href="https://github.com/ArchiveBox/archivebox-browser-extension">Safari setup &amp; extension guide ↗</a> &nbsp; · &nbsp; <a href="https://chrome.google.com/webstore/detail/habonpimjphpdnmcfkaockjnffodikoj">Chrome / Brave</a> &nbsp; · &nbsp; <a href="https://addons.mozilla.org/firefox/addon/archivebox-exporter/">Firefox</a> &nbsp; · &nbsp; <a href="https://microsoftedge.microsoft.com/addons/detail/archivebox/dmlljpjhnfjgchbkcgheebcffocgooeh">Edge</a></p>
+<p class="browser-links"><a href="https://github.com/ArchiveBox/archivebox-browser-extension">Browser setup &amp; extension guide ↗</a> &nbsp; · &nbsp; <a href="https://chrome.google.com/webstore/detail/habonpimjphpdnmcfkaockjnffodikoj">Chrome / Brave</a> &nbsp; · &nbsp; <a href="https://addons.mozilla.org/firefox/addon/archivebox-exporter/">Firefox</a> &nbsp; · &nbsp; <a href="https://microsoftedge.microsoft.com/addons/detail/archivebox/dmlljpjhnfjgchbkcgheebcffocgooeh">Edge</a></p>
 
 ## Help & feedback
 
@@ -124,14 +124,14 @@ The companion is a separate download, installed only when you choose to run loca
 - The app stores connection credentials in device-only Keychain. Shared URLs stay in memory during submission; the native share sheet keeps no URL history or offline queue. It remembers the two most recently saved tag names per server on this device.
 - Share-sheet favicons come from Google’s favicon service; only the shared site’s hostname is sent, never its URL path, query, or your ArchiveBox credentials.
 - Embedded server pages use a browser session in memory. Your server and the pages you open may have their own privacy policies.
-- The Safari extension has its own local storage and optional cookie syncing. Review its [settings and documentation](https://github.com/ArchiveBox/archivebox-browser-extension) before enabling those features.
+- The browser extension for Safari, Chrome, Firefox, Brave, and Edge has its own local storage and optional cookie syncing. Review its [settings and documentation](https://github.com/ArchiveBox/archivebox-browser-extension) before enabling those features.
 - The server contacts websites you ask it to archive and any external services enabled in its configuration. Review [ArchiveBox privacy and security settings](https://github.com/ArchiveBox/ArchiveBox/wiki/Security-Overview), including submission to Archive.org.
 - Downloads, updates, and TestFlight use GitHub’s and Apple’s services and are subject to their policies.
 - For privacy questions, use the [ArchiveBox contact information](https://archivebox.io) or [community forum](https://zulip.archivebox.io). Don’t include passwords or API keys in public reports.
 
 ### License
 
-Free and open source under the [MIT license](https://github.com/ArchiveBox/ios-archivebox/blob/main/LICENSE). See [branding credits](https://github.com/ArchiveBox/ios-archivebox/blob/main/docs/BRANDING.md), [browser icon credits](https://github.com/ArchiveBox/ios-archivebox/blob/main/App/Assets.xcassets/Browser-Icons-LICENSE.txt), the [Public Suffix List license](Sources/ArchiveBoxCore/Resources/public_suffix_list.dat), and the [bundled extension license](https://github.com/ArchiveBox/ios-archivebox/blob/main/SafariWebExtension/UPSTREAM-LICENSE). The companion’s bundled components retain their upstream licenses.
+Free and open source under the [MIT license](https://github.com/ArchiveBox/ios-archivebox/blob/main/LICENSE). See [branding credits](https://github.com/ArchiveBox/ios-archivebox/blob/main/docs/BRANDING.md), [browser icon credits](https://github.com/ArchiveBox/ios-archivebox/blob/main/App/Assets.xcassets/Browser-Icons-LICENSE.txt), the [Public Suffix List license](https://github.com/ArchiveBox/ios-archivebox/blob/main/Sources/ArchiveBoxCore/Resources/public_suffix_list.dat), and the [bundled extension license](https://github.com/ArchiveBox/ios-archivebox/blob/main/SafariWebExtension/UPSTREAM-LICENSE). Website button icons are from [Font Awesome Free](https://fontawesome.com), used under [CC BY 4.0](https://github.com/ArchiveBox/ios-archivebox/blob/main/docs/icons/LICENSE.txt). The companion’s bundled components retain their upstream licenses.
 
 </details>
 

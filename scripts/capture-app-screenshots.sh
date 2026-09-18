@@ -6,7 +6,8 @@ output=${2:-build/screenshots/$platform}
 mode=${3:-smoke}
 case "$mode" in
   smoke) method=testLaunchScreenshot ;;
-  *) echo "Only hosted-runner smoke capture is implemented pending feasibility verification." >&2; exit 2 ;;
+  full) method=testAllScreens ;;
+  *) echo "Mode must be smoke or full." >&2; exit 2 ;;
 esac
 mkdir -p "$output"
 output=$(cd "$output" && pwd)

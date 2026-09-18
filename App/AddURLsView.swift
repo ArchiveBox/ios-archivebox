@@ -6,11 +6,12 @@ struct AddURLsView: View {
     let pages: WebPages
     var reloadID: UUID?
     var body: some View {
-        ScrollView {
+        GeometryReader { geometry in
+            ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     if let server = model.verifiedServer {
                         ServerWebView(url: server.appending(path: "add/"), title: "Add URLs", session: pages.page(for: "add-\(server)"), reloadID: reloadID)
-                            .id(server).frame(maxWidth: .infinity).frame(height: 580)
+                            .id(server).frame(maxWidth: .infinity).frame(height: geometry.size.height * 0.8)
                     } else {
                         ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Set up Connection Settings to use the embedded Add URLs form."))
                     }
@@ -73,5 +74,6 @@ struct AddURLsView: View {
                     }.padding(20).frame(maxWidth: 1000)
                 }.frame(maxWidth: .infinity)
             }
+        }
     }
 }

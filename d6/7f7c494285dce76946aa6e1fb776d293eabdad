@@ -1,0 +1,21 @@
+.github/workflows/pages.yml
+  s_ffefb637465167::t_452fb89ad132cf 1,13-15,17-91,93-95,99-112,118,122
+docs/site/screenshots/index.html
+  s_ffefb637465167::t_120985a8006c0d 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d67f7c494285dce76946aa6e1fb776d293eabdad",
+  "prompts": {},
+  "sessions": {
+    "s_ffefb637465167": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07a32-a857-7453-a522-512c1140b8a1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -11,7 +11,7 @@ control-by-control instructions; detailed usage belongs in the apps and docs.
 ```sh
 cd docs/site
 bundle install
-bash build.sh --baseurl ''
+ALLOW_INCOMPLETE_SCREENSHOTS=1 bash build.sh --baseurl ''
 bundle exec ruby -run -e httpd _site -p 4080
 ```
 
@@ -33,8 +33,9 @@ pixels in a 1500 × 3000 PNG. Inspect the entire exported frame before publishin
 some capture tools apply an extra scale. The site must not add a border,
 background, rounded clipping, or another shadow around these PNGs.
 
-The **App website** workflow builds pull requests without deploying. On `main`, it
-deploys through GitHub Actions to <https://archivebox.github.io/ios-archivebox/>.
+The **App website and screenshots** workflow builds pull requests without deploying.
+Every commit to `main` captures the app on all three platforms before deploying
+through GitHub Actions to <https://archivebox.github.io/ios-archivebox/>.
 The repository's Pages source must be **GitHub Actions**. App distribution and
 TestFlight continue to use their own release workflows.
 

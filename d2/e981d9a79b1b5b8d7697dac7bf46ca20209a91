@@ -1,0 +1,14 @@
+.github/workflows/screenshot-smoke.yml
+  h_923c208e183a7b 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d2e981d9a79b1b5b8d7697dac7bf46ca20209a91",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

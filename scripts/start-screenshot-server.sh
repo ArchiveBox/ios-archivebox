@@ -37,6 +37,16 @@ user = get_user_model().objects.create_superuser(username=os.environ["SCREENSHOT
 Path(os.environ["SCREENSHOT_API_KEY_FILE"]).write_text(APIToken.objects.create(created_by=user).token)
 '
 abx persona create 'Research Browser'
+# Match the main app screenshot collector: configure its real AI interface before startup.
+opencode_port=$(uv run --no-sync --project "$backend" python - <<'PYPORT'
+import socket
+with socket.socket() as sock:
+    sock.bind(("127.0.0.1", 0))
+    print(sock.getsockname()[1])
+PYPORT
+)
+abx config --set OPENCODE_ENABLED=True "OPENCODE_PORT=$opencode_port"
+abx install opencode --binproviders=env,pnpm
 # Install only the dependencies used by this gallery, through the real installer.
 abx install chrome wget title headers screenshot
 abx add --depth=0 --tag=documentation,reference \

@@ -1,0 +1,18 @@
+docs/site/README.md
+  h_923c208e183a7b 65-66
+docs/site/screenshots/index.html
+  h_923c208e183a7b 14
+scripts/build-screenshot-gallery.py
+  h_923c208e183a7b 12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "25621c1673001ee62826e345698af131fc69a508",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

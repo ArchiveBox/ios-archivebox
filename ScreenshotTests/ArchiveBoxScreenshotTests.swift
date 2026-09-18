@@ -233,16 +233,24 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let item = app.buttons["sidebar." + id]
         #if os(macOS)
         let list = app.outlines.firstMatch
-        for _ in 0..<6 where !item.isHittable { list.scroll(byDeltaX: 0, deltaY: 450) }
-        for _ in 0..<10 where !item.isHittable { list.scroll(byDeltaX: 0, deltaY: -450) }
+        for _ in 0..<6 {
+            if item.isHittable { break }
+            list.scroll(byDeltaX: 0, deltaY: 450)
+        }
+        for _ in 0..<10 {
+            if item.isHittable { break }
+            list.scroll(byDeltaX: 0, deltaY: -450)
+        }
         #else
         let surface = app.collectionViews.containing(.button, identifier: "sidebar.add").firstMatch
         // Scroll the actual sidebar surface in both compact and regular split views.
-        for _ in 0..<6 where !item.isHittable {
+        for _ in 0..<6 {
+            if item.isHittable { break }
             surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).press(forDuration: 0.05,
                 thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)))
         }
-        for _ in 0..<10 where !item.isHittable {
+        for _ in 0..<10 {
+            if item.isHittable { break }
             surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)).press(forDuration: 0.05,
                 thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
         }
@@ -258,7 +266,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     private func reveal(_ element: XCUIElement, named name: String, app: XCUIApplication) {
-        for _ in 0..<10 where !element.isHittable {
+        for _ in 0..<10 {
+            if element.isHittable { break }
             #if os(macOS)
             // Wheel over visible native content, outside WebKit and the auto-hidden scrollbar.
             let anchor = name == "defaultPersona"

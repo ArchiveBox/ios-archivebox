@@ -11,7 +11,7 @@ title: App screenshots
   <button type="button" data-platform="all" aria-pressed="true">All devices</button>
   {% for platform in gallery.platforms %}<button type="button" data-platform="{{ platform.id }}" aria-pressed="false">{{ platform.label }}</button>{% endfor %}
 </div>
-<p class="gallery-provenance">Includes the app’s native navigation and embedded server pages. The separate Server app, external browser/settings pages, and Mac share extension are not included.</p>
+<p class="gallery-provenance">Includes native navigation, embedded server pages, and the share extension on every device. The separate Server app and external browser/settings pages are outside this gallery.</p>
 <div class="native-gallery">
 {% for capture in gallery.captures %}
   <figure data-platform="{{ capture.platform }}" id="{{ capture.platform }}-{{ capture.id }}">

@@ -62,5 +62,5 @@ flag permits missing screens/platforms and `--backend-revision none` when no ser
 was used. Build that output with `ALLOW_INCOMPLETE_SCREENSHOTS=1` and optionally
 `SCREENSHOT_GALLERY_DIR=/path/to/gallery`; it is visibly marked incomplete and
 must never be deployed. Full-resolution PNGs retain the original capture pixels.
-The optional Server.app and external browser/settings destinations are outside
-this app gallery; Mac share-extension capture is not currently included.
+The share extension is captured through Safari on every platform. The optional
+Server.app and external browser/settings destinations are outside this app gallery.

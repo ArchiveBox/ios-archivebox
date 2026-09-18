@@ -10,10 +10,74 @@ case "$mode" in
 esac
 mkdir -p "$output"
 output=$(cd "$output" && pwd)
+signing=(CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=)
 case "$platform" in
+
   macos)
     scheme=ArchiveBoxMacScreenshots
     destination='platform=macOS'
+    : "${DEVELOPER_ID_PROFILES:?}" "${DEVELOPER_ID_P12:?}" "${DEVELOPER_ID_PASSWORD:?}" "${RUNNER_TEMP:?}"
+    credentials=$(mktemp -d "$RUNNER_TEMP/screenshot-credentials.XXXXXX")
+    keychain="$credentials/signing.keychain-db"
+    signing_spec=$(mktemp "$PWD/.screenshot-signing.XXXXXX.yml")
+    cleanup() {
+      security delete-keychain "$keychain" >/dev/null 2>&1 || true
+      rm -rf "$credentials"
+      rm -f "$signing_spec"
+    }
+    trap cleanup EXIT
+    (umask 077; printf '%s' "$DEVELOPER_ID_P12" | /usr/bin/base64 --decode > "$credentials/signing.p12")
+    profiles="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+    mkdir -p "$profiles"
+    printf '%s' "$DEVELOPER_ID_PROFILES" | /usr/bin/base64 --decode | tar -xzf - -C "$profiles"
+    unset DEVELOPER_ID_PROFILES DEVELOPER_ID_P12
+    security create-keychain -p "$DEVELOPER_ID_PASSWORD" "$keychain"
+    security set-keychain-settings -lut 21600 "$keychain"
+    security unlock-keychain -p "$DEVELOPER_ID_PASSWORD" "$keychain"
+    security import "$credentials/signing.p12" -k "$keychain" -P "$DEVELOPER_ID_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$DEVELOPER_ID_PASSWORD" "$keychain" >/dev/null
+    security list-keychains -d user -s "$keychain" "$HOME/Library/Keychains/login.keychain-db"
+    identity=$(security find-identity -v -p codesigning "$keychain" | awk '/"Developer ID Application:/ {print $2; exit}')
+    [[ -n "$identity" ]] || { echo 'Developer ID Application identity missing' >&2; exit 1; }
+    # Override signing only in the disposable CI project. Shipping entitlements remain intact.
+    cat > "$signing_spec" <<YAML
+include: project.yml
+targets:
+  ArchiveBoxMac:
+    settings:
+      base:
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: '$identity'
+        DEVELOPMENT_TEAM: Q3VA4FKRSA
+        PROVISIONING_PROFILE_SPECIFIER: ArchiveBox GitHub Developer ID
+  ArchiveBoxMacShare:
+    settings:
+      base:
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: '$identity'
+        DEVELOPMENT_TEAM: Q3VA4FKRSA
+        PROVISIONING_PROFILE_SPECIFIER: ArchiveBox Share GitHub Developer ID
+  ArchiveBoxMacSafari:
+    settings:
+      base:
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: '$identity'
+        DEVELOPMENT_TEAM: Q3VA4FKRSA
+        PROVISIONING_PROFILE_SPECIFIER: ArchiveBox Safari GitHub Developer ID
+  ArchiveBoxMacScreenshots:
+    settings:
+      base:
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: '-'
+        CODE_SIGNING_REQUIRED: NO
+        DEVELOPMENT_TEAM: ''
+schemes:
+  ArchiveBoxMacScreenshots:
+    test:
+      config: Release
+YAML
+    xcodegen generate --spec "$signing_spec"
+    signing=(-configuration Release)
     ;;
   iphone|ipad)
     scheme=ArchiveBoxScreenshots
@@ -34,7 +98,7 @@ xcodebuild -project ArchiveBox.xcodeproj -scheme "$scheme" \
   -resultBundlePath "$output/Capture.xcresult" \
   -parallel-testing-enabled NO \
   -only-testing:"$scheme/ArchiveBoxScreenshotTests/$method" \
-  CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
+  "${signing[@]}" \
   ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}" \
   ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}" test
 xcrun xcresulttool export attachments --path "$output/Capture.xcresult" --output-path "$output/attachments"

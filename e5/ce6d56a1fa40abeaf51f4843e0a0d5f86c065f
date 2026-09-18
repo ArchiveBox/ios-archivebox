@@ -1,0 +1,14 @@
+scripts/capture-app-screenshots.sh
+  h_923c208e183a7b 13,15,19-80,101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e5ce6d56a1fa40abeaf51f4843e0a0d5f86c065f",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -6,7 +6,8 @@
     <meta name="theme-color" content="#9b2854">
     {% seo %}
     <link rel="icon" type="image/png" href="{{ '/App/AppIcon.icon/Assets/ArchiveBox.png' | relative_url }}">
-    <link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}">
+    <!-- Pages can cache CSS across deployments; version it so new markup gets matching styles. -->
+    <link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}?v={{ site.time | date: '%s' }}">
   </head>
   <body>
     <a class="skip-link" href="#content">Skip to content</a>

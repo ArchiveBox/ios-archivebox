@@ -31,125 +31,123 @@ struct ShareView: View {
                     // A Form turns a single chip into a full-row accessibility target,
                     // leaving its reported hit area outside the chip. Cards keep each
                     // tag's visible and accessible button bounds together.
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            GroupBox {
-                                VStack(alignment: .leading, spacing: 8) {
+                    GeometryReader { geometry in
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 20) {
+                                VStack(alignment: .leading, spacing: 12) {
                                     if model.isRemoving {
                                         ProgressView("Cancelling and removing from server…")
-                                    } else if case .sent(let count) = model.state {
-                                        Label("Sent to ArchiveBox", systemImage: "checkmark.circle.fill")
+                                    } else if case .sent = model.state {
+                                        Label("Submitted to ArchiveBox Server", systemImage: "checkmark.circle.fill")
                                             .foregroundStyle(.green)
                                             .accessibilityIdentifier("shareAccepted")
-                                        Text(count == 1 ? "Your server accepted the link for archiving." : "Your server accepted \(count) links for archiving.")
-                                            .font(.callout).foregroundStyle(.secondary)
                                     } else {
-                                        ProgressView("Sending to your server…")
+                                        ProgressView("Submitting to ArchiveBox Server…")
                                     }
                                     ForEach(model.urls, id: \.absoluteString) { url in
-                                        Text(url.absoluteString).font(.callout).lineLimit(3).textSelection(.enabled)
-                                    }
-                                }.frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            GroupBox {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    // Adaptive columns keep long tags and large Dynamic Type
-                                    // inside the sheet on both iPhone and Mac.
-                                    if !model.tags.isEmpty {
-                                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), alignment: .leading)], alignment: .leading) {
-                                            ForEach(model.tags, id: \.self) { tag in
-                                                Button { model.removeTag(tag) } label: {
-                                                    HStack {
-                                                        Text(tag).lineLimit(2)
-                                                        Image(systemName: "xmark").font(.caption)
-                                                    }
-                                                    .padding(8).background(.quaternary, in: Capsule())
-                                                }
-                                                .buttonStyle(.plain)
-                                                .accessibilityLabel("Remove tag \(tag)")
-                                            }
+                                        HStack(alignment: .top) {
+                                            // Send only the hostname to the favicon service, never
+                                            // the shared URL's path, query, or server credentials.
+                                            let favicon = ArchiveTags.domainTag(for: url) == nil ? nil :
+                                                URL(string: "https://www.google.com/s2/favicons")?.appending(queryItems: [
+                                                    URLQueryItem(name: "domain", value: url.host()),
+                                                    URLQueryItem(name: "sz", value: "32"),
+                                                ])
+                                            AsyncImage(url: favicon) { image in
+                                                image.resizable().scaledToFit()
+                                            } placeholder: { Image(systemName: "globe") }
+                                                .frame(width: 20, height: 20).accessibilityHidden(true)
+                                            Text("URL: \(url.absoluteString)").lineLimit(3).textSelection(.enabled)
                                         }
                                     }
-                                    HStack {
-                                        TextField("Add tags, separated by commas", text: $model.tagDraft)
-                                            .focused($editingTags)
-                                            .onSubmit { model.addTags(); editingTags = false }
-                                            .accessibilityIdentifier("shareTagInput")
-                                        #if os(iOS)
-                                            .textInputAutocapitalization(.never)
-                                        #endif
-                                            .autocorrectionDisabled()
-                                        Button { model.addTags(); editingTags = false } label: {
-                                            Image(systemName: "plus")
-                                        }
-                                        .buttonStyle(.glass)
-                                        .accessibilityLabel("Add tags")
-                                        .disabled(ArchiveTags.normalize([model.tagDraft]).isEmpty)
-                                    }
-                                    let suggested = model.suggestions.filter { candidate in
-                                        !model.tags.contains { $0.localizedCaseInsensitiveCompare(candidate) == .orderedSame }
-                                    }
-                                    if !suggested.isEmpty {
-                                        Text("Suggested tags").font(.caption).foregroundStyle(.secondary)
-                                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), alignment: .leading)], alignment: .leading) {
-                                            ForEach(Array(suggested.prefix(6)), id: \.self) { tag in
-                                                Button { model.addTags(suggestion: tag); editingTags = false } label: {
-                                                    Label(tag, systemImage: "plus").lineLimit(2)
-                                                        .padding(8).background(.quaternary, in: Capsule())
-                                                }
-                                                .buttonStyle(.plain)
-                                                .accessibilityLabel("Add suggested tag \(tag)")
-                                            }
-                                        }
-                                    } else if let error = model.suggestionError {
-                                        Text(error).font(.caption).foregroundStyle(.secondary)
-                                        Button("Retry suggestions") { Task { await model.loadSuggestions() } }
-                                    } else {
-                                        Text("Type a new tag or search your server’s existing tags.")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                    if model.isSavingTags {
-                                        ProgressView("Saving tags…")
-                                    } else if let error = model.tagError {
-                                        Label("Link saved; tags weren’t saved.", systemImage: "exclamationmark.triangle")
-                                            .foregroundStyle(.orange)
-                                        Text(error).font(.caption)
-                                        Button("Retry tags") { model.saveTags() }
-                                        Button("Close without saving tags", action: finish)
-                                    } else if case .sent = model.state, !model.tags.isEmpty {
-                                        Label("Tags saved", systemImage: "checkmark")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                            .accessibilityIdentifier("shareTagsSaved")
-                                    }
-                                    Text("The link is sent immediately. Add or remove tags while this sheet stays open.")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }.frame(maxWidth: .infinity, alignment: .leading)
-                            } label: {
-                                Label("Tags", systemImage: "tag")
-                            }
-                            .disabled(model.isRemoving)
-                            GroupBox("Save to") {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Label(model.configuration?.server.absoluteString ?? "ArchiveBox", systemImage: "server.rack")
-                                        .font(.callout)
-                                        .accessibilityLabel("Server: \(model.configuration?.server.absoluteString ?? "ArchiveBox")")
-                                    Label(model.configuration?.persona ?? "Server default", systemImage: "person.crop.circle")
-                                        .accessibilityLabel("Persona: \(model.configuration?.persona ?? "Server default")")
-                                }.frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            if let error = model.removalError {
+                                    Label("Server: \(model.configuration?.server.absoluteString ?? "ArchiveBox")", systemImage: "server.rack")
+                                        .textSelection(.enabled)
+                                    Label("Persona: \(model.configuration?.persona ?? "Server default")", systemImage: "person.crop.circle")
+                                }
+                                .font(.callout)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                if let error = model.removalError {
+                                    Label("Removal wasn’t confirmed", systemImage: "exclamationmark.triangle")
+                                        .foregroundStyle(.orange)
+                                    Text(error).font(.caption)
+                                    Button("Retry removal", role: .destructive) { confirmingRemoval = true }
+                                }
+                                Spacer(minLength: 0)
+                                Divider()
                                 GroupBox {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        Label("Removal wasn’t confirmed", systemImage: "exclamationmark.triangle")
-                                            .foregroundStyle(.orange)
-                                        Text(error).font(.caption)
-                                        Button("Retry removal", role: .destructive) { confirmingRemoval = true }
-                                    }
+                                        // Adaptive columns keep long tags and large Dynamic Type
+                                        // inside the sheet on both iPhone and Mac.
+                                        if !model.tags.isEmpty {
+                                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), alignment: .leading)], alignment: .leading) {
+                                                ForEach(model.tags, id: \.self) { tag in
+                                                    Button { model.removeTag(tag) } label: {
+                                                        HStack {
+                                                            Text(tag).lineLimit(2)
+                                                            Image(systemName: "xmark").font(.caption)
+                                                        }
+                                                        .padding(8).background(.quaternary, in: Capsule())
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                    .accessibilityLabel("Remove tag \(tag)")
+                                                }
+                                            }
+                                        }
+                                        HStack {
+                                            TextField("Add tags, separated by commas", text: $model.tagDraft)
+                                                .focused($editingTags)
+                                                .onSubmit { model.addTags(); editingTags = false }
+                                                .accessibilityIdentifier("shareTagInput")
+                                            #if os(iOS)
+                                                .textInputAutocapitalization(.never)
+                                            #endif
+                                                .autocorrectionDisabled()
+                                            Button { model.addTags(); editingTags = false } label: {
+                                                Image(systemName: "plus")
+                                            }
+                                            .buttonStyle(.glass)
+                                            .accessibilityLabel("Add tags")
+                                            .disabled(ArchiveTags.normalize([model.tagDraft]).isEmpty)
+                                        }
+                                        let suggested = model.suggestedTags
+                                        if !suggested.isEmpty {
+                                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), alignment: .leading)], alignment: .leading) {
+                                                ForEach(suggested, id: \.self) { tag in
+                                                    Button { model.addTags(suggestion: tag); editingTags = false } label: {
+                                                        Label(tag, systemImage: "plus").lineLimit(2)
+                                                            .padding(8).background(.quaternary, in: Capsule())
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                    .accessibilityLabel("Add suggested tag \(tag)")
+                                                }
+                                            }
+                                        }
+                                        if model.isSavingTags {
+                                            ProgressView("Saving tags…")
+                                        } else if let error = model.tagError {
+                                            Label("Link saved; tags weren’t saved.", systemImage: "exclamationmark.triangle")
+                                                .foregroundStyle(.orange)
+                                            Text(error).font(.caption)
+                                            Button("Retry tags") { model.saveTags() }
+                                            Button("Close without saving tags", action: finish)
+                                        } else if case .sent = model.state, !model.tags.isEmpty {
+                                            Label("Tags saved", systemImage: "checkmark")
+                                                .font(.caption).foregroundStyle(.secondary)
+                                                .accessibilityIdentifier("shareTagsSaved")
+                                        }
+                                    }.frame(maxWidth: .infinity, alignment: .leading)
+                                } label: {
+                                    Label("Add Tags", systemImage: "tag")
                                 }
+                                .disabled(model.isRemoving)
                             }
-                        }.padding()
+                            .padding()
+                            // Fill short sheets so tagging stays near the thumb; longer
+                            // content and the keyboard still get a normal scroll view.
+                            .frame(minHeight: geometry.size.height, alignment: .top)
+                        }
+                        .scrollDismissesKeyboard(.interactively)
                     }
-                    .scrollDismissesKeyboard(.interactively)
                 }
             }
             .navigationTitle("ArchiveBox")
@@ -183,9 +181,6 @@ struct ShareView: View {
                 Button("Keep it") { confirmingRemoval = false }
             } message: {
                 Text("Stops this crawl and removes the links submitted by this share. Previous captures of the same URLs are kept.")
-            }
-            .task(id: "\(model.configuration?.server.absoluteString ?? "")|\(model.tagDraft)") {
-                await model.loadSuggestions()
             }
             .interactiveDismissDisabled(model.state == .sending || model.isSavingTags || model.isRemoving || !model.tagDraft.isEmpty || model.tagError != nil)
         }

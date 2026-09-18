@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: [.library(name: "ArchiveBoxCore", targets: ["ArchiveBoxCore"])],
     targets: [
-        .target(name: "ArchiveBoxCore"),
+        .target(name: "ArchiveBoxCore", resources: [.copy("Resources/public_suffix_list.dat")]),
         .executableTarget(name: "ArchiveBoxIntegration", dependencies: ["ArchiveBoxCore"], path: "IntegrationTests"),
         .testTarget(name: "ArchiveBoxCoreTests", dependencies: ["ArchiveBoxCore"]),
     ]

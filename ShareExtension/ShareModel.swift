@@ -14,8 +14,7 @@ final class ShareModel {
     var tagDraft = ""
     var tagError: String?
     var isSavingTags = false
-    var suggestions: [String] = []
-    var suggestionError: String?
+    var recentTags: [String] = []
     var isRemoving = false
     var removalError: String?
     private var savedTags: [String] = []
@@ -42,6 +41,7 @@ final class ShareModel {
                 throw ArchiveBoxError.message("Open the ArchiveBox app first to test and save your server and API key, then share this link again.")
             }
             self.configuration = configuration
+            recentTags = ArchiveTags.recentlyUsed(server: configuration.server)
             state = .ready
             await submit()
         } catch {
@@ -119,6 +119,8 @@ final class ShareModel {
                 let pending = tags
                 do {
                     try await ArchiveBoxClient().updateTags(pending, for: receipt, configuration: configuration)
+                    let added = pending.filter { tag in !savedTags.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame } }
+                    recentTags = ArchiveTags.recentlyUsed(server: configuration.server, adding: added)
                     savedTags = pending
                 } catch {
                     tagError = error.localizedDescription
@@ -137,17 +139,12 @@ final class ShareModel {
         return tagError == nil && tags == savedTags
     }
 
-    func loadSuggestions() async {
-        guard let configuration else { return }
-        do {
-            try await Task.sleep(for: .milliseconds(250))
-            let query = tagDraft.components(separatedBy: CharacterSet(charactersIn: ",\n")).last ?? ""
-            let result = try await ArchiveBoxClient().tagSuggestions(query: query.trimmingCharacters(in: .whitespacesAndNewlines), configuration: configuration)
-            try Task.checkCancellation()
-            suggestions = result
-            suggestionError = nil
-        } catch {
-            if !Task.isCancelled { suggestionError = "Couldn’t load suggested tags." }
+    var suggestedTags: [String] {
+        let query = tagDraft.components(separatedBy: CharacterSet(charactersIn: ",\n")).last?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let domain = urls.first.flatMap(ArchiveTags.domainTag).map { [$0] } ?? []
+        return ArchiveTags.normalize(recentTags + domain + ["⭐️"]).filter { candidate in
+            !tags.contains { $0.localizedCaseInsensitiveCompare(candidate) == .orderedSame }
+                && (query.isEmpty || candidate.localizedCaseInsensitiveContains(query))
         }
     }
 

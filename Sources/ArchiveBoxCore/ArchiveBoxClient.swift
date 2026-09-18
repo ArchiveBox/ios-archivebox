@@ -120,12 +120,6 @@ public final class ArchiveBoxClient: Sendable {
         }
     }
 
-    public func tagSuggestions(query: String, configuration: ServerConfiguration) async throws -> [String] {
-        let data = try await request(configuration.server, path: "api/v1/core/tags/autocomplete/", token: configuration.token,
-                                     query: [URLQueryItem(name: "q", value: query)])
-        return try JSONDecoder().decode(TagSuggestions.self, from: data).tags.map(\.name)
-    }
-
     public func removeSubmission(_ receipt: SubmissionReceipt, configuration: ServerConfiguration) async throws {
         guard let crawlID = receipt.crawlID, !crawlID.isEmpty else {
             throw ArchiveBoxError.message("The server did not return a crawl ID for removal.")
@@ -164,6 +158,47 @@ public final class ArchiveBoxClient: Sendable {
 }
 
 public enum ArchiveTags {
+    private static let suffixRules: Set<String> = {
+        // A bundled PSL handles co.uk, wildcard suffixes and hosted domains without
+        // a network lookup or guessing which label belongs to the site.
+        let file = Bundle.module.url(forResource: "public_suffix_list", withExtension: "dat")!
+        let text = try! String(contentsOf: file, encoding: .utf8)
+        return Set(text.split(separator: "\n").compactMap { line in
+            guard !line.hasPrefix("//") else { return nil }
+            let prefix = line.hasPrefix("!") ? "!" : line.hasPrefix("*.") ? "*." : ""
+            guard let host = URL(string: "https://" + line.dropFirst(prefix.count))?.host() else { return nil }
+            return prefix + host.lowercased()
+        })
+    }()
+
+    public static func domainTag(for url: URL) -> String? {
+        guard let host = url.host()?.lowercased(), !host.contains(":") else { return nil }
+        let labels = host.split(separator: ".").map(String.init)
+        guard labels.count > 1, !labels.allSatisfy({ UInt8($0) != nil }) else { return nil }
+        var suffixCount = 1
+        for index in labels.indices {
+            let suffix = labels[index...].joined(separator: ".")
+            if suffixRules.contains("!" + suffix) {
+                suffixCount = labels.count - index - 1
+                break
+            }
+            if suffixRules.contains(suffix) { suffixCount = max(suffixCount, labels.count - index) }
+            if index > 0, suffixRules.contains("*." + suffix) { suffixCount = max(suffixCount, labels.count - index + 1) }
+        }
+        return labels.count > suffixCount ? labels[labels.count - suffixCount - 1] : nil
+    }
+
+    public static func recentlyUsed(server: URL, adding tags: [String] = [], defaults: UserDefaults = .standard) -> [String] {
+        let key = "share.recentTags." + server.absoluteString
+        let previous = defaults.stringArray(forKey: key) ?? []
+        guard !tags.isEmpty else { return previous }
+        // Only confirmed additions call this, so failures/removals never become
+        // suggestions. Keep preferences separate for unrelated servers.
+        let recent = Array(normalize(Array(tags.reversed()) + previous).prefix(2))
+        defaults.set(recent, forKey: key)
+        return recent
+    }
+
     public static func normalize(_ values: [String]) -> [String] {
         var seen = Set<String>()
         return values.flatMap { $0.components(separatedBy: CharacterSet(charactersIn: ",\n")) }
@@ -174,10 +209,6 @@ public enum ArchiveTags {
 
 private struct TagUpdate: Encodable { let tags: [String] }
 private struct TagUpdateResponse: Decodable { let id: String; let tags_str: String }
-private struct TagSuggestions: Decodable {
-    struct Tag: Decodable { let name: String }
-    let tags: [Tag]
-}
 private struct RemovalResponse: Decodable { let success: Bool; let crawl_id: String }
 
 private struct APISchema: Decodable {

@@ -50,8 +50,6 @@ struct IntegrationChecks {
 
         let configuration = ServerConfiguration(server: server, token: token, persona: selectedPersona)
         try await client.updateTags(["share-test", "read later"], for: result, configuration: configuration)
-        let suggestions = try await client.tagSuggestions(query: "read", configuration: configuration)
-        guard suggestions.contains("read later") else { fatalError("Server tag suggestions omitted a saved tag") }
         // The share sheet can finish tagging before the runner creates snapshots.
         // Create the real child through REST, then verify inherited and edited tags.
         var snapshotRequest = URLRequest(url: server.appending(path: "api/v1/core/snapshots"))
@@ -88,6 +86,6 @@ struct IntegrationChecks {
         let (_, otherResponse) = try await URLSession.shared.data(for: request)
         guard (otherResponse as? HTTPURLResponse)?.statusCode == 200 else { fatalError("Removal affected another share of the same URL") }
         try await client.removeSubmission(otherShare, configuration: configuration)
-        print("PASS: suggested tags and cancellation/removal scoped to the submitted crawl")
+        print("PASS: cancellation/removal scoped to the submitted crawl")
     }
 }

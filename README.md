@@ -48,7 +48,7 @@ Set **Default Persona** under **Add URLs → Share Sheet** to choose the server 
 
 **Your server must be reachable when you share.** The app sends links directly; offline queueing is not supported. A success message means the server accepted the URL.
 
-Tags are saved separately through the REST API, without submitting the URL again. Pick suggested tags from your server or use commas to add several new tags; tap a tag’s × to remove it. **Done** also saves any text still in the tag field. If a tag update fails, the sheet keeps the successful link submission and offers **Retry tags**. **Remove** cancels and deletes this share’s crawl after confirmation; previous captures of the same URL are kept.
+Tags are saved separately through the REST API, without submitting the URL again. Suggestions stay on this device: your two most recently saved tags for this server, the shared site’s domain name, and ⭐️. Use commas to add several new tags; tap a tag’s × to remove it. **Done** also saves any text still in the tag field. If a tag update fails, the sheet keeps the successful link submission and offers **Retry tags**. **Remove** cancels and deletes this share’s crawl after confirmation; previous captures of the same URL are kept.
 
 <details markdown="1">
 <summary>Can’t see ArchiveBox in the share sheet?</summary>
@@ -121,7 +121,8 @@ The companion is a separate download, installed only when you choose to run loca
 
 - The native apps contain no analytics or tracking SDKs and require no developer-operated cloud account.
 - Shared URLs are sent to the ArchiveBox server you configure. That server’s administrator controls storage, access, and retention.
-- The app stores connection credentials in device-only Keychain. Shared URLs stay in memory during submission; the native share sheet keeps no local history or offline queue.
+- The app stores connection credentials in device-only Keychain. Shared URLs stay in memory during submission; the native share sheet keeps no URL history or offline queue. It remembers the two most recently saved tag names per server on this device.
+- Share-sheet favicons come from Google’s favicon service; only the shared site’s hostname is sent, never its URL path, query, or your ArchiveBox credentials.
 - Embedded server pages use a browser session in memory. Your server and the pages you open may have their own privacy policies.
 - The Safari extension has its own local storage and optional cookie syncing. Review its [settings and documentation](https://github.com/ArchiveBox/archivebox-browser-extension) before enabling those features.
 - The server contacts websites you ask it to archive and any external services enabled in its configuration. Review [ArchiveBox privacy and security settings](https://github.com/ArchiveBox/ArchiveBox/wiki/Security-Overview), including submission to Archive.org.
@@ -130,7 +131,7 @@ The companion is a separate download, installed only when you choose to run loca
 
 ### License
 
-Free and open source under the [MIT license](https://github.com/ArchiveBox/ios-archivebox/blob/main/LICENSE). See [branding credits](https://github.com/ArchiveBox/ios-archivebox/blob/main/docs/BRANDING.md), [browser icon credits](https://github.com/ArchiveBox/ios-archivebox/blob/main/App/Assets.xcassets/Browser-Icons-LICENSE.txt), and the [bundled extension license](https://github.com/ArchiveBox/ios-archivebox/blob/main/SafariWebExtension/UPSTREAM-LICENSE). The companion’s bundled components retain their upstream licenses.
+Free and open source under the [MIT license](https://github.com/ArchiveBox/ios-archivebox/blob/main/LICENSE). See [branding credits](https://github.com/ArchiveBox/ios-archivebox/blob/main/docs/BRANDING.md), [browser icon credits](https://github.com/ArchiveBox/ios-archivebox/blob/main/App/Assets.xcassets/Browser-Icons-LICENSE.txt), the [Public Suffix List license](Sources/ArchiveBoxCore/Resources/public_suffix_list.dat), and the [bundled extension license](https://github.com/ArchiveBox/ios-archivebox/blob/main/SafariWebExtension/UPSTREAM-LICENSE). The companion’s bundled components retain their upstream licenses.
 
 </details>
 

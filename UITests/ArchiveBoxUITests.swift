@@ -26,14 +26,26 @@ final class ArchiveBoxUITests: XCTestCase {
         let tags = safari.textFields["shareTagInput"]
         XCTAssertTrue(tags.waitForExistence(timeout: 15), safari.debugDescription)
         XCTAssertFalse(safari.buttons["submitShare"].exists)
-        XCTAssertTrue(safari.staticTexts["Sent to ArchiveBox"].waitForExistence(timeout: 30), safari.debugDescription)
+        XCTAssertTrue(safari.staticTexts["Submitted to ArchiveBox Server"].waitForExistence(timeout: 30), safari.debugDescription)
+        XCTAssertTrue(safari.buttons["Add suggested tag example"].isHittable)
+        XCTAssertTrue(safari.buttons["Add suggested tag ⭐️"].isHittable)
+        XCTAssertFalse(safari.staticTexts["Save to"].exists)
+        XCTAssertFalse(safari.staticTexts["Your server accepted the link for archiving."].exists)
+        XCTAssertTrue(safari.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Persona: ")).firstMatch.exists)
+        attach("Compact share sheet", app: safari)
+        safari.buttons["Add suggested tag ⭐️"].tap()
+        XCTAssertTrue(safari.buttons["Remove tag ⭐️"].exists)
         tags.tap()
-        tags.typeText("share-sheet-test\n")
+        tags.typeText("share-sheet-test, second-share-tag\n")
         XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)
         let selectedTag = safari.buttons["Remove tag share-sheet-test"]
         XCTAssertTrue(selectedTag.isHittable, safari.debugDescription)
         selectedTag.tap()
         XCTAssertFalse(selectedTag.exists, safari.debugDescription)
+        safari.buttons["Remove tag second-share-tag"].tap()
+        let recent = safari.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add suggested tag "))
+        XCTAssertEqual(Array(recent.allElementsBoundByIndex.prefix(3)).map(\.label),
+                       ["Add suggested tag second-share-tag", "Add suggested tag share-sheet-test", "Add suggested tag example"])
         tags.tap()
         tags.typeText("share-sheet")
         let suggestion = safari.buttons["Add suggested tag share-sheet-test"]
@@ -212,7 +224,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(safari.staticTexts["AppleAcceptance"].exists, safari.debugDescription)
         attach("Share preview", app: safari)
         // Choosing ArchiveBox starts submission, without a second Save action.
-        XCTAssertTrue(safari.staticTexts["Sent to ArchiveBox"].waitForExistence(timeout: 30), safari.debugDescription)
+        XCTAssertTrue(safari.staticTexts["Submitted to ArchiveBox Server"].waitForExistence(timeout: 30), safari.debugDescription)
         tags.tap()
         tags.typeText("share-ui, read later\n")
         XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)

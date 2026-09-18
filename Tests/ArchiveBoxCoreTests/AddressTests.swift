@@ -7,6 +7,30 @@ import Testing
     #expect(ArchiveTags.normalize([" ,\n  "]).isEmpty)
 }
 
+@Test func suggestsDomainWithoutSubdomainsOrPublicSuffixes() {
+    for (host, tag) in [("abc.example.com", "example"), ("www.example.co.uk", "example"),
+                        ("a.project.github.io", "project"), ("www.city.kawasaki.jp", "city"),
+                        ("www.example.com.", "example")] {
+        #expect(ArchiveTags.domainTag(for: URL(string: "https://\(host)")!) == tag)
+    }
+    for host in ["localhost", "127.0.0.1", "[::1]", "co.uk"] {
+        #expect(ArchiveTags.domainTag(for: URL(string: "http://\(host)")!) == nil)
+    }
+}
+
+@Test func remembersOnlyTwoRecentTagsPerServer() throws {
+    let suite = "ArchiveBoxTagsTests." + UUID().uuidString
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let server = URL(string: "https://archive.example")!
+    #expect(ArchiveTags.recentlyUsed(server: server, defaults: defaults).isEmpty)
+    #expect(ArchiveTags.recentlyUsed(server: server, adding: ["first", "second", "third"], defaults: defaults) == ["third", "second"])
+    #expect(ArchiveTags.recentlyUsed(server: server, adding: ["SECOND"], defaults: defaults) == ["SECOND", "third"])
+    let reloaded = try #require(UserDefaults(suiteName: suite))
+    #expect(ArchiveTags.recentlyUsed(server: server, defaults: reloaded) == ["SECOND", "third"])
+    #expect(ArchiveTags.recentlyUsed(server: URL(string: "https://other.example")!, defaults: defaults).isEmpty)
+}
+
 @Test func normalizesPastedAddresses() throws {
     #expect(try ServerAddress.normalize("  Example.COM/admin/api/apitoken/?x=1#top ").absoluteString == "https://example.com")
     #expect(try ServerAddress.normalize("http://127.0.0.1:8123/").absoluteString == "http://127.0.0.1:8123")

@@ -254,7 +254,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     private func reveal(_ element: XCUIElement, named name: String, app: XCUIApplication) {
         for _ in 0..<10 where !element.isHittable {
             #if os(macOS)
-            app.scrollViews.containing(.any, identifier: name).firstMatch.scroll(byDeltaX: 0, deltaY: -350)
+            let outer = app.scrollViews.containing(.any, identifier: name).firstMatch
+            // Its center overlaps WKWebView, which consumes wheel events. Use the outer scrollbar.
+            outer.children(matching: .scrollBar).firstMatch.scroll(byDeltaX: 0, deltaY: -350)
             #else
             app.swipeUp()
             #endif

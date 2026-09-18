@@ -20,7 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         platform: [iphone, ipad, macos]
-    runs-on: macos-26
+    # Simulators plus the real server need the Intel runner's 14 GB of RAM.
+    # The shipping Mac target is Apple Silicon and stays on the ARM runner.
+    runs-on: ${{ matrix.platform == 'macos' && 'macos-26' || 'macos-26-intel' }}
     environment: testflight
     timeout-minutes: 30
     steps:

@@ -46,16 +46,7 @@ struct ShareView: View {
                                     }
                                     ForEach(model.urls, id: \.absoluteString) { url in
                                         HStack(alignment: .top) {
-                                            // Send only the hostname to the favicon service, never
-                                            // the shared URL's path, query, or server credentials.
-                                            let favicon = ArchiveTags.domainTag(for: url) == nil ? nil :
-                                                URL(string: "https://www.google.com/s2/favicons")?.appending(queryItems: [
-                                                    URLQueryItem(name: "domain", value: url.host()),
-                                                    URLQueryItem(name: "sz", value: "32"),
-                                                ])
-                                            AsyncImage(url: favicon) { image in
-                                                image.resizable().scaledToFit()
-                                            } placeholder: { Image(systemName: "globe") }
+                                            Image(systemName: "globe")
                                                 .frame(width: 20, height: 20).accessibilityHidden(true)
                                             Text("URL: \(url.absoluteString)").lineLimit(3).textSelection(.enabled)
                                         }

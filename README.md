@@ -143,7 +143,6 @@ Your saved archive stays on your Mac when you quit either app.
 - The native apps contain no analytics or tracking SDKs and require no developer-operated cloud account.
 - Shared URLs are sent to the ArchiveBox server you configure. That server’s administrator controls storage, access, and retention.
 - The app stores connection credentials in device-only Keychain. Shared URLs stay in memory during submission; the native share sheet keeps no URL history or offline queue. It remembers the two most recently saved tag names per server on this device.
-- Share-sheet favicons come from Google’s favicon service; only the shared site’s hostname is sent, never its URL path, query, or your ArchiveBox credentials.
 - Embedded server pages use a browser session in memory. Your server and the pages you open may have their own privacy policies.
 - The browser extension for Safari, Chrome, Firefox, Brave, and Edge has its own local storage and optional cookie syncing. Review its [settings and documentation](https://github.com/ArchiveBox/archivebox-browser-extension) before enabling those features.
 - The server contacts websites you ask it to archive and any external services enabled in its configuration. Review [ArchiveBox privacy and security settings](https://github.com/ArchiveBox/ArchiveBox/wiki/Security-Overview), including submission to Archive.org.

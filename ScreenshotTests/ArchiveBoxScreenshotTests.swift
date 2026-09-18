@@ -81,7 +81,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let screens: [(String, String)] = [
             ("add", "Create a new Crawl"), ("agent", "New session"),
             ("crawls", "Add Crawl"), ("schedules", "Add Scheduled Crawl"),
-            ("snapshots", "Snapshots"), ("results", "Add Archive Result"),
+            ("snapshots", "Example Domain"), ("results", "Add Archive Result"),
             ("tags", "Add Tag"), ("admin", "Recent Actions"),
             ("users", "Add user"), ("personas", "Add persona"),
             ("keys", "Add API Key"), ("webhooks", "Add API Outbound Webhook"),

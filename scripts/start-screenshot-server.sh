@@ -100,6 +100,17 @@ ARCHIVEBOX_TEST_TOKEN=$(cat "$SCREENSHOT_API_KEY_FILE")
 if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
     printf '::add-mask::%s\n' "$ARCHIVEBOX_TEST_TOKEN"
 fi
+# Discovery uses the OpenAPI schema, so validate that endpoint before starting the app.
+curl --fail --silent --show-error --max-time 15 \
+    "$BASE_URL/api/v1/openapi.json" > "$data/openapi.json"
+uv run --no-sync --project "$backend" python - "$data/openapi.json" <<'PY'
+import json
+import sys
+schema = json.load(open(sys.argv[1]))
+assert "archivebox" in schema["info"]["title"].lower()
+for endpoint in ("/cli/add", "/auth/check_api_token"):
+    assert any(path.endswith(endpoint) for path in schema["paths"]), endpoint
+PY
 # Validate the same authenticated API the native app consumes without logging the key.
 curl --fail --silent --show-error --max-time 15 \
     -H "X-ArchiveBox-API-Key: $ARCHIVEBOX_TEST_TOKEN" \

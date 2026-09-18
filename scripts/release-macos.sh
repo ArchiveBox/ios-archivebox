@@ -75,4 +75,3 @@ ServerApp/.build/artifacts/sparkle/Sparkle/bin/generate_appcast \
  --download-url-prefix "https://github.com/ArchiveBox/ios-archivebox/releases/download/v$ARCHIVEBOX_APP_VERSION/" \
  "$RUNNER_TEMP/server-appcast"
 cp "$RUNNER_TEMP/server-appcast/appcast.xml" dist/appcast.xml
-(cd dist && /usr/bin/shasum -a 256 ArchiveBox.app.zip ArchiveBox.Server.app.zip appcast.xml > SHA256SUMS)

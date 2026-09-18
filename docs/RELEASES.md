@@ -19,11 +19,13 @@ downloads the pinned server payload (cached by preparation script hash), builds
 both apps, signs with Developer ID, notarizes, staples and checks Gatekeeper.
 It then creates a draft `vX.Y.Z` release, attaches both verified ZIPs, checks the
 uploads, and publishes it. Public versioned assets are immutable. Release notes
-include GitHub's generated PR/contributor notes plus every commit and git author
+include GitHub's generated PR notes plus every commit and git author
 since the previous release, including direct pushes.
 
-Downloads are **ArchiveBox.app.zip** and **ArchiveBox.Server.app.zip**, with
-`SHA256SUMS` and the signed server `appcast.xml`. Both require Apple Silicon and
+The only uploaded app-release downloads are **ArchiveBox.app.zip** and
+**ArchiveBox Server.app.zip**. GitHub normalizes the server asset filename to
+`ArchiveBox.Server.app.zip`; its display label retains the space. GitHub also adds
+its own source-code archive links. Both apps require Apple Silicon and
 macOS 26+. The optional server ZIP includes the runtime, Linux kernel and pinned
 ArchiveBox container image. The client ZIP contains none of those large assets.
 The stable `server-updates` prerelease holds only Sparkle's update feed.

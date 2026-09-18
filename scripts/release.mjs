@@ -56,22 +56,22 @@ if (process.argv[2] === 'prepare') {
   if(git('rev-parse',`release-candidate/${state.source}`)!==sha) throw Error('Not the reserved candidate');
   if(previous) git('merge-base','--is-ancestor',previous,sha);
   const body={tag_name:tag,target_commitish:sha,...(previous?{previous_tag_name:previous}:{})};
-  const generated=JSON.parse(execFileSync('gh',['api',`repos/${repo}/releases/generate-notes`,'--input','-'],{input:JSON.stringify(body),encoding:'utf8'})).body;
+  // GitHub also builds a Contributors avatar section from @mentions in generated notes.
+  const generated=JSON.parse(execFileSync('gh',['api',`repos/${repo}/releases/generate-notes`,'--input','-'],{input:JSON.stringify(body),encoding:'utf8'})).body.replace(/^## (?:New )?Contributors\n[\s\S]*?(?=^## |^\*\*Full Changelog|$(?![\s\S]))/gm, '').replace(/(^|\s)@([\w-]+)/g, '$1$2');
   const range=previous?`${previous}..${sha}`:sha;
   const commits=git('log','--reverse','--format=%H%x09%s%x09%aN',range).split('\n').filter(Boolean)
     .map(line=>{const [id,title,author]=line.split('\t');return `- [${id.slice(0,7)}](https://github.com/${repo}/commit/${id}) ${title} — ${author}`;}).join('\n');
-  const contributors=git('shortlog','-s',range).split('\n').map(l=>l.trim().replace(/^\d+\s+/, '')).filter(Boolean).join(', ');
   const link=process.env.TESTFLIGHT_PUBLIC_URL;
   if(!/^https:\/\/testflight\.apple\.com\/join\/[A-Za-z0-9]+$/.test(link||'')) throw Error('Configure the real public TestFlight invitation URL');
-  const notes=`macOS 26+ on Apple Silicon. Download either signed, notarized app below. The Server ZIP includes the Linux runtime and ArchiveBox image; the client ZIP does not.\n\n**iPhone / iPad / Mac beta:** [Join ArchiveBox on TestFlight](${link}). New builds become available there after Apple approves external beta testing.\n\n${generated}\n\n## All commits\n${commits}\n\n## Contributors\n${contributors}\n\nSource: ${sha}\n`;
+  const notes=`macOS 26+ on Apple Silicon. Download either signed, notarized app below. The Server ZIP includes the Linux runtime and ArchiveBox image; the client ZIP does not.\n\n**iPhone / iPad / Mac beta:** [Join ArchiveBox on TestFlight](${link}). New builds become available there after Apple approves external beta testing.\n\n${generated}\n\n## All commits\n${commits}\n\nSource: ${sha}\n`;
   writeFileSync('dist/release-notes.md',notes);
   const existing=JSON.parse(gh('api','--paginate','--slurp',`repos/${repo}/releases?per_page=100`)).flat().find(r=>r.tag_name===tag);
   if(existing && !existing.draft) throw Error('Public release is immutable');
   if(!git('tag','--list',tag)) {git('tag',tag);git('push','origin',`refs/tags/${tag}`);}
   if(git('rev-parse',`${tag}^{commit}`)!==sha) throw Error('Release tag points elsewhere');
   if(!existing) gh('release','create',tag,'--repo',repo,'--verify-tag','--draft','--title',`ArchiveBox ${state.version}`,'--notes-file','dist/release-notes.md');
-  const assets=['ArchiveBox.app.zip','ArchiveBox.Server.app.zip','SHA256SUMS','appcast.xml'];
-  gh('release','upload',tag,'--repo',repo,'--clobber',...assets.map(a=>`dist/${a}`));
+  const assets=['ArchiveBox.app.zip','ArchiveBox.Server.app.zip'];
+  gh('release','upload',tag,'--repo',repo,'--clobber',...assets.map(a=>`dist/${a}#${a.replace('ArchiveBox.Server', 'ArchiveBox Server')}`));
   // Drafts are omitted by GitHub's tag lookup; the authenticated list includes them.
   const release=JSON.parse(gh('api','--paginate','--slurp',`repos/${repo}/releases?per_page=100`)).flat().find(r=>r.tag_name===tag);
   if(!release) throw Error('Draft release is missing');

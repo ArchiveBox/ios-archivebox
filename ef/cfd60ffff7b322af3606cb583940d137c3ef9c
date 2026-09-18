@@ -1,0 +1,22 @@
+.github/workflows/screenshot-smoke.yml
+  h_923c208e183a7b 16
+.github/workflows/screenshots.yml
+  h_923c208e183a7b 20,105,108
+docs/site/README.md
+  h_923c208e183a7b 36-41,45-46,55,61-63
+docs/site/screenshots/index.html
+  h_923c208e183a7b 6
+scripts/build-screenshot-gallery.py
+  h_923c208e183a7b 13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "efcfd60ffff7b322af3606cb583940d137c3ef9c",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

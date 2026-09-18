@@ -85,6 +85,8 @@ Use an existing ArchiveBox server anywhere you can reach it, or keep your archiv
 
 **A home for your archive, right on your Mac.** The optional companion runs quietly in the menu bar and keeps archiving when you close the client app.
 
+<p class="screenshot" align="center"><a href="docs/screenshots/server-mac.png"><img src="docs/screenshots/server-mac.png" width="900" loading="lazy" alt="ArchiveBox Server.app on Mac, showing the running server, resource usage, collection location, and connection settings"></a></p>
+
 - 🟢 **See what’s running:** server status, active downloads, CPU, and memory.
 - 🗂️ **Choose where your archive lives** and open its files in Finder.
 - 👥 **Create an administrator** and manage users from Settings.

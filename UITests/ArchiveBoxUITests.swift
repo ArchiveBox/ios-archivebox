@@ -5,6 +5,7 @@ import XCTest
 final class ArchiveBoxUITests: XCTestCase {
     func testShareTagsUsingSavedConnection() throws {
         continueAfterFailure = false
+        XCUIApplication().launch()
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
         safari.terminate()
         safari.launch()
@@ -29,11 +30,16 @@ final class ArchiveBoxUITests: XCTestCase {
         tags.tap()
         tags.typeText("share-sheet-test\n")
         XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)
-        safari.buttons["Remove tag share-sheet-test"].tap()
+        let selectedTag = safari.buttons["Remove tag share-sheet-test"]
+        XCTAssertTrue(selectedTag.isHittable, safari.debugDescription)
+        selectedTag.tap()
+        XCTAssertFalse(selectedTag.exists, safari.debugDescription)
         tags.tap()
         tags.typeText("share-sheet")
         let suggestion = safari.buttons["Add suggested tag share-sheet-test"]
         XCTAssertTrue(suggestion.waitForExistence(timeout: 15), safari.debugDescription)
+        if !suggestion.isHittable { safari.swipeUp() }
+        XCTAssertTrue(suggestion.isHittable, safari.debugDescription)
         attach("Share tag suggestions", app: safari)
         suggestion.tap()
         XCTAssertTrue(safari.staticTexts["Tags saved"].waitForExistence(timeout: 15), safari.debugDescription)
@@ -42,6 +48,11 @@ final class ArchiveBoxUITests: XCTestCase {
         attach("Share removal confirmation", app: safari)
         safari.buttons["Keep it"].tap()
         attach("Share tags saved", app: safari)
+        safari.buttons["Remove from server"].tap()
+        safari.sheets.buttons["Remove from server"].tap()
+        XCTAssertTrue(safari.staticTexts["Removed from server"].waitForExistence(timeout: 15), safari.debugDescription)
+        attach("Share removed", app: safari)
+        safari.buttons["Done"].tap()
     }
 
     func testSafariButtonOpensExtensionSettings() throws {

@@ -77,7 +77,7 @@ final class ShareModel {
             // turn a successful POST into a retryable submission error.
             let center = UNUserNotificationCenter.current()
             let permission = await center.notificationSettings().authorizationStatus
-            if permission == .authorized || permission == .provisional {
+            if (permission == .authorized || permission == .provisional), case .sent = state, !isRemoving {
                 let content = UNMutableNotificationContent()
                 content.title = "Added to ArchiveBox"
                 content.body = urls.count == 1 ? "Your server queued \(urls[0].absoluteString)" : "Your server queued \(urls.count) URLs for archiving."

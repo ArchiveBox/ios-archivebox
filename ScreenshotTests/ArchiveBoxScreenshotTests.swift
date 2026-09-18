@@ -176,7 +176,23 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let share = safari.buttons["Share"]
         XCTAssertTrue(share.waitForExistence(timeout: 10), safari.debugDescription)
         press(share)
-        let extensionItem = safari.menuItems["ArchiveBox"]
+        let sharePickerDescription = safari.debugDescription
+        let sharePickerHierarchy = XCTAttachment(string: sharePickerDescription)
+        sharePickerHierarchy.name = "share-picker-hierarchy"
+        sharePickerHierarchy.lifetime = .keepAlways
+        add(sharePickerHierarchy)
+        print(sharePickerDescription)
+        let sharePickerScreenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        sharePickerScreenshot.name = "share-picker-diagnostic"
+        sharePickerScreenshot.lifetime = .keepAlways
+        add(sharePickerScreenshot)
+        // macOS exposes the share picker through its remote view; the same
+        // app name also appears in the hidden Apple > Recent Items menu.
+        // Require the rendered sharing control, not an offscreen name match.
+        capture("share-picker", app: safari)
+        let extensionItem = safari.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@ AND hittable == true", "ArchiveBox")
+        ).firstMatch
         XCTAssertTrue(extensionItem.waitForExistence(timeout: 5), safari.debugDescription)
         press(extensionItem)
         XCTAssertTrue(safari.staticTexts["Submitted to ArchiveBox Server"].waitForExistence(timeout: 30), safari.debugDescription)

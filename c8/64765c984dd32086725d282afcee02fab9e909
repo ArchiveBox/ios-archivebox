@@ -1,0 +1,14 @@
+scripts/start-screenshot-server.sh
+  h_923c208e183a7b 103-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c864765c984dd32086725d282afcee02fab9e909",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

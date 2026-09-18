@@ -1,0 +1,14 @@
+docs/site/README.md
+  h_923c208e183a7b 14,36-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "187361e90fe4cb0f8dec54e6b86a14ad3276af86",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

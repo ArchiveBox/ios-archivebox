@@ -1,0 +1,28 @@
+App/SetupGuide.swift
+  h_923c208e183a7b 141,150
+ServerApp/README.md
+  h_923c208e183a7b 53
+docs/site/CNAME
+  h_923c208e183a7b 1
+docs/site/README.md
+  h_923c208e183a7b 37
+docs/site/_config.yml
+  h_923c208e183a7b 3-4
+docs/site/_layouts/default.html
+  h_923c208e183a7b 18,29
+docs/site/build.sh
+  h_923c208e183a7b 10
+scripts/restore-site-screenshots.py
+  h_923c208e183a7b 42-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "af9d75206141a6536bbce9e66f5824b89df31489",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

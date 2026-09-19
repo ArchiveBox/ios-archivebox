@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#9b2854">
     {% seo %}
-    <link rel="icon" type="image/png" href="{{ '/App/AppIcon.icon/Assets/ArchiveBox.png' | relative_url }}">
+    <meta name="robots" content="index,follow,max-image-preview:large">
+    <meta property="og:image:type" content="image/png">
+    <link rel="icon" type="image/x-icon" href="{{ '/assets/favicon.ico' | relative_url }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ '/assets/icon.png' | relative_url }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ '/assets/apple-touch-icon.png' | relative_url }}">
     <!-- Pages can cache CSS across deployments; version it so new markup gets matching styles. -->
     <link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}?v={{ site.time | date: '%s' }}">
   </head>

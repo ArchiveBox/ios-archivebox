@@ -1,11 +1,23 @@
 title: ArchiveBox.app
-description: Save the web you want to keep. A native app for iPhone, iPad, and Mac, with an optional Mac server companion.
+description: ArchiveBox.app brings your archive to your Apple devices. Share a link, browse saved pages, and manage your collection from one native app.
 url: https://archivebox.github.io
 baseurl: /ios-archivebox
 theme: jekyll-theme-primer
-lang: en
+lang: en-US
 repository: ArchiveBox/ios-archivebox
-image: /docs/screenshots/library-mac.png
+logo: /assets/icon.png
+twitter:
+  username: ArchiveBoxApp
+  card: summary_large_image
+defaults:
+  - scope:
+      path: ""
+    values:
+      image:
+        path: /assets/social-card.png
+        width: 1200
+        height: 630
+        alt: "ArchiveBox.app. ArchiveBox.app brings your archive to your Apple devices. Share a link, browse saved pages, and manage your collection from one native app."
 plugins:
   - jekyll-seo-tag
 kramdown:

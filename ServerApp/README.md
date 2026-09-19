@@ -50,7 +50,7 @@ shows a per-profile error and a retry button in Settings; other profiles continu
 exports in `.host-browser-profiles`, including after deleting a seeded Persona.
 These are snapshots of cookies/preferences at import time, not a continuous sync of
 browser history, saved passwords, or local storage. To refresh cookies or import
-from another browser, use the [ArchiveBox browser extension](https://archivebox.github.io/archivebox-browser-extension/).
+from another browser, use the [ArchiveBox browser extension](https://extension.archivebox.io/).
 
 The bundled container always sets `OPENCODE_ENABLED=true`, including during
 initialization. Each newly created server container resolves

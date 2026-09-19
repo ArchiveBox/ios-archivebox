@@ -34,7 +34,7 @@ some capture tools apply an extra scale. The site must not add a border,
 background, rounded clipping, or another shadow around these PNGs.
 
 The **App website** workflow builds pull requests without deploying and deploys
-commits to `main` through GitHub Actions to <https://archivebox.github.io/ios-archivebox/>.
+commits to `main` through GitHub Actions to <https://app.archivebox.io/>.
 The separate **Capture native app screenshots** workflow captures iPhone and Mac
 on app changes to `main`. Successful captures trigger a new website deployment;
 other website builds retain the latest complete gallery. iPad capture is disabled

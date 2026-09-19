@@ -1,7 +1,7 @@
 title: ArchiveBox.app
 description: ArchiveBox.app brings your archive to your Apple devices. Share a link, browse saved pages, and manage your collection from one native app.
-url: https://archivebox.github.io
-baseurl: /ios-archivebox
+url: https://app.archivebox.io
+baseurl: ""
 theme: jekyll-theme-primer
 lang: en-US
 repository: ArchiveBox/ios-archivebox

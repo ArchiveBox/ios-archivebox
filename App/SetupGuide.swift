@@ -138,7 +138,7 @@ struct SetupGuide: View {
             Text("This opens Run Server Locally in Connection Settings, where you can download or start the companion.")
                 .font(.caption).foregroundStyle(.secondary)
             #else
-            ShareLink("Send the Mac setup guide", item: URL(string: "https://archivebox.github.io/ios-archivebox/#your-server-your-choice")!)
+            ShareLink("Send the Mac setup guide", item: URL(string: "https://app.archivebox.io/#your-server-your-choice")!)
             Text("iPhone and iPad connect to a server; they don’t run one. Open the guide on your Mac to install the companion.")
                 .foregroundStyle(.secondary)
             #endif
@@ -147,7 +147,7 @@ struct SetupGuide: View {
             Button("Find my server", systemImage: "magnifyingglass") { discovery = true }
                 .buttonStyle(.borderedProminent).accessibilityIdentifier("setup.findMac")
             networkAdvice
-            Link("Mac server setup guide", destination: URL(string: "https://archivebox.github.io/ios-archivebox/#your-server-your-choice")!)
+            Link("Mac server setup guide", destination: URL(string: "https://app.archivebox.io/#your-server-your-choice")!)
         }
     }
 

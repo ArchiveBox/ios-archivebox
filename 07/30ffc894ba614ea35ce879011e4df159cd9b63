@@ -1,0 +1,22 @@
+App/Info.plist
+  h_923c208e183a7b 7-12
+MacApp/Info.plist
+  h_923c208e183a7b 18-23
+SafariWebExtension/Info-iOS.plist
+  h_923c208e183a7b 7-12
+SafariWebExtension/Info-macOS.plist
+  h_923c208e183a7b 7-12
+project.yml
+  h_923c208e183a7b 51,145,235
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0730ffc894ba614ea35ce879011e4df159cd9b63",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

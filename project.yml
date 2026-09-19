@@ -48,6 +48,7 @@ targets:
           - CFBundleURLName: io.archivebox.navigation
             CFBundleURLSchemes: [archivebox]
         CFBundleDisplayName: ArchiveBox
+        CFBundleLocalizations: [en, es, zh-Hans]
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         UILaunchScreen: {}
         UIApplicationSceneManifest:
@@ -141,6 +142,7 @@ targets:
       path: MacApp/Info.plist
       properties:
         CFBundleDisplayName: ArchiveBox
+        CFBundleLocalizations: [en, es, zh-Hans]
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         CFBundleURLTypes:
           - CFBundleURLName: io.archivebox.navigation
@@ -230,6 +232,7 @@ targets:
       path: SafariWebExtension/Info-iOS.plist
       properties: &safariInfo
         CFBundleDisplayName: ArchiveBox
+        CFBundleLocalizations: [en, es, zh-Hans]
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         NSExtension:
           NSExtensionPointIdentifier: com.apple.Safari.web-extension

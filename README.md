@@ -90,7 +90,7 @@ Use an existing ArchiveBox server anywhere you can reach it, or keep your archiv
 | **What to install** | The client on each device you use | The optional companion on the Mac that stores your archive |
 | **Already have a server?** | Connect it in Settings | You don’t need the companion |
 
-### [ArchiveBox Server.app](https://github.com/ArchiveBox/ios-archivebox/releases)
+<h3 id="archivebox-serverapp"><a class="button server-download" href="https://github.com/ArchiveBox/ios-archivebox/releases"><img class="button-icon" src="docs/icons/apple.svg" width="18" height="18" alt=""> <span>ArchiveBox Server.app</span> <img class="button-icon" src="docs/icons/download.svg" width="18" height="18" alt=""></a></h3>
 
 **A home for your archive, right on your Mac.** The optional companion runs quietly in the menu bar and keeps archiving when you close the client app.
 

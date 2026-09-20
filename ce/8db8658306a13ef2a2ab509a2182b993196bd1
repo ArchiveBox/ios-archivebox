@@ -1,0 +1,18 @@
+App/AddURLsView.swift
+  h_923c208e183a7b 13-31,94-95
+App/EmbeddedBrowser.swift
+  h_923c208e183a7b 11,20-23,25-26,32,38,51,65,76
+UITests/ArchiveBoxUITests.swift
+  h_923c208e183a7b 525-554
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ce8db8658306a13ef2a2ab509a2182b993196bd1",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -10,7 +10,42 @@ env:
   # Pin the real server so app captures are reproducible and record both revisions.
   BACKEND_REVISION: 9f6535006ab4df9849e0a7dab0a99eea9d745ebd
 jobs:
+  build-macos:
+    concurrency:
+      group: macos-capture-build-${{ github.ref }}
+      cancel-in-progress: true
+    # Siri schemas need SDK27; the app supports macOS26. Keep WebKit captures on
+    # stable macOS: the macOS27 preview image fails IOSurface creation even for
+    # an isolated sandboxed WKWebView loading example.com.
+    runs-on: xcode-27
+    environment: testflight
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+      - name: Prepare pinned Safari extension
+        run: node scripts/prepare-safari.mjs
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Build the signed Mac app with SDK27
+        env:
+          DEVELOPER_ID_PROFILES: ${{ secrets.DEVELOPER_ID_PROFILES }}
+          DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          DEVELOPER_ID_PASSWORD: ${{ secrets.DEVELOPER_ID_PASSWORD }}
+        run: bash scripts/capture-app-screenshots.sh macos build/screenshots/macos-build build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-capture-app
+          path: build/screenshots/macos-build/ArchiveBox.app.zip
+          if-no-files-found: error
+          retention-days: 7
   capture:
+    needs: build-macos
     concurrency:
       group: app-captures-${{ matrix.platform }}-${{ github.ref }}
       cancel-in-progress: false
@@ -21,8 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [iphone, macos, server]
-    # Siri system schemas require the Xcode 27 SDK.
-    runs-on: ${{ matrix.platform == 'server' && vars.SERVER_SCREENSHOT_RUNNER || 'xcode-27' }}
+    runs-on: ${{ matrix.platform == 'server' && vars.SERVER_SCREENSHOT_RUNNER || matrix.platform == 'macos' && 'macos-26' || 'xcode-27' }}
     environment: testflight
     timeout-minutes: 45
     steps:
@@ -30,9 +64,6 @@ jobs:
         if: matrix.platform == 'server'
         run: |
           swift -e 'import Virtualization; guard VZVirtualMachine.isSupported else { fatalError("Apple Container requires virtualization. Set SERVER_SCREENSHOT_RUNNER to a disposable macOS runner with virtualization enabled.") }'
-      - name: Disable Spotlight indexing on the disposable capture runner
-        # First simulator boot and dependency extraction otherwise compete with mdworker.
-        run: sudo mdutil -a -i off
       - uses: actions/checkout@v4
       - name: Set the disposable Mac desktop size
         if: matrix.platform != 'iphone'
@@ -50,9 +81,23 @@ jobs:
         with:
           version: '10.33.2'
       - name: Prepare pinned Safari extension
+        if: matrix.platform != 'macos'
         run: node scripts/prepare-safari.mjs
+      - name: Install XcodeGen
+        run: brew install xcodegen
       - name: Generate screenshot test schemes
-        run: brew install xcodegen && xcodegen generate
+        if: matrix.platform != 'macos'
+        run: xcodegen generate
+      - uses: actions/download-artifact@v4
+        if: matrix.platform == 'macos'
+        with:
+          name: macos-capture-app
+          path: build/screenshots/macos-app
+      - name: Extract the signed SDK27 app for stable macOS capture
+        if: matrix.platform == 'macos'
+        run: |
+          ditto -x -k build/screenshots/macos-app/ArchiveBox.app.zip build/screenshots/macos-app
+          echo "ARCHIVEBOX_MAC_APP=$GITHUB_WORKSPACE/build/screenshots/macos-app/ArchiveBox.app" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         if: matrix.platform != 'server'
         with:
@@ -108,9 +153,9 @@ jobs:
       - name: Capture every native app screen with XCTest
         env:
           ARCHIVEBOX_SERVER_IMAGE: ${{ steps.server-image.outputs.image }}
-          DEVELOPER_ID_PROFILES: ${{ matrix.platform != 'iphone' && secrets.DEVELOPER_ID_PROFILES || '' }}
-          DEVELOPER_ID_P12: ${{ matrix.platform != 'iphone' && secrets.DEVELOPER_ID_P12 || '' }}
-          DEVELOPER_ID_PASSWORD: ${{ matrix.platform != 'iphone' && secrets.DEVELOPER_ID_PASSWORD || '' }}
+          DEVELOPER_ID_PROFILES: ${{ matrix.platform == 'server' && secrets.DEVELOPER_ID_PROFILES || '' }}
+          DEVELOPER_ID_P12: ${{ matrix.platform == 'server' && secrets.DEVELOPER_ID_P12 || '' }}
+          DEVELOPER_ID_PASSWORD: ${{ matrix.platform == 'server' && secrets.DEVELOPER_ID_PASSWORD || '' }}
         run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}' 'build/screenshots/${{ matrix.platform }}' gallery
       - name: Validate this complete capture group
         env:

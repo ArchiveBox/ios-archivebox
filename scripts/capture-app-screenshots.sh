@@ -1,15 +1,17 @@
 #!/bin/bash
 # Real headful XCTest capture. Run only on a disposable macOS CI runner.
 set -euo pipefail
-platform=${1:?Usage: capture-app-screenshots.sh iphone|ipad|macos|server OUTPUT_DIRECTORY smoke|full|gallery}
+platform=${1:?Usage: capture-app-screenshots.sh iphone|ipad|macos|server OUTPUT_DIRECTORY smoke|full|gallery|build}
 output=${2:-build/screenshots/$platform}
 mode=${3:-smoke}
 case "$mode" in
   smoke) method=testLaunchScreenshot ;;
   full) method=testAllScreens ;;
   gallery) method=testGalleryScreens ;;
-  *) echo "Mode must be smoke, full, or gallery." >&2; exit 2 ;;
+  build) [[ "$platform" == macos ]] || exit 2; method= ;;
+  *) echo "Mode must be smoke, full, gallery, or build (macOS only)." >&2; exit 2 ;;
 esac
+project=ArchiveBox.xcodeproj
 class=ArchiveBoxScreenshotTests
 mkdir -p "$output"
 output=$(cd "$output" && pwd)
@@ -19,6 +21,15 @@ case "$platform" in
   macos|server)
     scheme=ArchiveBoxMacScreenshots
     destination='platform=macOS'
+    if [[ "$platform" == macos && -n "${ARCHIVEBOX_MAC_APP:-}" ]]; then
+      # Compile XCTest on the same stable macOS/Xcode that runs it. The full
+      # signed app was built separately with its required SDK; do not rebuild it.
+      test -d "$ARCHIVEBOX_MAC_APP"
+      codesign --verify --deep --strict "$ARCHIVEBOX_MAC_APP"
+      cp ScreenshotTests/project.yml ScreenshotTests/ArchiveBoxScreenshotTests.swift "$output/"
+      xcodegen generate --spec "$output/project.yml"
+      project="$output/ArchiveBoxScreenshots.xcodeproj"
+    else
     : "${DEVELOPER_ID_PROFILES:?}" "${DEVELOPER_ID_P12:?}" "${DEVELOPER_ID_PASSWORD:?}" "${RUNNER_TEMP:?}"
     credentials=$(mktemp -d "$RUNNER_TEMP/screenshot-credentials.XXXXXX")
     keychain="$credentials/signing.keychain-db"
@@ -96,6 +107,7 @@ YAML
     xcodegen generate --spec "$signing_spec"
     signing=(-configuration Release)
     fi
+    fi
     ;;
   iphone|ipad)
     scheme=ArchiveBoxScreenshots
@@ -115,12 +127,22 @@ YAML
     ;;
   *) echo "Unknown platform: $platform" >&2; exit 2 ;;
 esac
-xcodebuild -project ArchiveBox.xcodeproj -scheme "$scheme" \
+if [[ "$mode" == build ]]; then
+  xcodebuild -project "$project" -scheme ArchiveBoxMac \
+    -destination "$destination" -derivedDataPath "$output/DerivedData" \
+    "${signing[@]}" build
+  app="$output/DerivedData/Build/Products/Release/ArchiveBox.app"
+  codesign --verify --deep --strict "$app"
+  ditto -c -k --sequesterRsrc --keepParent "$app" "$output/ArchiveBox.app.zip"
+  exit 0
+fi
+xcodebuild -project "$project" -scheme "$scheme" \
   -destination "$destination" -derivedDataPath "$output/DerivedData" \
   -resultBundlePath "$output/Capture.xcresult" \
   -parallel-testing-enabled NO \
   -only-testing:"$scheme/$class/$method" \
   "${signing[@]}" \
+  ARCHIVEBOX_MAC_APP="${ARCHIVEBOX_MAC_APP:-}" \
   ARCHIVEBOX_SERVER_APP="${ARCHIVEBOX_SERVER_APP:-}" \
   ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}" \
   ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}" test || {

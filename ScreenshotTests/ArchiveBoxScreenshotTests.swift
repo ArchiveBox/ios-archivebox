@@ -6,13 +6,22 @@ import UIKit
 /// Captures the shipping app through the real system UI test runner.
 @MainActor
 final class ArchiveBoxScreenshotTests: XCTestCase {
+    private var application: XCUIApplication {
+        #if os(macOS)
+        if let path = ProcessInfo.processInfo.environment["ARCHIVEBOX_MAC_APP"] {
+            return XCUIApplication(url: URL(fileURLWithPath: path))
+        }
+        #endif
+        return XCUIApplication()
+    }
+
     func testLaunchScreenshot() throws {
         continueAfterFailure = false
         let interruption = addUIInterruptionMonitor(withDescription: "ArchiveBox system permissions") { [self] alert in
             approvePermission(alert)
         }
         defer { removeUIInterruptionMonitor(interruption) }
-        let app = XCUIApplication()
+        let app = application
         app.launch()
         let skip = app.buttons["setup.skip"]
         if skip.waitForExistence(timeout: 2) { press(skip) }
@@ -47,7 +56,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         defer { removeUIInterruptionMonitor(interruption) }
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
-        let app = XCUIApplication()
+        let app = application
         app.launch()
         XCTAssertTrue(app.buttons["setup.choose"].waitForExistence(timeout: 20), "Use a fresh capture runner")
         capture("onboarding", app: app)
@@ -138,7 +147,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
         XCTAssertFalse(server.isEmpty)
         XCTAssertFalse(token.isEmpty)
-        let app = XCUIApplication()
+        let app = application
         app.launch()
         let skip = app.buttons["setup.skip"]
         if skip.waitForExistence(timeout: 2) { press(skip) }
@@ -370,7 +379,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     private func replace(_ field: XCUIElement, with value: String) {
-        scrollTo(field, app: XCUIApplication())
+        scrollTo(field, app: application)
         press(field)
         field.typeKey("a", modifierFlags: .command)
         field.typeText(XCUIKeyboardKey.delete.rawValue)
@@ -466,7 +475,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     #if os(iOS)
     private func declinePasswordPrompt() {
-        let app = XCUIApplication()
+        let app = application
         let prompt = app.staticTexts["Save Password?"]
         if prompt.exists {
             let notNow = app.buttons["Not Now"]

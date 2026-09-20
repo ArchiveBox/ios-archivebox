@@ -1,0 +1,27 @@
+# Compile UI tests with the same Xcode that runs them against the signed SDK27 app.
+name: ArchiveBoxScreenshots
+options:
+  bundleIdPrefix: io.archivebox
+  deploymentTarget:
+    macOS: '26.0'
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    ARCHS: arm64
+    GENERATE_INFOPLIST_FILE: YES
+targets:
+  ArchiveBoxMacScreenshots:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [ArchiveBoxScreenshotTests.swift]
+schemes:
+  ArchiveBoxMacScreenshots:
+    build:
+      targets:
+        ArchiveBoxMacScreenshots: [test]
+    test:
+      targets: [ArchiveBoxMacScreenshots]
+      environmentVariables:
+        ARCHIVEBOX_MAC_APP: '$(ARCHIVEBOX_MAC_APP)'
+        ARCHIVEBOX_TEST_SERVER: '$(ARCHIVEBOX_TEST_SERVER)'
+        ARCHIVEBOX_TEST_TOKEN: '$(ARCHIVEBOX_TEST_TOKEN)'

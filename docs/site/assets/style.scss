@@ -41,6 +41,10 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outli
 .button:hover { transform: translateY(-2px); }
 .button.primary { background: var(--accent); color: white; box-shadow: 0 5px 16px #9b285425, inset 0 1px 0 #ffffff25; }
 .button.secondary { color: var(--ink); border: 1px solid #fff; background: #ffffffad; box-shadow: 0 4px 20px #5428370a; }
+.hero .other-platforms { margin-top: 12px; }
+.other-platforms .button { min-height: 40px; padding: 7px 16px; gap: 8px; font-size: 12px; background: #171717; color: #fff; }
+.other-platforms .button:hover { background: #383838; color: #fff; }
+.markdown-body .other-platforms .button-icon { width: 16px; height: 16px; flex-basis: 16px; filter: brightness(0) invert(1); }
 .hero .platforms, .hero .hero-links { color: var(--muted); font-size: 12px; margin: 12px 0; }
 .hero .hero-links { margin-top: 20px; }
 .markdown-body .hero-screenshot { max-width: none; margin: 25px -16px 65px; }

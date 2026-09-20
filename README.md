@@ -8,6 +8,12 @@
 <a class="button secondary" href="https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.app.zip"><img class="button-icon" src="docs/icons/apple.svg" width="18" height="18" alt=""> ArchiveBox for macOS <img class="button-icon" src="docs/icons/download.svg" width="18" height="18" alt=""></a>
 <a class="button secondary" href="https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.Server.app.zip"><img class="button-icon" src="docs/icons/apple.svg" width="18" height="18" alt=""> ArchiveBox Server for macOS <img class="button-icon" src="docs/icons/download.svg" width="18" height="18" alt=""></a>
 </p>
+<p class="actions other-platforms" aria-label="ArchiveBox for other platforms">
+<a class="button platform" href="https://android.archivebox.io/"><img class="button-icon" src="docs/icons/android.svg" width="16" height="16" alt=""> Android <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
+<a class="button platform" href="https://windows.archivebox.io/"><img class="button-icon" src="docs/icons/windows.svg" width="16" height="16" alt=""> Windows <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
+<a class="button platform" href="https://linux.archivebox.io/"><img class="button-icon" src="docs/icons/linux.svg" width="16" height="16" alt=""> Linux <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
+<a class="button platform" href="https://archivebox.io/#install-compose"><img class="button-icon" src="docs/icons/docker.svg" width="16" height="16" alt=""> Docker <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
+</p>
 <p class="platforms">iOS 26+ · iPadOS 26+ · macOS 26+ · Free &amp; open source</p>
 <p class="hero-links"><a href="#get-started">Get started</a> &nbsp; · &nbsp; <a href="#your-server-your-choice">Run a server on your Mac</a> &nbsp; · &nbsp; <a href="https://github.com/ArchiveBox/ios-archivebox/issues">Feedback</a></p>
 </div>

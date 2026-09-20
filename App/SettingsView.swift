@@ -320,14 +320,6 @@ struct SettingsView: View {
     var body: some View {
         Form {
                 Section {
-                    Button("Setup guide & server options", systemImage: "book") { model.showsSetupGuide = true }
-                        .accessibilityIdentifier("setup.reopen")
-                    Button("Find a server", systemImage: "network") { discovery = true }
-                        .accessibilityIdentifier("network.discover")
-                    Button("Tailscale & network guide", systemImage: "network.badge.shield.half.filled") { networkGuide = true }
-                        .accessibilityIdentifier("network.guide")
-                }
-                Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 12) {
                             Label {
@@ -439,6 +431,14 @@ struct SettingsView: View {
                     Section { status(message).accessibilityIdentifier("savedConnection") }
                 }
 
+                Section {
+                    Button("Setup guide & server options", systemImage: "book") { model.showsSetupGuide = true }
+                        .accessibilityIdentifier("setup.reopen")
+                    Button("Find a server", systemImage: "network") { discovery = true }
+                        .accessibilityIdentifier("network.discover")
+                    Button("Tailscale & network guide", systemImage: "network.badge.shield.half.filled") { networkGuide = true }
+                        .accessibilityIdentifier("network.guide")
+                }
                 Section {
                     Button("Reset app setup…", role: .destructive) { confirmingReset = true }
                         .accessibilityIdentifier("setup.reset")

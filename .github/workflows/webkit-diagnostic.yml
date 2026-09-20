@@ -114,6 +114,7 @@ jobs:
                   WebKitPaintProbe: all
                   WebKitPaintProbeTests: [test]
               test:
+                config: Release
                 targets: [WebKitPaintProbeTests]
           EOF
           cat > PaintTests.swift <<'EOF'

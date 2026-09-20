@@ -15,8 +15,6 @@ final class SettingsModel {
             try AppEnvironment.store.clear()
             ArchiveSystemIndex.connectionChanged()
             #if os(macOS)
-            try AppEnvironment.configurationStore(account: "profile-local").clear()
-            try AppEnvironment.configurationStore(account: "profile-remote").clear()
             localServer.cancel()
             connectionMode = .remote
             UserDefaults.standard.removeObject(forKey: "connectionMode")
@@ -62,6 +60,7 @@ final class SettingsModel {
         adminDestination = url; adminNavigationID = UUID()
     }
 
+    var server_id: String?
     var serverText = ""
     var tokenText = ""
     var verifiedServer: URL?
@@ -112,36 +111,26 @@ final class SettingsModel {
     let localServer = LocalServer()
 
     private func savedConfiguration(for mode: ConnectionMode) throws -> ServerConfiguration? {
-        if let saved = try AppEnvironment.configurationStore(account: "profile-\(mode.rawValue)").load() { return saved }
-        // Older companion handoffs saved localhost credentials as a remote
-        // profile. Reuse only that exact local server's key, never a remote key.
-        if mode == .local,
-           let saved = try AppEnvironment.configurationStore(account: "profile-remote").load(),
-           [ServerAddress.localAPI, ServerAddress.localServer].contains(saved.server) { return saved }
-        return nil
+        let registry = try AppEnvironment.store.load()
+        return registry.servers.first { configuration in
+            let local = [ServerAddress.localAPI, ServerAddress.localServer].contains(configuration.server)
+            return mode == .local ? local : !local
+        }
     }
 
     func selectConnection(_ mode: ConnectionMode) {
         guard mode != connectionMode else { return }
         do {
-            // Preserve the last saved remote connection before selecting the local
-            // profile. Never persist an untested draft as working credentials.
-            if let active = try AppEnvironment.store.load() {
-                try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").save(active)
-            }
             let config = try savedConfiguration(for: mode)
             serverChanged()
             connectionMode = mode
             UserDefaults.standard.set(mode.rawValue, forKey: "connectionMode")
             serverText = config?.server.absoluteString ?? (mode == .local ? LocalServer.address : "")
             tokenText = config?.token ?? ""; persona = config?.persona ?? ""
-            // Prevent sharing to the previously selected profile while setting up
-            // the new one. The profile itself remains safely stored in Keychain.
-            try AppEnvironment.store.clear()
-            if let config {
-                try AppEnvironment.store.save(config)
-                savedMessage = "Saved connection restored for sharing. Checking server connection…"
-            }
+            server_id = config?.id
+            var registry = try AppEnvironment.store.load()
+            registry.active_server_id = config?.id
+            try AppEnvironment.store.save(registry)
             ArchiveSystemIndex.connectionChanged()
         } catch { errorMessage = error.localizedDescription }
         scheduleValidation()
@@ -174,10 +163,11 @@ final class SettingsModel {
             // never inherit a remote server's URL or API key.
             let config = try savedConfiguration(for: connectionMode)
             #else
-            let config = try AppEnvironment.store.load()
+            let config = try AppEnvironment.store.load().active_server
             #endif
             if let config {
                 dismissSetupGuide()
+                server_id = config.id
                 serverText = config.server.absoluteString
                 tokenText = config.token
                 persona = config.persona ?? ""
@@ -186,9 +176,7 @@ final class SettingsModel {
             #if os(macOS)
             if config == nil && connectionMode == .local { serverText = LocalServer.address }
             #endif
-            // Existing users can have an active connection from an older app
-            // version, before separate Mac connection profiles were introduced.
-            if try AppEnvironment.store.load() != nil { dismissSetupGuide() }
+            if try AppEnvironment.store.load().active_server != nil { dismissSetupGuide() }
         } catch { errorMessage = error.localizedDescription }
         scheduleValidation()
     }
@@ -198,6 +186,7 @@ final class SettingsModel {
         sidebarStatus = nil
         validation?.cancel(); busy = false; serverError = nil; tokenError = nil
         // A changed destination must not silently receive the previous server’s key.
+        server_id = nil
         tokenText = ""
         verifiedServer = nil; verifiedToken = nil; adminDestination = nil
         personas = []; persona = ""; personaError = nil; personasLoaded = false
@@ -297,11 +286,16 @@ final class SettingsModel {
 
     private func persistConnection() throws {
         guard let server = verifiedServer, let token = verifiedToken, token == tokenText else { return }
-        let configuration = ServerConfiguration(server: server, token: token, persona: persona.isEmpty ? nil : persona)
-        #if os(macOS)
-        try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").save(configuration)
-        #endif
-        try AppEnvironment.store.save(configuration)
+        var registry = try AppEnvironment.store.load()
+        let existing = registry.servers.first { $0.id == server_id }
+            ?? registry.servers.first { $0.server == server }
+        let configuration = ServerConfiguration(id: existing?.id ?? UUID().uuidString.lowercased(),
+            name: existing?.name ?? "", server: server, token: token, persona: persona.isEmpty ? nil : persona)
+        registry.upsert(configuration)
+        registry.active_server_id = configuration.id
+        registry.default_server_ids = [configuration.id]
+        try AppEnvironment.store.save(registry)
+        server_id = configuration.id
         ArchiveSystemIndex.connectionChanged()
     }
 

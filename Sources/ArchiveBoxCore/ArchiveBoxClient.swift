@@ -54,7 +54,7 @@ public final class ArchiveBoxClient: Sendable {
         let body = try JSONEncoder().encode(TokenRequest(token: token))
         let data = try await request(server, path: "api/v1/auth/check_api_token", body: body)
         let result = try JSONDecoder().decode(TokenResponse.self, from: data)
-        guard result.success == true, result.userID != nil else {
+        guard result.success == true, result.user_id != nil else {
             throw ArchiveBoxError.message("This API key is invalid or expired. Create a new key in your ArchiveBox server’s admin settings.")
         }
     }
@@ -124,36 +124,38 @@ public final class ArchiveBoxClient: Sendable {
               result.confirms(urls: urls) else {
             throw ArchiveBoxError.message("The server did not confirm the submission. Check your ArchiveBox server before trying again.")
         }
-        return result
+        return SubmissionReceipt(server_id: configuration.id, crawl_id: result.crawl_id, queued_urls: result.queued_urls)
     }
 
     public func updateTags(_ tags: [String], for receipt: SubmissionReceipt, configuration: ServerConfiguration) async throws {
-        guard let crawlID = receipt.crawlID, !crawlID.isEmpty else {
+        let crawl_id = receipt.crawl_id
+        guard receipt.server_id == configuration.id, !crawl_id.isEmpty else {
             throw ArchiveBoxError.message("The server did not return a crawl ID for updating tags.")
         }
         let tags = ArchiveTags.normalize(tags)
         let body = try JSONEncoder().encode(TagUpdate(tags: tags))
         // Snapshots are created asynchronously. Updating their parent crawl also
         // updates existing snapshots and supplies tags to ones created later.
-        let data = try await request(configuration.server, path: "api/v1/crawls/crawl/\(crawlID)",
+        let data = try await request(configuration.server, path: "api/v1/crawls/crawl/\(crawl_id)",
                                      body: body, token: configuration.token, method: "PATCH")
         let result = try JSONDecoder().decode(TagUpdateResponse.self, from: data)
-        guard result.id == crawlID,
+        guard result.id == crawl_id,
               Set(ArchiveTags.normalize([result.tags_str]).map { $0.lowercased() }) == Set(tags.map { $0.lowercased() }) else {
             throw ArchiveBoxError.message("The server did not confirm the tag update.")
         }
     }
 
     public func removeSubmission(_ receipt: SubmissionReceipt, configuration: ServerConfiguration) async throws {
-        guard let crawlID = receipt.crawlID, !crawlID.isEmpty else {
+        let crawl_id = receipt.crawl_id
+        guard receipt.server_id == configuration.id, !crawl_id.isEmpty else {
             throw ArchiveBoxError.message("The server did not return a crawl ID for removal.")
         }
         // Delete only the crawl returned by this share, never all captures of its URL.
         // The server cancels its workers before removing its snapshots.
-        let data = try await request(configuration.server, path: "api/v1/crawls/crawl/\(crawlID)",
+        let data = try await request(configuration.server, path: "api/v1/crawls/crawl/\(crawl_id)",
                                      token: configuration.token, method: "DELETE")
         let result = try JSONDecoder().decode(RemovalResponse.self, from: data)
-        guard result.success, result.crawl_id == crawlID else {
+        guard result.success, result.crawl_id == crawl_id else {
             throw ArchiveBoxError.message("The server did not confirm removal. Check your archive before trying again.")
         }
     }
@@ -223,8 +225,8 @@ public enum ArchiveTags {
         return labels.count > suffixCount ? labels[labels.count - suffixCount - 1] : nil
     }
 
-    public static func recentlyUsed(server: URL, adding tags: [String] = [], defaults: UserDefaults = .standard) -> [String] {
-        let key = "share.recentTags." + server.absoluteString
+    public static func recentlyUsed(server_id: String, adding tags: [String] = [], defaults: UserDefaults = .standard) -> [String] {
+        let key = "share.recentTags." + server_id
         let previous = defaults.stringArray(forKey: key) ?? []
         guard !tags.isEmpty else { return previous }
         // Only confirmed additions call this, so failures/removals never become
@@ -263,8 +265,7 @@ private struct APISchema: Decodable {
 private struct TokenRequest: Encodable { let token: String }
 private struct TokenResponse: Decodable {
     let success: Bool?
-    let userID: String?
-    enum CodingKeys: String, CodingKey { case success; case userID = "user_id" }
+    let user_id: String?
 }
 public struct ServerPersona: Decodable, Sendable, Identifiable {
     public let id: String
@@ -278,22 +279,19 @@ private struct AddRequest: Encodable { let urls: [String]; let persona: String; 
 private struct AddResponse: Decodable {
     let success: Bool
     let errors: [String]?
-    let result: SubmissionReceipt?
+    let result: AddResult?
 }
-public struct SubmissionReceipt: Decodable, Sendable {
-    public let crawlID: String?
-    public let queuedURLs: [String]?
-    enum CodingKeys: String, CodingKey {
-        case crawlID = "crawl_id", queuedURLs = "queued_urls"
-    }
+public struct SubmissionReceipt: Codable, Sendable {
+    public let server_id: String
+    public let crawl_id: String
+    public let queued_urls: [String]
+}
+private struct AddResult: Decodable {
+    let crawl_id: String
+    let queued_urls: [String]
 
     func confirms(urls: [URL]) -> Bool {
-        // 0.9 creates snapshots asynchronously: the persisted crawl and echoed URLs
-        // confirm acceptance even when no snapshot rows exist yet.
-        if let crawlID, !crawlID.isEmpty, let queuedURLs {
-            return Set(urls.map(\.absoluteString)).isSubset(of: Set(queuedURLs))
-        }
-        return false
+        !crawl_id.isEmpty && Set(urls.map(\.absoluteString)).isSubset(of: Set(queued_urls))
     }
 }
 

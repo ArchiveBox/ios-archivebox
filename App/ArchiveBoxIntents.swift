@@ -18,7 +18,7 @@ struct SaveURLsToArchiveBoxIntent: AppIntent {
     static var parameterSummary: some ParameterSummary { Summary("Save \(\.$urls) to ArchiveBox") }
 
     func perform() async throws -> some IntentResult & ReturnsValue<[URL]> & ProvidesDialog {
-        let configuration = try AppEnvironment.requireConfiguration()
+        let configuration = try AppEnvironment.requireSubmissionConfiguration()
         let links = SharedLinks.unique(urls)
         _ = try await ArchiveBoxClient().submit(urls: links, configuration: configuration)
         return .result(value: links, dialog: "Your server accepted \(links.count) URL(s) for archiving.")
@@ -118,7 +118,7 @@ struct ArchivePageQuery: EntityStringQuery {
     }
 
     func suggestedEntities() async throws -> [ArchiveBoxSearchResult] {
-        guard let configuration = try AppEnvironment.store.load() else { return [] }
+        guard let configuration = try AppEnvironment.store.load().active_server else { return [] }
         return try await ArchiveBoxClient().snapshots(limit: 10, configuration: configuration)
             .map { ArchiveBoxSearchResult(snapshot: $0, server: configuration.server) }
     }

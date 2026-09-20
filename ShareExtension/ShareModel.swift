@@ -37,11 +37,11 @@ final class ShareModel {
             try Task.checkCancellation()
             urls = SharedLinks.unique(links.filter(SharedLinks.isWebURL))
             guard !urls.isEmpty else { throw ArchiveBoxError.message("This item doesn’t contain a web link. Share a URL from your browser or another app.") }
-            guard let configuration = try AppEnvironment.store.load() else {
+            guard let configuration = try AppEnvironment.store.load().default_servers.first else {
                 throw ArchiveBoxError.message("Open the ArchiveBox app first to test and save your server and API key, then share this link again.")
             }
             self.configuration = configuration
-            recentTags = ArchiveTags.recentlyUsed(server: configuration.server)
+            recentTags = ArchiveTags.recentlyUsed(server_id: configuration.id)
             state = .ready
             await submit()
         } catch {
@@ -123,7 +123,7 @@ final class ShareModel {
                 do {
                     try await ArchiveBoxClient().updateTags(pending, for: receipt, configuration: configuration)
                     let added = pending.filter { tag in !savedTags.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame } }
-                    recentTags = ArchiveTags.recentlyUsed(server: configuration.server, adding: added)
+                    recentTags = ArchiveTags.recentlyUsed(server_id: configuration.id, adding: added)
                     savedTags = pending
                 } catch {
                     tagError = error.localizedDescription

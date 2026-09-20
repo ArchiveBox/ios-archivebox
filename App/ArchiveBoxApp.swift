@@ -110,7 +110,7 @@ final class ArchiveBoxServices: NSObject, NSApplicationDelegate, UNUserNotificat
             let allowed = (try? await center.requestAuthorization(options: [.alert])) ?? false
             let content = UNMutableNotificationContent()
             do {
-                guard let configuration = try AppEnvironment.store.load() else {
+                guard let configuration = try AppEnvironment.store.load().default_servers.first else {
                     throw ArchiveBoxError.message("Open ArchiveBox Connection Settings and configure a server and API key first.")
                 }
                 _ = try await ArchiveBoxClient().submit(urls: links, configuration: configuration)

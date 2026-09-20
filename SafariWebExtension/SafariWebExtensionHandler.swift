@@ -8,18 +8,14 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         do {
             guard let item = context.inputItems.first as? NSExtensionItem,
                   let message = item.userInfo?[SFExtensionMessageKey] as? [String: Any],
-                  message["action"] as? String == "getConnection" else {
+                  message["action"] as? String == "get_server_registry",
+                  message["schema_version"] as? Int == 1 else {
                 throw ArchiveBoxError.message("Unsupported native message.")
             }
-            guard let configuration = try AppEnvironment.store.load() else {
-                throw ArchiveBoxError.message("Test and save a connection in the ArchiveBox app first.")
-            }
-            // Only this bundled extension can call its native handler;
-            // web content cannot read Keychain or invoke sendNativeMessage directly.
-            response.userInfo = [SFExtensionMessageKey: ["connection": [
-                "server": configuration.server.absoluteString,
-                "token": configuration.token,
-            ]]]
+            let registry = try AppEnvironment.store.load()
+            // Only this bundled extension can call its native handler.
+            let value = try JSONSerialization.jsonObject(with: JSONEncoder().encode(registry))
+            response.userInfo = [SFExtensionMessageKey: ["server_registry": value]]
         } catch {
             response.userInfo = [SFExtensionMessageKey: ["error": error.localizedDescription]]
         }

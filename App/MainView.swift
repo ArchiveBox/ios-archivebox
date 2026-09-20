@@ -182,7 +182,7 @@ struct MainView: View {
                     }
                     let snapshot = try await ArchiveBoxClient().snapshot(id: id, configuration: configuration)
                     try Task.checkCancellation()
-                    guard try AppEnvironment.store.load() == configuration else { return }
+                    guard try AppEnvironment.store.load().active_server == configuration else { return }
                     let page = ArchiveBoxSearchResult(snapshot: snapshot, server: server)
                     openedPage = OpenedPage(page: page, configuration: configuration)
                     if #available(iOS 27.0, macOS 27.0, *) {

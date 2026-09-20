@@ -6,7 +6,8 @@ import WebKit
 @MainActor public final class BrowserAuthentication {
     public let dataStore = WKWebsiteDataStore.nonPersistent()
     private let client = ArchiveBoxClient()
-    private var credentials: ServerConfiguration?
+    private struct Credentials: Equatable { let server: URL; let token: String }
+    private var credentials: Credentials?
     private var session: BrowserSession?
     private var pending: Task<Void, Error>?
     private var generation = UUID()
@@ -14,7 +15,7 @@ import WebKit
     public init() {}
 
     public func authenticate(server: URL, token: String, force: Bool = false) async throws {
-        let configuration = ServerConfiguration(server: server, token: token)
+        let configuration = Credentials(server: server, token: token)
         if !force, credentials == configuration,
            let session, session.cookie.expires > Date().timeIntervalSince1970 + 60 { return }
         if credentials == configuration, let pending { try await pending.value; return }

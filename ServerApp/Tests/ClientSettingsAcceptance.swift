@@ -13,7 +13,7 @@ import Foundation
             let deadline = Date().addingTimeInterval(15)
             while settings.verifiedToken == nil && Date() < deadline { try await Task.sleep(for: .milliseconds(100)) }
             guard settings.verifiedServer == ServerAddress.localAPI, settings.verifiedToken != nil,
-                  let saved = try AppEnvironment.configurationStore(account: "profile-local").load(),
+                  let saved = try AppEnvironment.store.load().servers.first(where: { $0.server == ServerAddress.localAPI }),
                   saved.server == ServerAddress.localAPI,
                   saved.token == settings.verifiedToken else { throw ArchiveBoxError.message("Local profile did not restore and verify its saved localhost key") }
             settings.useConnectionLink(saved.server, apiKey: saved.token)

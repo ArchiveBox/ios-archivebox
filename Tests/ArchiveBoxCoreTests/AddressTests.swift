@@ -23,12 +23,12 @@ import Testing
     let defaults = try #require(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite) }
     let server = URL(string: "https://archive.example")!
-    #expect(ArchiveTags.recentlyUsed(server: server, defaults: defaults).isEmpty)
-    #expect(ArchiveTags.recentlyUsed(server: server, adding: ["first", "second", "third"], defaults: defaults) == ["third", "second"])
-    #expect(ArchiveTags.recentlyUsed(server: server, adding: ["SECOND"], defaults: defaults) == ["SECOND", "third"])
+    #expect(ArchiveTags.recentlyUsed(server_id: server.absoluteString, defaults: defaults).isEmpty)
+    #expect(ArchiveTags.recentlyUsed(server_id: server.absoluteString, adding: ["first", "second", "third"], defaults: defaults) == ["third", "second"])
+    #expect(ArchiveTags.recentlyUsed(server_id: server.absoluteString, adding: ["SECOND"], defaults: defaults) == ["SECOND", "third"])
     let reloaded = try #require(UserDefaults(suiteName: suite))
-    #expect(ArchiveTags.recentlyUsed(server: server, defaults: reloaded) == ["SECOND", "third"])
-    #expect(ArchiveTags.recentlyUsed(server: URL(string: "https://other.example")!, defaults: defaults).isEmpty)
+    #expect(ArchiveTags.recentlyUsed(server_id: server.absoluteString, defaults: reloaded) == ["SECOND", "third"])
+    #expect(ArchiveTags.recentlyUsed(server_id: "other-server", defaults: defaults).isEmpty)
 }
 
 @Test func normalizesPastedAddresses() throws {
@@ -77,7 +77,7 @@ import Testing
 }
 
 @Test func configurationsRoundTripWithAnOptionalPersona() throws {
-    let stored = Data(#"{"server":"https://archive.example","token":"test-only"}"#.utf8)
+    let stored = Data(#"{"id":"00000000-0000-4000-8000-000000000001","name":"Home","server":"https://archive.example","token":"test-only","persona":null}"#.utf8)
     let configuration = try JSONDecoder().decode(ServerConfiguration.self, from: stored)
     #expect(configuration.persona == nil)
     #expect(configuration.server.absoluteString == "https://archive.example")

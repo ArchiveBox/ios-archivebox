@@ -34,11 +34,12 @@ struct IntegrationChecks {
         }
         print("PASS: fetched \(personas.count) server personas")
         let url = URL(string: "https://example.com/?archivebox-ios-integration=\(UUID().uuidString)")!
-        let result = try await client.submit(urls: [url], configuration: .init(server: server, token: token, persona: selectedPersona))
-        guard let crawlID = result.crawlID else { fatalError("No crawl ID returned") }
-        print("PASS: accepted \(url) as crawl \(crawlID)")
+        let configuration = ServerConfiguration(server: server, token: token, persona: selectedPersona)
+        let result = try await client.submit(urls: [url], configuration: configuration)
+        let crawl_id = result.crawl_id
+        print("PASS: accepted \(url) as crawl \(crawl_id)")
         // Verify the durable server-side crawl independently of the submission response.
-        var request = URLRequest(url: server.appending(path: "api/v1/crawls/crawl/" + crawlID))
+        var request = URLRequest(url: server.appending(path: "api/v1/crawls/crawl/" + crawl_id))
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200,
@@ -48,7 +49,6 @@ struct IntegrationChecks {
         }
         print("PASS: saved URL verified through crawl API")
 
-        let configuration = ServerConfiguration(server: server, token: token, persona: selectedPersona)
         try await client.updateTags(["share-test", "read later"], for: result, configuration: configuration)
         // The share sheet can finish tagging before the runner creates snapshots.
         // Create the real child through REST, then verify inherited and edited tags.
@@ -56,7 +56,7 @@ struct IntegrationChecks {
         snapshotRequest.httpMethod = "POST"
         snapshotRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         snapshotRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        snapshotRequest.httpBody = try JSONSerialization.data(withJSONObject: ["url": url.absoluteString, "crawl_id": crawlID])
+        snapshotRequest.httpBody = try JSONSerialization.data(withJSONObject: ["url": url.absoluteString, "crawl_id": crawl_id])
         let (snapshotData, snapshotResponse) = try await URLSession.shared.data(for: snapshotRequest)
         guard (snapshotResponse as? HTTPURLResponse)?.statusCode == 200,
               let snapshot = try JSONSerialization.jsonObject(with: snapshotData) as? [String: Any],
@@ -94,7 +94,7 @@ struct IntegrationChecks {
         try await client.removeSubmission(result, configuration: configuration)
         let (_, removedResponse) = try await URLSession.shared.data(for: request)
         guard (removedResponse as? HTTPURLResponse)?.statusCode == 404 else { fatalError("Removed crawl still exists") }
-        request.url = server.appending(path: "api/v1/crawls/crawl/" + otherShare.crawlID!)
+        request.url = server.appending(path: "api/v1/crawls/crawl/" + otherShare.crawl_id)
         let (_, otherResponse) = try await URLSession.shared.data(for: request)
         guard (otherResponse as? HTTPURLResponse)?.statusCode == 200 else { fatalError("Removal affected another share of the same URL") }
         try await client.removeSubmission(otherShare, configuration: configuration)

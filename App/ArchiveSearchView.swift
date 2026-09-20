@@ -17,7 +17,7 @@ struct ArchiveSearchView: View {
 
     private var configuration: ServerConfiguration? {
         guard let server = settings.verifiedServer, let token = settings.verifiedToken else { return nil }
-        return ServerConfiguration(server: server, token: token, persona: settings.persona.isEmpty ? nil : settings.persona)
+        return ServerConfiguration(id: settings.server_id ?? "", server: server, token: token, persona: settings.persona.isEmpty ? nil : settings.persona)
     }
 
     var body: some View {

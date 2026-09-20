@@ -14,7 +14,7 @@ enum ArchiveSystemIndex {
         let previous = pending
         let operation = Task {
             _ = try? await previous?.value
-            let current = try AppEnvironment.store.load()
+            let current = try AppEnvironment.store.load().active_server
             let scope = current.map { SHA256.hash(data: Data(($0.server.absoluteString + "\n" + $0.token).utf8)).map { String(format: "%02x", $0) }.joined() }
             let defaults = UserDefaults.standard
             let index = CSSearchableIndex.default()

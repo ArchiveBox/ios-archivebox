@@ -48,7 +48,6 @@ struct ArchiveSearchView: View {
                     Link(destination: page.originalURL) { Label("Open Original", systemImage: "safari") }
                     ShareLink(item: page.originalURL) { Label("Share Original URL", systemImage: "square.and.arrow.up") }
                     ShareLink(item: page.archiveURL) { Label("Share Archive URL", systemImage: "archivebox") }
-                    ShareLink(item: page.appURL) { Label("Share App Link", systemImage: "link") }
                 }
             }
             if results.count == limit && limit < 500 {

@@ -140,6 +140,76 @@ final class ArchiveBoxUITests: XCTestCase {
         attach("ArchiveBox Safari extension settings", app: settings)
     }
 
+    func testEnableSafariExtensionThroughSettings() throws {
+        continueAfterFailure = false
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settings.terminate()
+        let app = XCUIApplication()
+        app.launch()
+        skipIntroductionIfNeeded(app)
+        openScreen("Add URLs", app: app)
+        let safari = app.buttons["Safari"]
+        for _ in 0..<8 where !safari.isHittable { app.swipeUp() }
+        XCTAssertTrue(safari.isHittable, app.debugDescription)
+        safari.tap()
+        let instructions = app.alerts["Enable ArchiveBox in Safari"]
+        XCTAssertTrue(instructions.waitForExistence(timeout: 5), app.debugDescription)
+        instructions.buttons["OK"].tap()
+        if !settings.navigationBars["ArchiveBox"].waitForExistence(timeout: 5) {
+            let apps = settings.buttons["Apps"]
+            for _ in 0..<12 where !apps.isHittable { settings.swipeUp() }
+            XCTAssertTrue(apps.isHittable, settings.debugDescription)
+            apps.tap()
+            let safariSettings = settings.buttons["Safari"]
+            for _ in 0..<30 where !safariSettings.isHittable { settings.swipeUp() }
+            XCTAssertTrue(safariSettings.isHittable, settings.debugDescription)
+            safariSettings.tap()
+            let extensions = settings.cells["WEB_EXTENSIONS"]
+            for _ in 0..<20 where !extensions.isHittable {
+                if extensions.frame.minY < 116 { settings.swipeDown(velocity: .slow) }
+                else { settings.swipeUp(velocity: .slow) }
+            }
+            XCTAssertTrue(extensions.isHittable, settings.debugDescription)
+            extensions.tap()
+            let archiveBox = settings.cells["io.archivebox.ArchiveBox.Safari"]
+            XCTAssertTrue(archiveBox.waitForExistence(timeout: 5), settings.debugDescription)
+            archiveBox.tap()
+        }
+        XCTAssertTrue(settings.navigationBars["ArchiveBox"].waitForExistence(timeout: 5), settings.debugDescription)
+        let enabled = settings.switches.firstMatch
+        XCTAssertTrue(enabled.exists, settings.debugDescription)
+        if (enabled.value as? String) != "1" { enabled.tap() }
+        XCTAssertEqual(enabled.value as? String, "1", settings.debugDescription)
+    }
+
+    // Run after enabling Safari's extension and screenshot uploads in its Configuration UI.
+    func testSafariCaptureWithScreenshotUpload() throws {
+        continueAfterFailure = false
+        XCUIApplication().launch()
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        safari.launch()
+        let captureURL = "https://example.com/?archivebox-safari-upload=\(UUID().uuidString)"
+        print("SAFARI_CAPTURE_URL=\(captureURL)")
+        let address = safari.textFields["Address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 10))
+        address.tap()
+        address.typeText(captureURL + "\n")
+        let pageMenu = safari.buttons["Page Menu"]
+        XCTAssertTrue(pageMenu.waitForExistence(timeout: 10))
+        pageMenu.tap()
+        let extensionButton = safari.buttons.containing(NSPredicate(format: "label CONTAINS %@", "ArchiveBox")).firstMatch
+        XCTAssertTrue(extensionButton.waitForExistence(timeout: 10))
+        extensionButton.tap()
+        let submitted = safari.staticTexts["Submitted to ArchiveBox Server at depth 0"]
+        XCTAssertTrue(submitted.waitForExistence(timeout: 30))
+        safari.buttons["Screenshot"].tap()
+        let uploaded = safari.staticTexts["Saved local screenshot and uploaded to ArchiveBox Server"]
+        XCTAssertTrue(uploaded.waitForExistence(timeout: 30), safari.debugDescription)
+        let screenshotSaved = safari.buttons.containing(NSPredicate(format: "label BEGINSWITH %@", "✓ Screenshot")).firstMatch
+        XCTAssertTrue(screenshotSaved.exists)
+        attach("Safari screenshot submitted", app: safari)
+    }
+
     func testVerifiedKeyPersistsWithoutSave() throws {
         continueAfterFailure = false
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])

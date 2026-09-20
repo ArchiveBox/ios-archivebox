@@ -342,7 +342,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     private func showSidebar(_ app: XCUIApplication) {
         #if os(iOS)
         declinePasswordPrompt()
-        let sidebar = app.collectionViews.containing(.button, identifier: "sidebar.add").firstMatch
+        let sidebar = app.collectionViews["sidebar"]
         if !sidebar.isHittable {
             let back = app.buttons["navigation.sidebar"].exists ? app.buttons["navigation.sidebar"] : app.navigationBars.buttons.firstMatch
             XCTAssertTrue(back.exists, app.debugDescription)
@@ -367,7 +367,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             list.scroll(byDeltaX: 0, deltaY: -450)
         }
         #else
-        let surface = app.collectionViews.containing(.button, identifier: "sidebar.add").firstMatch
+        let surface = app.collectionViews["sidebar"]
         // Scroll the actual sidebar surface in both compact and regular split views.
         for _ in 0..<6 {
             if item.isHittable { break }

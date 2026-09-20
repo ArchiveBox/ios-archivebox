@@ -244,6 +244,7 @@ struct MainView: View {
                 Section { rows([.settings]) }
             }
             .listStyle(.sidebar)
+            .accessibilityIdentifier("sidebar")
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 SidebarSummary(settings: settings, authentication: pages.authentication, sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
             }

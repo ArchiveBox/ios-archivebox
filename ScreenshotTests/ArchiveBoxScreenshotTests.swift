@@ -93,7 +93,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(guide)
         XCTAssertTrue(app.buttons["network.discover"].waitForExistence(timeout: 10), app.debugDescription)
         capture("tailscale", app: app)
-        press(app.buttons["network.discover"])
+        press(app.buttons["Done"])
+        let discover = app.buttons["network.discover"]
+        scrollTo(discover, app: app)
+        press(discover)
         XCTAssertTrue(app.buttons["discovery.search"].waitForExistence(timeout: 10), app.debugDescription)
         capture("discovery", app: app)
     }

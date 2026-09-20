@@ -1,0 +1,14 @@
+ShareExtension/ShareModel.swift
+  h_923c208e183a7b 76-77,92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "35ab9dcdb2b2378f6e24ffa2493f4335c379dcda",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

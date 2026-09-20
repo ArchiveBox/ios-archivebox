@@ -344,7 +344,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         declinePasswordPrompt()
         let sidebar = app.collectionViews.containing(.button, identifier: "sidebar.add").firstMatch
         if !sidebar.isHittable {
-            let back = app.navigationBars.buttons.firstMatch
+            let back = app.buttons["navigation.sidebar"]
             XCTAssertTrue(back.exists, app.debugDescription)
             press(back)
             expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: sidebar)

@@ -3,6 +3,13 @@ layout: default
 ---
 {% comment %}The README is the only source of product copy, for both GitHub and the landing page.{% endcomment %}
 {% capture readme %}{% include README.md %}{% endcapture %}
-{% capture hero_gallery %}{% include hero-gallery.html %}{% endcapture %}
+{% capture hero_gallery %}{% include hero-gallery.html product="client" %}{% endcapture %}
 {% assign original_hero = '<p class="hero-screenshot" align="center"><img src="docs/screenshots/library-mac.png" width="1080" alt="ArchiveBox.app on macOS, showing saved snapshots and the Collection and Admin sidebar"></p>' %}
-{{ readme | replace: original_hero, hero_gallery | markdownify }}
+{% capture server_gallery %}{% include hero-gallery.html product="server" %}{% endcapture %}
+{% assign server_heading = '<h3 id="archivebox-serverapp">' %}
+{% capture server_with_gallery %}{{ server_gallery }}
+
+{{ server_heading }}{% endcapture %}
+{{ readme | replace: server_heading, server_with_gallery | replace: original_hero, hero_gallery | markdownify }}
+
+<script src="{{ "/assets/hero-gallery.js" | relative_url }}" defer></script>

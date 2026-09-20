@@ -1,0 +1,128 @@
+[
+  {
+    "id": "library-mac",
+    "path": "/docs/screenshots/library-mac.png",
+    "product": "client",
+    "platform": "macos",
+    "title": "Library Mac",
+    "width": 4320,
+    "height": 3132
+  },
+  {
+    "id": "home-iphone",
+    "path": "/docs/screenshots/home-iphone.png",
+    "product": "client",
+    "platform": "iphone",
+    "title": "Home Iphone",
+    "width": 1500,
+    "height": 3000
+  },
+  {
+    "id": "connection-mac",
+    "path": "/docs/screenshots/connection-mac.png",
+    "product": "client",
+    "platform": "macos",
+    "title": "Connection Mac",
+    "width": 4718592,
+    "height": 4292935744
+  },
+  {
+    "id": "connection-iphone",
+    "path": "/docs/screenshots/connection-iphone.png",
+    "product": "client",
+    "platform": "iphone",
+    "title": "Connection Iphone",
+    "width": 1500,
+    "height": 3000
+  },
+  {
+    "id": "share-iphone",
+    "path": "/docs/screenshots/share-iphone.png",
+    "product": "client",
+    "platform": "iphone",
+    "title": "Share Iphone",
+    "width": 1500,
+    "height": 3000
+  },
+  {
+    "id": "extension-iphone",
+    "path": "/docs/screenshots/extension-iphone.png",
+    "product": "client",
+    "platform": "iphone",
+    "title": "Extension Iphone",
+    "width": 1500,
+    "height": 3000
+  },
+  {
+    "id": "archive-mac",
+    "path": "/docs/screenshots/archive-mac.png",
+    "product": "client",
+    "platform": "macos",
+    "title": "Archive Mac",
+    "width": 4718592,
+    "height": 4292935744
+  },
+  {
+    "id": "archive-iphone",
+    "path": "/docs/screenshots/archive-iphone.png",
+    "product": "client",
+    "platform": "iphone",
+    "title": "Archive Iphone",
+    "width": 1206,
+    "height": 2622
+  },
+  {
+    "id": "persona",
+    "path": "/docs/screenshots/persona.png",
+    "product": "client",
+    "platform": "iphone",
+    "title": "Persona",
+    "width": 1206,
+    "height": 2622
+  },
+  {
+    "id": "settings",
+    "path": "/docs/screenshots/settings.png",
+    "product": "client",
+    "platform": "iphone",
+    "title": "Settings",
+    "width": 1206,
+    "height": 2622
+  },
+  {
+    "id": "server-mac",
+    "path": "/docs/screenshots/server-mac.png",
+    "product": "server",
+    "platform": "server",
+    "title": "Server Mac",
+    "width": 2584,
+    "height": 2092
+  },
+  {
+    "id": "server-shell",
+    "path": "/docs/screenshots/server-shell.png",
+    "product": "server",
+    "platform": "server",
+    "title": "Server Shell",
+    "width": 2584,
+    "height": 2092
+  },
+  {
+    "id": "server-activity",
+    "path": "/docs/screenshots/server-activity.png",
+    "product": "server",
+    "platform": "server",
+    "title": "Server Activity",
+    "width": 2584,
+    "height": 2092
+  },
+  {
+    "id": "server-clients",
+    "path": "/docs/screenshots/server-clients.png",
+    "product": "server",
+    "platform": "server",
+    "title": "Server Clients",
+    "width": 2584,
+    "height": 2092
+  }
+]

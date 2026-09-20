@@ -1,6 +1,5 @@
 (() => {
-  const gallery = document.querySelector('.hero-gallery');
-  if (!gallery) return;
+  document.querySelectorAll('.hero-gallery').forEach(gallery => {
   const viewport = gallery.querySelector('.hero-gallery-viewport');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let paused = reducedMotion.matches;
@@ -36,4 +35,5 @@
   reducedMotion.addEventListener('change', () => { paused = reducedMotion.matches; sync(); });
   document.addEventListener('visibilitychange', sync);
   new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync(); }).observe(gallery);
+  });
 })();

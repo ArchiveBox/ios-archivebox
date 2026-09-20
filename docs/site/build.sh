@@ -17,29 +17,30 @@ cp -R "$repo_dir/docs/icons" "$stage_dir/docs/"
 cp "$repo_dir/App/AppIcon.icon/Assets/ArchiveBox.png" "$stage_dir/App/AppIcon.icon/Assets/"
 cp "$repo_dir/App/Assets.xcassets/ShareSheetGuide.imageset/share-sheet.png" "$stage_dir/App/Assets.xcassets/ShareSheetGuide.imageset/"
 gallery_dir="${SCREENSHOT_GALLERY_DIR:-$repo_dir/build/screenshots/gallery}"
-if [[ ! -f "$gallery_dir/manifest.json" ]]; then
-    # First deployment still publishes the complete README and curated screenshots.
-    mkdir -p "$stage_dir/screenshots"
-    cp "$site_dir/screenshots/index.html" "$stage_dir/screenshots/index.html"
-else
-uv run --no-project python - "$gallery_dir/manifest.json" <<'CHECK'
-import json, os, sys
-manifest = json.load(open(sys.argv[1]))
-if not manifest['complete'] and os.environ.get('ALLOW_INCOMPLETE_SCREENSHOTS') != '1':
-    raise SystemExit('Incomplete screenshot galleries are local previews only')
-# Capture provenance is independent of the revision of the website layout.
-if not manifest.get('revision') or not manifest.get('captures'):
-    raise SystemExit('Screenshot manifest must retain its capture provenance')
-from pathlib import Path
-for capture in manifest['captures']:
-    image = Path(sys.argv[1]).parent / capture['path']
-    if not image.is_file():
-        raise SystemExit(f'Missing screenshot: {image}')
-CHECK
 mkdir -p "$stage_dir/_data" "$stage_dir/screenshots"
-cp "$gallery_dir/manifest.json" "$stage_dir/_data/screenshots.json"
-cp -R "$gallery_dir/." "$stage_dir/screenshots/"
 cp "$site_dir/screenshots/index.html" "$stage_dir/screenshots/index.html"
-fi
+uv run --no-project python - "$site_dir/documentation-screenshots.json" "$gallery_dir" "$stage_dir" <<'GALLERY'
+import json, os, shutil, sys
+from pathlib import Path
+catalog, generated, stage = map(Path, sys.argv[1:])
+captures = json.loads(catalog.read_text())
+manifest_path = generated / 'manifest.json'
+if manifest_path.exists():
+    manifest = json.loads(manifest_path.read_text())
+    if not manifest['complete'] and os.environ.get('ALLOW_INCOMPLETE_SCREENSHOTS') != '1':
+        raise SystemExit('Incomplete screenshot galleries are local previews only')
+    if not manifest.get('revision') or not manifest.get('captures'):
+        raise SystemExit('Missing capture provenance')
+    current = []
+    for capture in manifest['captures']:
+        image = generated / capture['path']
+        if not image.is_file():
+            raise SystemExit(f'Missing screenshot: {image}')
+        current.append(dict(capture, product='server' if capture['platform'] == 'server' else 'client', path='/screenshots/' + capture['path']))
+    platforms = {c['platform'] for c in current}
+    captures = [c for c in captures if c['platform'] not in platforms] + current
+    shutil.copytree(generated, stage / 'screenshots', dirs_exist_ok=True)
+(stage / '_data/gallery.json').write_text(json.dumps(captures))
+GALLERY
 cd "$site_dir"
 BUNDLE_GEMFILE="$site_dir/Gemfile" bundle exec jekyll build --source "$stage_dir" --destination "$site_dir/_site" "$@"

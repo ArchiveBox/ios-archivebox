@@ -278,3 +278,9 @@ html { scroll-behavior: smooth; scroll-padding-top: clamp(96px, 25vh, 240px); }
 .hero-gallery-card { display: block; flex: none; text-decoration: none !important; }
 .hero-gallery-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .markdown-body .hero-gallery-card img { display: block; height: clamp(260px, 33vw, 460px); width: auto; max-width: none; object-fit: contain; border-radius: 10px; }
+
+.markdown-body .hero-gallery--server .hero-gallery-card img { height: clamp(240px, 28vw, 360px); }
+.gallery-products { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 36px; }
+.gallery-products button { padding: 14px 22px; border: 1px solid var(--line); border-radius: 28px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+.gallery-products button[aria-selected="true"] { background: var(--accent); color: white; }
+.native-gallery figure { padding: 0; border: 0; background: none; }

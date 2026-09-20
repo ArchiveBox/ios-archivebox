@@ -11,6 +11,7 @@ cp "$site_dir/CNAME" "$site_dir/_config.yml" "$site_dir/index.html" "$stage_dir/
 cp -R "$site_dir/_layouts" "$site_dir/assets" "$stage_dir/"
 mkdir -p "$stage_dir/_includes" "$stage_dir/docs/screenshots" "$stage_dir/App/AppIcon.icon/Assets" "$stage_dir/App/Assets.xcassets/ShareSheetGuide.imageset"
 cp "$repo_dir/README.md" "$stage_dir/_includes/README.md"
+cp "$site_dir/_includes/hero-gallery.html" "$stage_dir/_includes/"
 cp "$repo_dir/docs/screenshots/"{library-mac,home-iphone,extension-iphone}.png "$stage_dir/docs/screenshots/"
 cp -R "$repo_dir/docs/icons" "$stage_dir/docs/"
 cp "$repo_dir/App/AppIcon.icon/Assets/ArchiveBox.png" "$stage_dir/App/AppIcon.icon/Assets/"

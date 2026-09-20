@@ -1,0 +1,20 @@
+<section class="hero-gallery" aria-label="ArchiveBox on Mac and iPhone">
+  <div class="hero-gallery-toolbar"><span>YOUR ARCHIVE. EVERYWHERE.</span><div><a href="{{ '/screenshots/' | relative_url }}">Explore screenshots ↗</a><button type="button" class="hero-gallery-toggle" aria-pressed="false" hidden>Pause gallery</button></div></div>
+  <div class="hero-gallery-viewport" tabindex="0" aria-label="App screenshots. Scroll sideways to explore.">
+    <div class="hero-gallery-track">
+      <div class="hero-gallery-group">
+        {% if site.data.screenshots %}
+        {% for capture in site.data.screenshots.captures %}
+        {% assign image_path = '/screenshots/' | append: capture.path %}
+        <a class="hero-gallery-card" href="{{ image_path | relative_url }}?v={{ site.data.screenshots.revision }}"><img src="{{ image_path | relative_url }}?v={{ site.data.screenshots.revision }}" width="{{ capture.width }}" height="{{ capture.height }}" alt="{{ capture.title | escape }} on {{ capture.platform_label | escape }}" loading="lazy"><span>{{ capture.title }} <small>{{ capture.platform_label }}</small></span></a>
+        {% endfor %}
+        {% else %}
+        <a class="hero-gallery-card" href="{{ '/docs/screenshots/library-mac.png' | relative_url }}"><img src="{{ '/docs/screenshots/library-mac.png' | relative_url }}" width="4320" height="3132" alt="ArchiveBox on Mac, showing saved snapshots and collection navigation" fetchpriority="high"><span>Your saved web <small>Mac</small></span></a>
+        <a class="hero-gallery-card" href="{{ '/docs/screenshots/home-iphone.png' | relative_url }}"><img src="{{ '/docs/screenshots/home-iphone.png' | relative_url }}" width="1500" height="3000" alt="ArchiveBox on iPhone with collection, tags, and server tools"><span>Your archive, on the go <small>iPhone</small></span></a>
+        <a class="hero-gallery-card" href="{{ '/docs/screenshots/extension-iphone.png' | relative_url }}"><img src="{{ '/docs/screenshots/extension-iphone.png' | relative_url }}" width="1500" height="3000" alt="ArchiveBox Safari extension confirming a saved page"><span>Save straight from Safari <small>Safari · iPhone</small></span></a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+<script src="{{ '/assets/hero-gallery.js' | relative_url }}" defer></script>

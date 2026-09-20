@@ -91,8 +91,19 @@ import WebKit
                 // Leave room for the native menu button inside the web header.
                 const style = document.createElement('style');
                 style.textContent = `
-                    #header.archivebox-app-header, .header-top {
+                    #header.archivebox-app-header {
                         box-sizing:border-box; min-height:60px; padding-left:64px!important;
+                    }
+                    header:has(> .header-top), .header-top { background:#a51c50!important; }
+                    .header-top { padding-left:8px!important; padding-right:8px!important; }
+                    /* Reserve Back's hit area in the logo row, not every header row. */
+                    .header-top .header-left {
+                        box-sizing:border-box; padding-left:52px; min-height:48px;
+                        display:flex; align-items:center;
+                    }
+                    @container snapshot-header (max-width:480px) {
+                        .header-top .header-nav { grid-template-columns:74px minmax(0,1fr); }
+                        .header-top .header-url { align-self:center; }
                     }
                     @media (max-width:520px) {
                         #header.archivebox-app-header { padding-right:64px!important; }

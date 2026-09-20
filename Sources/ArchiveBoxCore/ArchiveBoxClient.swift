@@ -86,6 +86,10 @@ public final class ArchiveBoxClient: Sendable {
     public func search(query: String, limit: Int = 20, configuration: ServerConfiguration) async throws -> [ArchiveSnapshot] {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { throw ArchiveBoxError.message("Enter something to search for.") }
+        return try await snapshots(query: query, limit: limit, configuration: configuration)
+    }
+
+    public func snapshots(query: String = "", limit: Int = 50, configuration: ServerConfiguration) async throws -> [ArchiveSnapshot] {
         // Match the API's page-size ceiling; request one bounded result set so a
         // Shortcut cannot accidentally download the user's entire collection.
         guard (1...500).contains(limit) else { throw ArchiveBoxError.message("Choose between 1 and 500 results.") }
@@ -94,6 +98,13 @@ public final class ArchiveBoxClient: Sendable {
                                              URLQueryItem(name: "search_mode", value: "meta"),
                                              URLQueryItem(name: "limit", value: String(limit))])
         return try JSONDecoder().decode(SnapshotPage.self, from: data).items
+    }
+
+    public func snapshot(id: String, configuration: ServerConfiguration) async throws -> ArchiveSnapshot {
+        guard ArchiveRoute.isSnapshotID(id) else { throw ArchiveBoxError.message("Invalid archived page identifier.") }
+        let data = try await request(configuration.server, path: "api/v1/core/snapshot/\(id)", token: configuration.token,
+                                     query: [URLQueryItem(name: "with_archiveresults", value: "false")])
+        return try JSONDecoder().decode(ArchiveSnapshot.self, from: data)
     }
 
     public func submit(urls: [URL], configuration: ServerConfiguration) async throws -> SubmissionReceipt {

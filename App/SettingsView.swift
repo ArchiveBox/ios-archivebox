@@ -13,6 +13,7 @@ final class SettingsModel {
     func resetSetup() {
         do {
             try AppEnvironment.store.clear()
+            ArchiveSystemIndex.connectionChanged()
             #if os(macOS)
             try AppEnvironment.configurationStore(account: "profile-local").clear()
             try AppEnvironment.configurationStore(account: "profile-remote").clear()
@@ -141,6 +142,7 @@ final class SettingsModel {
                 try AppEnvironment.store.save(config)
                 savedMessage = "Saved connection restored for sharing. Checking server connection…"
             }
+            ArchiveSystemIndex.connectionChanged()
         } catch { errorMessage = error.localizedDescription }
         scheduleValidation()
     }
@@ -300,6 +302,7 @@ final class SettingsModel {
         try AppEnvironment.configurationStore(account: "profile-\(connectionMode.rawValue)").save(configuration)
         #endif
         try AppEnvironment.store.save(configuration)
+        ArchiveSystemIndex.connectionChanged()
     }
 
 }

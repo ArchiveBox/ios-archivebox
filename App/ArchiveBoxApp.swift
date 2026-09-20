@@ -23,6 +23,11 @@ struct ArchiveBoxApp: App {
             CommandGroup(replacing: .newItem) {
                 OpenAddURLs(navigationID: $addNavigationID)
             }
+            CommandGroup(after: .textEditing) {
+                Button("Search Archive…", systemImage: "magnifyingglass") {
+                    ArchiveNavigation.shared.open(.search(""))
+                }.keyboardShortcut("f", modifiers: .command)
+            }
             CommandGroup(replacing: .appInfo) {
                 Button("About ArchiveBox") { AppInformation.showAbout() }
             }

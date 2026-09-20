@@ -15,9 +15,23 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "5FFDBAD111C77C63402E4403"
-               BuildableName = "ArchiveBoxMac.app"
-               BlueprintName = "ArchiveBoxMac"
+               BlueprintIdentifier = "2F354F6B7436080F5267E285"
+               BuildableName = "ArchiveBox.app"
+               BlueprintName = "ArchiveBox"
+               ReferencedContainer = "container:ArchiveBox.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "5ED15DDE4B1A343D311A0068"
+               BuildableName = "ArchiveBoxScreenshots.xctest"
+               BlueprintName = "ArchiveBoxScreenshots"
                ReferencedContainer = "container:ArchiveBox.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -27,19 +41,44 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
+      shouldUseLaunchSchemeArgsEnv = "NO"
       onlyGenerateCoverageForSpecifiedTargets = "NO">
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "5FFDBAD111C77C63402E4403"
-            BuildableName = "ArchiveBoxMac.app"
-            BlueprintName = "ArchiveBoxMac"
+            BlueprintIdentifier = "2F354F6B7436080F5267E285"
+            BuildableName = "ArchiveBox.app"
+            BlueprintName = "ArchiveBox"
             ReferencedContainer = "container:ArchiveBox.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "5ED15DDE4B1A343D311A0068"
+               BuildableName = "ArchiveBoxScreenshots.xctest"
+               BlueprintName = "ArchiveBoxScreenshots"
+               ReferencedContainer = "container:ArchiveBox.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
+      <CommandLineArguments>
+      </CommandLineArguments>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "ARCHIVEBOX_TEST_SERVER"
+            value = "$(ARCHIVEBOX_TEST_SERVER)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "ARCHIVEBOX_TEST_TOKEN"
+            value = "$(ARCHIVEBOX_TEST_TOKEN)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -55,9 +94,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "5FFDBAD111C77C63402E4403"
-            BuildableName = "ArchiveBoxMac.app"
-            BlueprintName = "ArchiveBoxMac"
+            BlueprintIdentifier = "2F354F6B7436080F5267E285"
+            BuildableName = "ArchiveBox.app"
+            BlueprintName = "ArchiveBox"
             ReferencedContainer = "container:ArchiveBox.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -72,9 +111,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "5FFDBAD111C77C63402E4403"
-            BuildableName = "ArchiveBoxMac.app"
-            BlueprintName = "ArchiveBoxMac"
+            BlueprintIdentifier = "2F354F6B7436080F5267E285"
+            BuildableName = "ArchiveBox.app"
+            BlueprintName = "ArchiveBox"
             ReferencedContainer = "container:ArchiveBox.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

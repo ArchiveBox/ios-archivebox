@@ -3,6 +3,12 @@ import Foundation
 
 // The client, share extension, and Safari native handler use the same verified connection.
 enum AppEnvironment {
+    static func requireConfiguration() throws -> ServerConfiguration {
+        guard let configuration = try store.load() else {
+            throw ArchiveBoxError.message("Open ArchiveBox → Connection Settings and save a server URL and API key first.")
+        }
+        return configuration
+    }
     static var store: ConfigurationStore {
         configurationStore(account: "server")
     }

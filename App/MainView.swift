@@ -1,6 +1,8 @@
 import SwiftUI
 import ArchiveBoxCore
 import UserNotifications
+import AppIntents
+import CoreSpotlight
 
 struct MainView: View {
     @Environment(\.openURL) private var openURL
@@ -19,14 +21,20 @@ struct MainView: View {
     @State private var reloadIDs: [Screen: UUID] = [:]
     @State private var compactColumn: NavigationSplitViewColumn = .detail
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    @State private var archiveNavigation = ArchiveNavigation.shared
+    @State private var searchQuery = ""
+    @State private var openedPage: ArchiveBoxSearchResult?
+    @State private var openedConfiguration: ServerConfiguration?
+    @State private var routeError: String?
 
     private enum Screen: String, CaseIterable {
-        case add, agent, activity, crawls, schedules, snapshots, results, tags, admin, users, personas, keys, webhooks
+        case add, search, agent, activity, crawls, schedules, snapshots, results, tags, admin, users, personas, keys, webhooks
         case processes, machines, interfaces, binaries, plugins, workers, logs, github, docs, bugs, forum, extensionSource, settings
 
         var info: (title: String, icon: String, path: String) {
             switch self {
             case .add: ("Add URLs", "plus", "add/")
+            case .search: ("Search Archive", "magnifyingglass", "")
             case .agent: ("AI Agent", "sparkles", "admin/agent/")
             case .activity: ("Activity", "arrow.down.circle", "admin/")
             case .crawls: ("Crawls", "point.3.connected.trianglepath.dotted", "admin/crawls/crawl/")
@@ -87,6 +95,8 @@ struct MainView: View {
         .task {
             guard !didChooseLaunchScreen else { return }
             settings.load()
+            ArchiveBoxShortcuts.updateAppShortcutParameters()
+            ArchiveSystemIndex.connectionChanged()
             didChooseLaunchScreen = true
             #if os(iOS)
             // A saved connection should open normally even when offline.
@@ -124,6 +134,7 @@ struct MainView: View {
             Button("Cancel", role: .cancel) { incomingAPIKey = nil; incomingServer = nil }
         } message: { Text(incomingServer?.absoluteString ?? "") }
         .onOpenURL { url in
+            if let route = ArchiveRoute(url: url) { archiveNavigation.open(route); return }
             if let server = ConnectionLink.server(from: url) {
                 settings.load()
                 incomingServer = server
@@ -142,6 +153,49 @@ struct MainView: View {
             }
             #endif
         }
+        .onContinueUserActivity("io.archivebox.viewSnapshot") { activity in
+            if let value = activity.userInfo?["route"] as? String,
+               let url = URL(string: value), let route = ArchiveRoute(url: url) { archiveNavigation.open(route) }
+        }
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            if let value = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
+               let url = URL(string: EntityIdentifier(activityIdentifier: value)?.identifier ?? value),
+               let route = ArchiveRoute(url: url) { archiveNavigation.open(route) }
+        }
+        .task(id: archiveNavigation.requestID) {
+            guard let route = archiveNavigation.route else { return }
+            switch route {
+            case .search(let query): searchQuery = query; activate(.search)
+            case .add: activate(.add)
+            case .snapshot(let server, let id):
+                do {
+                    let configuration = try AppEnvironment.requireConfiguration()
+                    guard server == configuration.server else {
+                        throw ArchiveBoxError.message("This page belongs to a different ArchiveBox server. Connect to that server in Settings before opening the link.")
+                    }
+                    let snapshot = try await ArchiveBoxClient().snapshot(id: id, configuration: configuration)
+                    try Task.checkCancellation()
+                    guard try AppEnvironment.store.load() == configuration else { return }
+                    openedConfiguration = configuration
+                    openedPage = ArchiveBoxSearchResult(snapshot: snapshot, server: server)
+                } catch { if !Task.isCancelled { routeError = error.localizedDescription } }
+            }
+        }
+        .sheet(item: $openedPage) { page in
+            if let configuration = openedConfiguration {
+                NavigationStack {
+                    ArchivedPageView(page: page, session: pages.page(for: page.id, baseURL: settings.displayedBaseURL,
+                        server: configuration.server, token: configuration.token))
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openedPage = nil } } }
+                }
+                #if os(macOS)
+                .frame(minWidth: 720, minHeight: 600)
+                #endif
+            }
+        }
+        .alert("Couldn’t open archived page", isPresented: Binding(get: { routeError != nil }, set: { if !$0 { routeError = nil } })) {
+            Button("OK") { routeError = nil }
+        } message: { Text(routeError ?? "") }
         .onChange(of: addNavigationID) { activate(.add) }
         .onChange(of: settingsNavigationID) {
             settings.dismissSetupGuide()
@@ -151,7 +205,8 @@ struct MainView: View {
             selection = .admin
             compactColumn = .detail
         }
-        .onChange(of: settings.verifiedServer) {
+        .onChange(of: settings.verifiedServer) { old, new in
+            if old != nil && old != new { openedPage = nil }
             if settings.verifiedServer == nil, let selection, !selection.isHelp, selection != .add { self.selection = .settings }
         }
     }
@@ -160,7 +215,7 @@ struct MainView: View {
         NavigationSplitView(columnVisibility: visibility, preferredCompactColumn: $compactColumn) {
             List {
                 rows([.add, .agent])
-                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags]) }
+                Section("Collection") { rows([.search, .snapshots, .crawls, .schedules, .results, .tags]) }
                 Section {
                     rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
                 } header: {
@@ -215,6 +270,11 @@ struct MainView: View {
             let screen = selection ?? .settings
             Group {
                 if screen == .settings { SettingsView(model: settings) }
+                else if screen == .search {
+                    ArchiveSearchView(settings: settings, initialQuery: searchQuery) { page in
+                        if let route = ArchiveRoute(url: page.appURL) { archiveNavigation.open(route) }
+                    }
+                }
                 else {
                     Group {
                         if screen == .add { AddURLsView(model: settings, pages: pages, reloadID: reloadIDs[.add]) }
@@ -239,7 +299,7 @@ struct MainView: View {
             #if os(iOS)
             .navigationTitle(screen.info.title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(screen == .settings ? .visible : .hidden, for: .navigationBar)
+            .toolbar(screen == .settings || screen == .search ? .visible : .hidden, for: .navigationBar)
             .background {
                 if screen != .settings {
                     Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)

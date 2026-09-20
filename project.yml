@@ -9,7 +9,7 @@ options:
   deploymentTarget:
     iOS: '26.0'
     macOS: '26.0'
-  xcodeVersion: '26.0'
+  xcodeVersion: '27.0'
 packages:
   ArchiveBoxCore:
     path: .
@@ -44,6 +44,7 @@ targets:
       - package: ArchiveBoxCore
       - target: ArchiveBoxShare
       - target: ArchiveBoxSafari
+      - target: ArchiveBoxWidgets
     info:
       path: App/Info.plist
       properties:
@@ -51,6 +52,7 @@ targets:
           - CFBundleURLName: io.archivebox.navigation
             CFBundleURLSchemes: [archivebox]
         CFBundleDisplayName: ArchiveBox
+        NSUserActivityTypes: [io.archivebox.viewSnapshot]
         CFBundleLocalizations: [en, es, zh-Hans]
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         UILaunchScreen: {}
@@ -129,6 +131,7 @@ targets:
       - package: ArchiveBoxCore
       - target: ArchiveBoxMacShare
       - target: ArchiveBoxMacSafari
+      - target: ArchiveBoxMacWidgets
     settings:
       base:
         PRODUCT_NAME: ArchiveBox
@@ -147,6 +150,7 @@ targets:
       path: MacApp/Info.plist
       properties:
         CFBundleDisplayName: ArchiveBox
+        NSUserActivityTypes: [io.archivebox.viewSnapshot]
         CFBundleLocalizations: [en, es, zh-Hans]
         ArchiveBoxKeychainGroup: '$(ARCHIVEBOX_KEYCHAIN_GROUP)'
         CFBundleURLTypes:
@@ -267,6 +271,45 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
         keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+  ArchiveBoxWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets/ArchiveBoxWidgets.swift, App/ArchiveNavigation.swift]
+    dependencies:
+      - package: ArchiveBoxCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Widgets
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+    info:
+      path: Widgets/Info-iOS.plist
+      properties:
+        CFBundleDisplayName: ArchiveBox
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+  ArchiveBoxMacWidgets:
+    type: app-extension
+    platform: macOS
+    sources: [Widgets/ArchiveBoxWidgets.swift, App/ArchiveNavigation.swift]
+    dependencies:
+      - package: ArchiveBoxCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Widgets
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        ENABLE_HARDENED_RUNTIME: YES
+    info:
+      path: Widgets/Info-macOS.plist
+      properties:
+        CFBundleDisplayName: ArchiveBox
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/ArchiveBoxMacWidgets.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
   ArchiveBoxScreenshots:
     type: bundle.ui-testing
     platform: iOS

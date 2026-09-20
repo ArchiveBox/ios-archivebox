@@ -62,15 +62,16 @@ struct SidebarSummary: View {
             }
             .font(.caption).monospacedDigit().frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(Color("SidebarStatusBackground").ignoresSafeArea(edges: .bottom))
-            .overlay(alignment: .top) {
-                Rectangle().fill(.primary.opacity(0.12)).frame(height: 2)
-            }
             .contentShape(Rectangle())
             .accessibilityElement(children: .combine).accessibilityIdentifier("sidebar.summary")
         }
         .buttonStyle(.plain)
         .disabled(settings.verifiedServer == nil)
+        // Keep the backdrop opaque when the button's disabled style dims its label.
+        .background(Color("SidebarStatusBackground").ignoresSafeArea(edges: .bottom))
+        .overlay(alignment: .top) {
+            Rectangle().fill(.primary.opacity(0.12)).frame(height: 2)
+        }
         .onHover { hoveringActivity = $0 }
         .help(failure ?? "Open live progress. Updates every five seconds while this sidebar is active. Collection size is based on stored archive files.")
         .accessibilityHint("Open live progress")

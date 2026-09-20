@@ -139,6 +139,11 @@ import ArchiveBoxCore
         webPage.navigationDelegate = routing
         webPage.uiDelegate = routing
         webPage.allowsBackForwardNavigationGestures = true
+        #if os(macOS)
+        // WebKit hosts rendered content in remote layers. Give it an explicit
+        // backing layer so SwiftUI's parent layer does not flatten those away.
+        webPage.wantsLayer = true
+        #endif
         #if os(iOS)
         let headerColor = UIColor(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255, alpha: 1)
         webPage.isOpaque = false

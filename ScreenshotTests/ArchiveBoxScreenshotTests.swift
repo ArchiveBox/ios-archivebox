@@ -1,4 +1,6 @@
 import XCTest
+import Vision
+import ImageIO
 #if os(iOS)
 import UIKit
 #endif
@@ -70,7 +72,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         press(app.buttons["saveConnection"])
         capture("connection-connected", app: app)
-        for (id, marker) in [("add", "Create a new Crawl"), ("snapshots", "Example Domain"), ("crawls", "Search Crawls")] {
+        for (id, marker) in [("add", "Create a new Crawl"), ("snapshots", "Example Domain"), ("crawls", "Crawls")] {
             openScreen(id, app: app)
             assertPage(marker, app: app)
             capture(id, app: app)
@@ -163,7 +165,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
         let screens: [(String, String)] = [
             ("add", "Create a new Crawl"), ("agent", "New session"),
-            ("crawls", "Search Crawls"), ("schedules", "Search Scheduled Crawls"),
+            ("crawls", "Crawls"), ("schedules", "Search Scheduled Crawls"),
             ("snapshots", "Example Domain"), ("results", "Search Archive Results"),
             ("tags", "All tags"), ("admin", "Recent Actions"),
             ("users", "Search users"), ("personas", "Search personas"),
@@ -446,18 +448,32 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     private func assertPage(_ marker: String, app: XCUIApplication) {
         resolveSystemPermissions()
-        #if os(macOS)
-        // WebKit uses AXValue for text and numbers; normalize its type before string matching.
-        let predicate = NSPredicate(format: "CAST(value, 'NSString') CONTAINS[c] %@", marker)
-        #else
-        let predicate = NSPredicate(format: "label CONTAINS[c] %@", marker)
-        #endif
-        let content = app.webViews.descendants(matching: .any).matching(predicate).firstMatch
-        XCTAssertTrue(content.waitForExistence(timeout: 30), "Expected rendered page: \(marker)\n\(app.debugDescription)")
-        // AX content can exist before WebKit paints or while a system dialog
-        // covers it. Require the actual page marker to be visible and hittable.
-        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: content)
+        // Buttons expose labels while macOS text exposes AXValue. Select a
+        // visible matching element, not an offscreen accessibility group.
+        let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR CAST(value, 'NSString') CONTAINS[c] %@", marker, marker)
+        let content = app.webViews.descendants(matching: .any).matching(predicate)
+        XCTAssertTrue(content.firstMatch.waitForExistence(timeout: 30), "Expected rendered page: \(marker)\n\(app.debugDescription)")
+        expectation(for: NSPredicate { _, _ in
+            content.allElementsBoundByIndex.contains { $0.isHittable }
+        }, evaluatedWith: app)
         waitForExpectations(timeout: 10)
+        // Accessibility can describe WebKit content even when its compositor
+        // paints an empty surface. Check the real captured pixels as well.
+        let screenshot = app.webViews.firstMatch.screenshot()
+        let source = CGImageSourceCreateWithData(screenshot.pngRepresentation as CFData, nil)!
+        let image = CGImageSourceCreateImageAtIndex(source, 0, nil)!
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        do { try VNImageRequestHandler(cgImage: image).perform([request]) }
+        catch { XCTFail("Could not inspect rendered page: \(error)"); return }
+        let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        if text.range(of: marker, options: [.caseInsensitive, .diacriticInsensitive]) == nil {
+            let evidence = XCTAttachment(screenshot: screenshot)
+            evidence.name = "unpainted-page-" + marker
+            evidence.lifetime = .keepAlways
+            add(evidence)
+            XCTFail("Page marker missing from actual screenshot: \(marker). Visible text: \(text)")
+        }
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
     }
 

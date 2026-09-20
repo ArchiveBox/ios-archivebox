@@ -65,18 +65,6 @@ Your server must be reachable to save new links.
 
 </div>
 
-## Search, Siri, and Apple system features
-
-Choose **Search Archive** for native search by title, URL, or tag. Open a saved page, share its original or archived URL, or drag a result into another app. On Mac, press **⌘F** to open search.
-
-- **Siri AI on iOS/iPadOS/macOS 27:** search and open actions adopt Apple's system schemas. Search opens the native results screen. Availability depends on your device's Siri language, region, and system settings.
-- **Phrase shortcuts:** say **“Search ArchiveBox”** and answer the search prompt, **“Save links to ArchiveBox,”** **“Open a saved page in ArchiveBox,”** or **“Browse ArchiveBox.”** The background search action returns structured pages for use in your own shortcuts.
-- **Spotlight:** pages loaded in native search or opened through app links contribute their title, URL, and tags to the device's search index. Apple’s system settings control Siri and Spotlight access. Metadata expires after seven days unless refreshed and is cleared when the saved server or API key changes.
-- **Widgets and controls:** add ArchiveBox's Search/Add widget or its controls to supported system surfaces, including Control Center and the Lock Screen. They open the app without exposing credentials or submitting links automatically.
-- **Handoff and onscreen context:** continue an open archived page on another Apple device connected to the same server. Native search rows and opened pages expose their identity to the system.
-
-Connect your server first. Searching, resolving saved pages, and archiving require access to that server; the app doesn't download the entire collection for offline search. These integrations don't promise Siri can summarize every archived page's contents.
-
 ## Your server, your choice
 
 Use an existing ArchiveBox server anywhere you can reach it, or keep your archive on your Mac with **ArchiveBox Server.app**.

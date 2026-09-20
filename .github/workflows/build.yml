@@ -6,6 +6,9 @@ on:
     paths-ignore: ['.github/pages/**', 'README.md', 'docs/site/**', '.github/workflows/pages.yml']
 permissions:
   contents: read
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: xcode-27

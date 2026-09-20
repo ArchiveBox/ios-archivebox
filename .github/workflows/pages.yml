@@ -1,4 +1,5 @@
-name: App website
+name: Publish website
+
 on:
   push:
     branches: [main]
@@ -8,21 +9,38 @@ on:
     workflows: ['Capture native app screenshots']
     types: [completed]
     branches: [main]
+
 permissions:
   contents: read
   actions: read
+
+env:
+  # Repository-specific output; all publication logic below is a local copy.
+  SITE_OUTPUT: docs/site/_site
+  DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+
+# One production queue covers restore, build and deploy. PRs have separate queues.
 concurrency:
-  # Restore and publish serially; every deployment builds the latest main.
-  group: fast-pages-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  group: pages-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
   cancel-in-progress: false
+
 jobs:
   build:
+    # Apple device jobs publish independently, including from partially failed runs.
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    outputs:
+      revision: ${{ steps.source.outputs.revision }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+          ref: ${{ github.event_name == 'pull_request' && github.ref || env.DEFAULT_BRANCH }}
+          persist-credentials: false
+      - name: Record website source revision
+        id: source
+        run: echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # BEGIN REPOSITORY-SPECIFIC BUILD
       - uses: astral-sh/setup-uv@v7
       - name: Restore latest complete screenshots
         run: uv run --no-project python scripts/restore-site-screenshots.py ios build/screenshots/gallery
@@ -37,20 +55,36 @@ jobs:
         run: bash docs/site/build.sh
         env:
           JEKYLL_ENV: production
-      - uses: actions/upload-pages-artifact@v3
+      # END REPOSITORY-SPECIFIC BUILD
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/site/_site
+          path: ${{ env.SITE_OUTPUT }}
+
   deploy:
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Publish only the current default-branch revision
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVISION: ${{ needs.build.outputs.revision }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/commits/$DEFAULT_BRANCH" --jq .sha)
+          echo "deploy=$([ "$latest" = "$REVISION" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - uses: actions/configure-pages@v5
+        if: steps.current.outputs.deploy == 'true'
       - uses: actions/deploy-pages@v4
+        if: steps.current.outputs.deploy == 'true'
         id: deployment

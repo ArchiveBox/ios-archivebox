@@ -72,5 +72,3 @@ ARCHIVEBOX_EXPECTED_SERVER=http://localhost:5797 \
 ARCHIVEBOX_TEST_PERSONA=AppleAcceptance \
 ARCHIVEBOX_TEST_TOKEN="$ARCHIVEBOX_TEST_TOKEN" swift run ArchiveBoxIntegration
 ```
-
-See [validation evidence](VALIDATION.md) for tested behavior and remaining release checks.

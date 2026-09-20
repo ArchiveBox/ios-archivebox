@@ -26,4 +26,4 @@
 - WXT TypeScript compilation and Safari/Chrome/Firefox builds passed. Native messaging permission is Safari-only. Bundled Safari resources match WXT output except for the included upstream license.
 - The rebuilt Mac client was relaunched and visually checked: connected status and a full-height AI Agent webview, without a native detail title bar or bottom gap.
 
-Companion native UI automation still fails in the desktop accessibility helper; this pass verifies its build, signature and real server operations, but does not claim a successful companion visual check. Browser-cookie capture and Safari/share-sheet submission were not repeated in this cleanup pass; earlier end-to-end evidence is recorded in VALIDATION.md. Later entries here supersede historical migration and packaging descriptions in that log.
+Companion native UI automation still fails in the desktop accessibility helper; this pass verifies its build, signature and real server operations, but does not claim a successful companion visual check. Browser-cookie capture and Safari/share-sheet submission were not repeated in this cleanup pass.

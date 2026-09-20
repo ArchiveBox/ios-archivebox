@@ -39,14 +39,12 @@
 
 <div class="device-pair" align="center">
 <a href="docs/screenshots/home-iphone.png"><img src="docs/screenshots/home-iphone.png" width="300" loading="lazy" alt="ArchiveBox on iPhone: Add URLs, AI Agent, collection and admin screens, with a connected server"></a>
-<a href="docs/screenshots/connection-iphone.png?v=2"><img src="docs/screenshots/connection-iphone.png?v=2" width="300" loading="lazy" alt="Connection Settings on iPhone with a verified server URL and API key"></a>
 </div>
 
 <div class="feature" markdown="1">
 
 ## Share it. Keep it.
 
-<p class="phone-screenshot" align="right"><a href="docs/screenshots/share-iphone.png"><img src="docs/screenshots/share-iphone.png" width="280" loading="lazy" alt="ArchiveBox’s iPhone share sheet after saving a URL, with read later and research tags"></a></p>
 
 - Open a link in Safari, Chrome, Firefox, Brave, Mail, Messages, or another app.
 - Tap the **Share** button and choose **ArchiveBox**.
@@ -96,13 +94,6 @@ Use an existing ArchiveBox server anywhere you can reach it, or keep your archiv
 </div>
 
 **A home for your archive, right on your Mac.** The optional companion runs quietly in the menu bar and keeps archiving when you close the client app.
-
-<div class="screenshot-strip" align="center">
-<a href="docs/screenshots/server-mac.png?v=2"><img src="docs/screenshots/server-mac.png?v=2" width="200" loading="lazy" alt="ArchiveBox Server settings with resource usage, storage, and connection details"><br>Settings</a>
-<a href="docs/screenshots/server-shell.png"><img src="docs/screenshots/server-shell.png" width="200" loading="lazy" alt="The server’s built-in terminal running the ArchiveBox CLI"><br>Shell</a>
-<a href="docs/screenshots/server-activity.png"><img src="docs/screenshots/server-activity.png" width="200" loading="lazy" alt="The server Activity screen showing crawl and download progress"><br>Activity</a>
-<a href="docs/screenshots/server-clients.png"><img src="docs/screenshots/server-clients.png" width="200" loading="lazy" alt="Server users and setup links for the native app and browser extensions"><br>Clients</a>
-</div>
 
 - 🟢 **See what’s running:** server status, active downloads, CPU, and memory.
 - 🗂️ **Choose where your archive lives** and open its files in Finder.

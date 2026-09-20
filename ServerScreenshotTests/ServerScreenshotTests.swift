@@ -5,6 +5,10 @@ import XCTest
 final class ServerScreenshotTests: XCTestCase {
     func testGalleryScreens() throws {
         continueAfterFailure = false
+        let interruption = addUIInterruptionMonitor(withDescription: "ArchiveBox system permissions") { [self] alert in
+            approvePermission(alert)
+        }
+        defer { removeUIInterruptionMonitor(interruption) }
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_SERVER_APP"])
         let app = XCUIApplication(url: URL(fileURLWithPath: path))
         app.launch()
@@ -55,12 +59,10 @@ final class ServerScreenshotTests: XCTestCase {
         XCTAssertTrue(help.waitForExistence(timeout: 30), app.debugDescription)
         capture("shell", app)
         select("Admin", app)
-        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20), app.debugDescription)
-        let home = app.webViews.descendants(matching: .any).matching(NSPredicate(format: "CAST(value, 'NSString') CONTAINS %@", "Snapshots")).firstMatch
-        XCTAssertTrue(home.waitForExistence(timeout: 30), app.debugDescription)
+        assertPage("Snapshots", app)
         capture("admin", app)
         select("Activity", app)
-        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20))
+        assertPage("Downloads", app)
         capture("activity", app)
         select("Settings", app)
         let collection = app.buttons["Choose a path…"]
@@ -73,7 +75,48 @@ final class ServerScreenshotTests: XCTestCase {
         app.terminate()
     }
 
+    /// The local-network prompt belongs to the system, not app.alerts. XCTest's
+    /// default monitor does not recognize the macOS 27 "Allow … to find" wording.
+    private func approvePermission(_ alert: XCUIElement) -> Bool {
+        let text = alert.debugDescription.lowercased()
+        guard text.contains("archivebox"),
+              text.contains("local network") || text.contains("notifications") else { return false }
+        let allow = alert.buttons["Allow"]
+        guard allow.exists else { return false }
+        #if os(macOS)
+        allow.click()
+        #else
+        allow.tap()
+        #endif
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: alert)
+        waitForExpectations(timeout: 5)
+        return true
+    }
+
+    private func resolveSystemPermissions() {
+        #if os(macOS)
+        let system = XCUIApplication(bundleIdentifier: "com.apple.UserNotificationCenter")
+        for dialog in system.dialogs.allElementsBoundByIndex {
+            _ = approvePermission(dialog)
+        }
+        // Fail instead of publishing an overlay, including an unfamiliar prompt.
+        XCTAssertFalse(system.dialogs.firstMatch.exists, system.debugDescription)
+        #endif
+    }
+
+    private func assertPage(_ marker: String, _ app: XCUIApplication) {
+        resolveSystemPermissions()
+        let content = app.webViews.descendants(matching: .any).matching(
+            NSPredicate(format: "CAST(value, 'NSString') CONTAINS[c] %@", marker)
+        ).firstMatch
+        XCTAssertTrue(content.waitForExistence(timeout: 30), "Expected rendered page: \(marker)\n\(app.debugDescription)")
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: content)
+        waitForExpectations(timeout: 10)
+        XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
+    }
+
     private func select(_ name: String, _ app: XCUIApplication) {
+        resolveSystemPermissions()
         let tab = app.segmentedControls.buttons[name]
         XCTAssertTrue(tab.waitForExistence(timeout: 10), app.debugDescription)
         tab.click()
@@ -88,6 +131,7 @@ final class ServerScreenshotTests: XCTestCase {
     }
 
     private func capture(_ name: String, _ app: XCUIApplication) {
+        resolveSystemPermissions()
         XCTAssertEqual(app.state, .runningForeground)
         let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
         attachment.name = name

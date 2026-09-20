@@ -8,15 +8,8 @@ import UIKit
 final class ArchiveBoxScreenshotTests: XCTestCase {
     func testLaunchScreenshot() throws {
         continueAfterFailure = false
-        let interruption = addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
-            let allow = alert.buttons["Allow"]
-            guard allow.exists else { return false }
-            #if os(macOS)
-            allow.click()
-            #else
-            allow.tap()
-            #endif
-            return true
+        let interruption = addUIInterruptionMonitor(withDescription: "ArchiveBox system permissions") { [self] alert in
+            approvePermission(alert)
         }
         defer { removeUIInterruptionMonitor(interruption) }
         let app = XCUIApplication()
@@ -32,6 +25,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         #else
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
         #endif
+        resolveSystemPermissions()
         XCTAssertFalse(app.alerts.firstMatch.exists, app.debugDescription)
         XCTAssertTrue(app.textFields["serverURL"].isHittable, app.debugDescription)
         #if os(macOS)
@@ -47,6 +41,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     /// The exhaustive testAllScreens remains available separately.
     func testGalleryScreens() throws {
         continueAfterFailure = false
+        let interruption = addUIInterruptionMonitor(withDescription: "ArchiveBox system permissions") { [self] alert in
+            approvePermission(alert)
+        }
+        defer { removeUIInterruptionMonitor(interruption) }
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
         let app = XCUIApplication()
@@ -79,7 +77,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         }
         openScreen("agent", app: app)
         let start = app.webViews.buttons["Start using Agent"]
-        XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
+        assertPage("Start using Agent", app: app)
         capture("agent-welcome", app: app)
         press(start)
         assertPage("New session", app: app)
@@ -122,15 +120,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     func testAllScreens() throws {
         continueAfterFailure = false
-        let interruption = addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
-            let allow = alert.buttons["Allow"]
-            guard allow.exists else { return false }
-            #if os(macOS)
-            allow.click()
-            #else
-            allow.tap()
-            #endif
-            return true
+        let interruption = addUIInterruptionMonitor(withDescription: "ArchiveBox system permissions") { [self] alert in
+            approvePermission(alert)
         }
         defer { removeUIInterruptionMonitor(interruption) }
         #if os(iOS)
@@ -185,7 +176,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             openScreen(id, app: app)
             if id == "agent" {
                 let start = app.webViews.buttons["Start using Agent"]
-                XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
+                assertPage("Start using Agent", app: app)
                 capture("agent-welcome", app: app)
                 press(start)
             }
@@ -327,7 +318,37 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
     #endif
 
+    /// The local-network prompt belongs to the system, not app.alerts. XCTest's
+    /// default monitor does not recognize the macOS 27 "Allow … to find" wording.
+    private func approvePermission(_ alert: XCUIElement) -> Bool {
+        let text = alert.debugDescription.lowercased()
+        guard text.contains("archivebox"),
+              text.contains("local network") || text.contains("notifications") else { return false }
+        let allow = alert.buttons["Allow"]
+        guard allow.exists else { return false }
+        #if os(macOS)
+        allow.click()
+        #else
+        allow.tap()
+        #endif
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: alert)
+        waitForExpectations(timeout: 5)
+        return true
+    }
+
+    private func resolveSystemPermissions() {
+        #if os(macOS)
+        let system = XCUIApplication(bundleIdentifier: "com.apple.UserNotificationCenter")
+        for dialog in system.dialogs.allElementsBoundByIndex {
+            _ = approvePermission(dialog)
+        }
+        // Fail instead of publishing an overlay, including an unfamiliar prompt.
+        XCTAssertFalse(system.dialogs.firstMatch.exists, system.debugDescription)
+        #endif
+    }
+
     private func press(_ element: XCUIElement) {
+        resolveSystemPermissions()
         #if os(iOS)
         if !element.isHittable { declinePasswordPrompt() }
         #endif
@@ -419,6 +440,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     private func assertPage(_ marker: String, app: XCUIApplication) {
+        resolveSystemPermissions()
         #if os(macOS)
         // WebKit uses AXValue for text and numbers; normalize its type before string matching.
         let predicate = NSPredicate(format: "CAST(value, 'NSString') CONTAINS[c] %@", marker)
@@ -427,6 +449,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         #endif
         let content = app.webViews.descendants(matching: .any).matching(predicate).firstMatch
         XCTAssertTrue(content.waitForExistence(timeout: 30), "Expected rendered page: \(marker)\n\(app.debugDescription)")
+        // AX content can exist before WebKit paints or while a system dialog
+        // covers it. Require the actual page marker to be visible and hittable.
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: content)
+        waitForExpectations(timeout: 10)
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
     }
 
@@ -446,6 +472,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     #endif
 
     private func capture(_ name: String, app: XCUIApplication) {
+        resolveSystemPermissions()
         #if os(iOS)
         declinePasswordPrompt()
         #endif

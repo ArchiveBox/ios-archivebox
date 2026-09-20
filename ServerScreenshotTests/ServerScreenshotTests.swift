@@ -96,6 +96,8 @@ final class ServerScreenshotTests: XCTestCase {
     private func resolveSystemPermissions() {
         #if os(macOS)
         let system = XCUIApplication(bundleIdentifier: "com.apple.UserNotificationCenter")
+        // On a fresh runner the system process starts only when a prompt appears.
+        guard system.state != .notRunning else { return }
         for dialog in system.dialogs.allElementsBoundByIndex {
             _ = approvePermission(dialog)
         }

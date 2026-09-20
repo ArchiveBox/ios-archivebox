@@ -1,0 +1,38 @@
+.github/pages/README.md
+  h_923c208e183a7b 71-103
+.github/pages/artifacts.py
+  h_923c208e183a7b 1-100
+.github/pages/base/chrome.css
+  h_923c208e183a7b 1-36,41,102
+.github/pages/base/chrome.js
+  h_923c208e183a7b 9,14,16
+.github/pages/base/marquee.css
+  h_923c208e183a7b 1-14
+.github/pages/base/marquee.js
+  h_923c208e183a7b 1,3-17,19-56
+.github/pages/marquee.py
+  h_923c208e183a7b 1-90
+.github/pages/site.py
+  h_923c208e183a7b 9,14-15,24-30,36-92,108-110,114,123-124,147-148,154-159
+.github/pages/verify.py
+  h_923c208e183a7b 17-23,55-61,79-112,151-153,157-160
+.github/workflows/pages.yml
+  h_923c208e183a7b 46
+docs/site/_includes/hero-gallery.html
+  h_923c208e183a7b 1-5
+docs/site/screenshots/index.html
+  h_923c208e183a7b 13,32
+scripts/restore-site-screenshots.py
+  h_923c208e183a7b 1,8-9,11-13,21-22,24-34,37-59,61-68,70-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7319749850ed26d0e1acc3142e390f577a6db730",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

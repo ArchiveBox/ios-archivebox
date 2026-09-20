@@ -59,7 +59,7 @@ public struct ServerRegistry: Codable, Sendable, Equatable {
     public func validate() throws {
         let ids = Set(servers.map(\.id))
         guard schema_version == 1, ids.count == servers.count,
-              servers.allSatisfy({ UUID(uuidString: $0.id) != nil && ["http", "https"].contains($0.server.scheme ?? "") }),
+              servers.allSatisfy({ UUID(uuidString: $0.id)?.uuidString.lowercased() == $0.id && ["http", "https"].contains($0.server.scheme ?? "") && $0.server.host() != nil && $0.server.user() == nil && $0.server.password() == nil && $0.server.query() == nil && $0.server.fragment() == nil }),
               active_server_id.map({ ids.contains($0) }) ?? true,
               Set(default_server_ids).count == default_server_ids.count,
               default_server_ids.allSatisfy({ ids.contains($0) }) else {

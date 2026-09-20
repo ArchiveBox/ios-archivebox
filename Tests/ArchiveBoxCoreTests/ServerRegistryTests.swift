@@ -32,3 +32,21 @@ import Testing
     #expect(registry.default_servers == [updated])
     #expect(registry.servers.first { $0.id == work.id } == work)
 }
+
+@Test func canonicalRegistrySchemaMatchesTheOtherClients() throws {
+    let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    let data = try Data(contentsOf: root.appending(path: "docs/server_registry.example.json"))
+    let registry = try JSONDecoder().decode(ServerRegistry.self, from: data)
+    try registry.validate()
+    #expect(registry.active_server?.name == "Work")
+    #expect(registry.default_servers.map(\.name) == ["Home"])
+    let source = try JSONSerialization.jsonObject(with: data) as! NSDictionary
+    let encoded = try JSONSerialization.jsonObject(with: JSONEncoder().encode(registry)) as! NSDictionary
+    #expect(source == encoded)
+    var invalid = registry
+    invalid.default_server_ids = ["unknown"]
+    #expect(throws: (any Error).self) { try invalid.validate() }
+    invalid = registry
+    invalid.schema_version = 2
+    #expect(throws: (any Error).self) { try invalid.validate() }
+}

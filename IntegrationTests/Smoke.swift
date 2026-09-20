@@ -49,6 +49,16 @@ struct IntegrationChecks {
         }
         print("PASS: saved URL verified through crawl API")
 
+        let unrelated = ServerConfiguration(server: server, token: token, persona: selectedPersona)
+        for operation in [0, 1] {
+            var rejectedOwner = false
+            do {
+                if operation == 0 { try await client.updateTags(["wrong-owner"], for: result, configuration: unrelated) }
+                else { try await client.removeSubmission(result, configuration: unrelated) }
+            } catch { rejectedOwner = true }
+            guard rejectedOwner else { fatalError("Receipt was accepted for another configured server ID") }
+        }
+        print("PASS: tag edits and removal reject another server profile's receipt")
         try await client.updateTags(["share-test", "read later"], for: result, configuration: configuration)
         // The share sheet can finish tagging before the runner creates snapshots.
         // Create the real child through REST, then verify inherited and edited tags.

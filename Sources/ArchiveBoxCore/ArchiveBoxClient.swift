@@ -169,7 +169,18 @@ public final class ArchiveBoxClient: Sendable {
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         if let cookie { request.setValue(cookie, forHTTPHeaderField: "Cookie") }
         if let method { request.httpMethod = method }
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError {
+            // Siri entity queries send errors across XPC, including during app
+            // launch. URLSession's diagnostic userInfo can contain NWPath,
+            // which cannot be securely encoded and crashes the app. Preserve
+            // the error code and message without the process-local diagnostics.
+            throw NSError(domain: NSURLErrorDomain, code: error.code.rawValue,
+                          userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
+        }
         guard let http = response as? HTTPURLResponse else { throw ArchiveBoxError.message("The server returned an invalid response.") }
         switch http.statusCode {
         case 200..<300: return data

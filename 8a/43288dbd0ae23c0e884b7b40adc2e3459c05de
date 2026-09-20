@@ -1,0 +1,16 @@
+App/EmbeddedBrowser.swift
+  h_923c208e183a7b 135-140
+UITests/ArchiveBoxUITests.swift
+  h_923c208e183a7b 474-485
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8a43288dbd0ae23c0e884b7b40adc2e3459c05de",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

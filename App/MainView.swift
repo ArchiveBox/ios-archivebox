@@ -23,9 +23,16 @@ struct MainView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     @State private var archiveNavigation = ArchiveNavigation.shared
     @State private var searchQuery = ""
-    @State private var openedPage: ArchiveBoxSearchResult?
-    @State private var openedConfiguration: ServerConfiguration?
+    @State private var openedPage: OpenedPage?
     @State private var routeError: String?
+
+    // Keep the sheet and its authenticated session in one presentation value.
+    // Separate @State captured only inside a sheet can retain its initial nil.
+    private struct OpenedPage: Identifiable {
+        let page: ArchiveBoxSearchResult
+        let configuration: ServerConfiguration
+        var id: String { page.id }
+    }
 
     private enum Screen: String, CaseIterable {
         case add, search, agent, activity, crawls, schedules, snapshots, results, tags, admin, users, personas, keys, webhooks
@@ -176,22 +183,30 @@ struct MainView: View {
                     let snapshot = try await ArchiveBoxClient().snapshot(id: id, configuration: configuration)
                     try Task.checkCancellation()
                     guard try AppEnvironment.store.load() == configuration else { return }
-                    openedConfiguration = configuration
-                    openedPage = ArchiveBoxSearchResult(snapshot: snapshot, server: server)
+                    let page = ArchiveBoxSearchResult(snapshot: snapshot, server: server)
+                    openedPage = OpenedPage(page: page, configuration: configuration)
+                    if #available(iOS 27.0, macOS 27.0, *) {
+                        let intent = OpenArchivedPageWithSiriIntent()
+                        intent.target = page
+                        do { try await intent.donate() }
+                        catch { NSLog("ArchiveBox action donation failed: %@", error.localizedDescription) }
+                    }
+                    do { try await ArchiveSystemIndex.update([page], configuration: configuration) }
+                    catch { NSLog("ArchiveBox Spotlight indexing failed: %@", error.localizedDescription) }
                 } catch { if !Task.isCancelled { routeError = error.localizedDescription } }
             }
         }
-        .sheet(item: $openedPage) { page in
-            if let configuration = openedConfiguration {
-                NavigationStack {
-                    ArchivedPageView(page: page, session: pages.page(for: page.id, baseURL: settings.displayedBaseURL,
-                        server: configuration.server, token: configuration.token))
-                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openedPage = nil } } }
-                }
-                #if os(macOS)
-                .frame(minWidth: 720, minHeight: 600)
-                #endif
+        .sheet(item: $openedPage) { opened in
+            let page = opened.page
+            let configuration = opened.configuration
+            NavigationStack {
+                ArchivedPageView(page: page, session: pages.page(for: page.id, baseURL: settings.displayedBaseURL,
+                    server: configuration.server, token: configuration.token))
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openedPage = nil } } }
             }
+            #if os(macOS)
+            .frame(minWidth: 720, minHeight: 600)
+            #endif
         }
         .alert("Couldn’t open archived page", isPresented: Binding(get: { routeError != nil }, set: { if !$0 { routeError = nil } })) {
             Button("OK") { routeError = nil }
@@ -301,13 +316,13 @@ struct MainView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(screen == .settings || screen == .search ? .visible : .hidden, for: .navigationBar)
             .background {
-                if screen != .settings {
+                if screen != .settings && screen != .search {
                     Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)
                         .ignoresSafeArea(.container, edges: .top)
                 }
             }
             .overlay(alignment: .topLeading) {
-                if screen != .settings && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
+                if screen != .settings && screen != .search && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
                     Button {
                         withAnimation {
                             compactColumn = .sidebar

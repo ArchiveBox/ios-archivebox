@@ -27,11 +27,12 @@ struct ArchiveQuickActionsWidget: Widget {
         StaticConfiguration(kind: kind, provider: ArchiveTimeline()) { _ in
             VStack(alignment: .leading, spacing: 14) {
                 Label("ArchiveBox", systemImage: "archivebox.fill").font(.headline)
-                Link(destination: ArchiveRoute.search("").url) { Label("Search Archive", systemImage: "magnifyingglass") }
-                Link(destination: ArchiveRoute.add.url) { Label("Add URLs", systemImage: "plus") }
+                Button(intent: OpenArchiveDestinationIntent(.search)) { Label("Search Archive", systemImage: "magnifyingglass") }
+                Button(intent: OpenArchiveDestinationIntent(.add)) { Label("Add URLs", systemImage: "plus") }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .containerBackground(.background, for: .widget)
+            .widgetURL(ArchiveRoute.search("").url)
         }
         .configurationDisplayName("ArchiveBox")
         .description("Find a saved page or add links to your archive.")

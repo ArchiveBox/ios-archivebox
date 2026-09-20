@@ -4,7 +4,7 @@ permissions:
   contents: read
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,12 +17,12 @@ jobs:
         run: node scripts/prepare-safari.mjs
       - name: Swift package tests
         run: swift test
-      - name: Build iOS app, share extension, and Safari extension
+      - name: Build iOS app with Share, Safari, and Widgets extensions
         run: >-
           xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox
           -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
           -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
-      - name: Build native macOS app and both extensions
+      - name: Build native macOS app with Share, Safari, and Widgets extensions
         run: >-
           xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxMac
           -destination 'generic/platform=macOS' -derivedDataPath build-mac

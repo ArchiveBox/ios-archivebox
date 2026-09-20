@@ -54,6 +54,70 @@ final class FirstRunUITests: XCTestCase {
 /// Run against a real, disposable ArchiveBox 0.9+ server. No intercepted requests or seeded app state.
 @MainActor
 final class ArchiveBoxUITests: XCTestCase {
+    func testNativeArchiveSearchAndDeepLinks() async throws {
+        continueAfterFailure = false
+        addUIInterruptionMonitor(withDescription: "Password suggestion") { alert in
+            if alert.buttons["Not Now"].exists { alert.buttons["Not Now"].tap(); return true }
+            return false
+        }
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
+        var request = URLRequest(url: URL(string: server + "/api/v1/core/snapshots?limit=1")!)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let record = try XCTUnwrap((json["items"] as? [[String: Any]])?.first)
+        let id = try XCTUnwrap(record["id"] as? String)
+        let original = try XCTUnwrap(record["url"] as? String)
+
+        let app = XCUIApplication()
+        app.launch()
+        skipIntroductionIfNeeded(app)
+        // Use the same public connection link that the companion's QR code
+        // opens. Credentials still go through the app's real validation flow.
+        var connection = URLComponents(string: "archivebox://connect")!
+        connection.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "api_key", value: token)]
+        app.open(connection.url!)
+        if app.buttons["Use this server"].waitForExistence(timeout: 3) { app.buttons["Use this server"].tap() }
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20))
+        openScreen("Search Archive", app: app)
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10), app.debugDescription)
+        search.tap()
+        let passwordSuggestion = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Not Now"]
+        if passwordSuggestion.waitForExistence(timeout: 3) { passwordSuggestion.tap() }
+        search.tap()
+        search.typeText(original + "\n")
+        let result = app.buttons["archive.result." + id]
+        XCTAssertTrue(result.waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertTrue(result.label.contains(original))
+        attach("Native archive search", app: app)
+        result.tap()
+        XCTAssertTrue(app.buttons["Share Archive URL"].waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(app.webViews.links.containing(NSPredicate(format: "label CONTAINS %@", original)).firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        app.buttons["Share Archive URL"].tap()
+        XCTAssertTrue(app.cells["Copy"].waitForExistence(timeout: 5), app.debugDescription)
+        attach("Native archive sharing", app: app)
+        app.cells["Copy"].tap()
+        app.buttons["Done"].tap()
+
+        let missingQuery = "archivebox-no-match-" + UUID().uuidString
+        app.open(URL(string: "archivebox://search?q=" + missingQuery)!)
+        XCTAssertTrue(app.staticTexts["No Results for “\(missingQuery)”"].waitForExistence(timeout: 20), app.debugDescription)
+        var link = URLComponents(string: "archivebox://snapshot")!
+        link.queryItems = [URLQueryItem(name: "server", value: "https://different.example"), URLQueryItem(name: "id", value: id)]
+        app.open(link.url!)
+        XCTAssertTrue(app.alerts["Couldn’t open archived page"].waitForExistence(timeout: 10))
+        app.alerts.buttons["OK"].tap()
+        link.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "id", value: id)]
+        app.terminate()
+        app.open(link.url!)
+        XCTAssertTrue(app.buttons["Share Archive URL"].waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertTrue(app.webViews.links.containing(NSPredicate(format: "label CONTAINS %@", original)).firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        attach("Cold launch archived page", app: app)
+    }
+
     func testShareTagsUsingSavedConnection() throws {
         continueAfterFailure = false
         XCUIApplication().launch()
@@ -497,7 +561,7 @@ final class ArchiveBoxUITests: XCTestCase {
     }
 
     private func openScreen(_ name: String, app: XCUIApplication) {
-        let identifiers = ["Add URLs": "add", "AI Agent": "agent", "Snapshots": "snapshots", "Admin": "admin", "Users": "users", "Connection Settings": "settings"]
+        let identifiers = ["Search Archive": "search", "Add URLs": "add", "AI Agent": "agent", "Snapshots": "snapshots", "Admin": "admin", "Users": "users", "Connection Settings": "settings"]
         let item = app.buttons["sidebar." + identifiers[name]!]
         let sidebar = app.collectionViews.firstMatch
         if !sidebar.isHittable {

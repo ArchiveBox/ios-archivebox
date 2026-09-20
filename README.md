@@ -61,14 +61,17 @@ Your server must be reachable to save new links.
 
 </div>
 
-## Shortcuts and Siri
+## Search, Siri, and Apple system features
 
-Save links and search your archive with Shortcuts or Siri on iPhone, iPad, and Mac.
+Choose **Search Archive** for native search by title, URL, or tag. Open a saved page, share its original or archived URL, or drag a result into another app. On Mac, press **⌘F** to open search.
 
-- **Search ArchiveBox** finds saved pages by URL, title, or tag.
-- **Save URLs to ArchiveBox** adds links to your archive from your own shortcuts.
+- **Siri AI on iOS/iPadOS/macOS 27:** search and open actions adopt Apple's system schemas. Search opens the native results screen. Availability depends on your device's Siri language, region, and system settings.
+- **Phrase shortcuts:** say **“Search ArchiveBox”** and answer the search prompt, **“Save links to ArchiveBox,”** **“Open a saved page in ArchiveBox,”** or **“Browse ArchiveBox.”** The background search action returns structured pages for use in your own shortcuts.
+- **Spotlight:** pages loaded in native search or opened through app links contribute their title, URL, and tags to the device's search index. Apple’s system settings control Siri and Spotlight access. Metadata expires after seven days unless refreshed and is cleared when the saved server or API key changes.
+- **Widgets and controls:** add ArchiveBox's Search/Add widget or its controls to supported system surfaces, including Control Center and the Lock Screen. They open the app without exposing credentials or submitting links automatically.
+- **Handoff and onscreen context:** continue an open archived page on another Apple device connected to the same server. Native search rows and opened pages expose their identity to the system.
 
-Connect your server in the app, then find both actions under **ArchiveBox** in Shortcuts.
+Connect your server first. Searching, resolving saved pages, and archiving require access to that server; the app doesn't download the entire collection for offline search. These integrations don't promise Siri can summarize every archived page's contents.
 
 ## Your server, your choice
 
@@ -143,6 +146,7 @@ Your saved archive stays on your Mac when you quit either app.
 - The native apps contain no analytics or tracking SDKs and require no developer-operated cloud account.
 - Shared URLs are sent to the ArchiveBox server you configure. That server’s administrator controls storage, access, and retention.
 - The app stores connection credentials in device-only Keychain. Shared URLs stay in memory during submission; the native share sheet keeps no URL history or offline queue. It remembers the two most recently saved tag names per server on this device.
+- Native search and opened-page metadata can appear in the device's Spotlight index. Handoff shares the open page's title and credential-free link with your other Apple devices. Archive contents are not publicly indexed.
 - Embedded server pages use a browser session in memory. Your server and the pages you open may have their own privacy policies.
 - The browser extension for Safari, Chrome, Firefox, Brave, and Edge has its own local storage and optional cookie syncing. Review its [settings and documentation](https://github.com/ArchiveBox/archivebox-browser-extension) before enabling those features.
 - The server contacts websites you ask it to archive and any external services enabled in its configuration. Review [ArchiveBox privacy and security settings](https://github.com/ArchiveBox/ArchiveBox/wiki/Security-Overview), including submission to Archive.org.
@@ -158,7 +162,7 @@ Free and open source under the [GNU GPLv3 only (GPL-3.0-only)](https://github.co
 <details id="development" markdown="1">
 <summary><strong>Build from source &amp; contribute</strong></summary>
 
-Requires Xcode 26+, Node.js 22+, and pnpm 10.33.2. See the [developer guide](https://github.com/ArchiveBox/ios-archivebox/blob/main/docs/DEVELOPMENT.md) for signing, platform targets, and verification.
+Requires Xcode 27+, Node.js 22+, and pnpm 10.33.2. See the [developer guide](https://github.com/ArchiveBox/ios-archivebox/blob/main/docs/DEVELOPMENT.md) for signing, platform targets, and verification.
 
 ```sh
 git clone https://github.com/ArchiveBox/ios-archivebox.git

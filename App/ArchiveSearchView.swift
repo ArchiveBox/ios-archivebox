@@ -13,6 +13,7 @@ struct ArchiveSearchView: View {
     @State private var error: String?
     @State private var limit = 50
     @State private var refreshID = UUID()
+    @State private var searchTask: Task<Void, Never>?
 
     private var configuration: ServerConfiguration? {
         guard let server = settings.verifiedServer, let token = settings.verifiedToken else { return nil }
@@ -83,21 +84,26 @@ struct ArchiveSearchView: View {
             }
         }
         .refreshable { refreshID = UUID() }
-        .task(id: SearchRequest(configuration: configuration, query: submittedQuery, limit: limit, refreshID: refreshID)) {
-            results = []; error = nil
-            guard let configuration else { return }
-            loading = true
-            do {
-                let snapshots = try await ArchiveBoxClient().snapshots(query: submittedQuery, limit: limit, configuration: configuration)
-                try Task.checkCancellation()
-                results = snapshots.map { ArchiveBoxSearchResult(snapshot: $0, server: configuration.server) }
-                loading = false
-                do { try await ArchiveSystemIndex.update(results, configuration: configuration) }
-                catch { NSLog("ArchiveBox Spotlight indexing failed: %@", error.localizedDescription) }
-            } catch {
-                guard !Task.isCancelled else { return }
-                loading = false
-                self.error = error.localizedDescription
+        .onChange(of: SearchRequest(configuration: configuration, query: submittedQuery, limit: limit, refreshID: refreshID), initial: true) {
+            // Like PageSession, own the request across SwiftUI's transient
+            // disappearances when the split view or search bar changes layout.
+            searchTask?.cancel()
+            searchTask = Task {
+                results = []; error = nil
+                guard let configuration else { loading = false; return }
+                loading = true
+                do {
+                    let snapshots = try await ArchiveBoxClient().snapshots(query: submittedQuery, limit: limit, configuration: configuration)
+                    try Task.checkCancellation()
+                    results = snapshots.map { ArchiveBoxSearchResult(snapshot: $0, server: configuration.server) }
+                    loading = false
+                    do { try await ArchiveSystemIndex.update(results, configuration: configuration) }
+                    catch { NSLog("ArchiveBox Spotlight indexing failed: %@", error.localizedDescription) }
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    loading = false
+                    self.error = error.localizedDescription
+                }
             }
         }
     }

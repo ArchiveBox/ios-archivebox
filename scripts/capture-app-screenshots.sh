@@ -85,9 +85,11 @@ YAML
     if [[ "$platform" == iphone ]]; then device_prefix=iPhone; else device_prefix=iPad; fi
     device_id=$(xcrun simctl list devices available -j | DEVICE_PREFIX="$device_prefix" node -e '
       let input=""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => {
-        const runtimes=Object.entries(JSON.parse(input).devices).filter(([runtime]) => runtime.includes("iOS-26"));
+        const runtimes=Object.entries(JSON.parse(input).devices)
+          .filter(([runtime]) => Number(runtime.match(/iOS-(\d+)/)?.[1]) >= 26)
+          .sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true }));
         const device=runtimes.flatMap(([, devices])=>devices).find(device=>device.name.startsWith(process.env.DEVICE_PREFIX));
-        if (!device) throw new Error(`No iOS 26 ${process.env.DEVICE_PREFIX} simulator available`);
+        if (!device) throw new Error(`No iOS 26+ ${process.env.DEVICE_PREFIX} simulator available`);
         process.stdout.write(device.udid);
       });')
     destination="platform=iOS Simulator,id=$device_id"

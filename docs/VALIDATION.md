@@ -1,6 +1,18 @@
 # Acceptance evidence
 
-Validated on 2026-09-16 using Xcode 27.0, an iPhone 18 Pro simulator running iOS 27.0, and isolated real ArchiveBox 0.9.35rc446 collections. The app deployment target is iOS 26; compatibility with the Xcode 26 SDK is checked by CI.
+## Native search and system integrations (2026-09-20)
+
+- Xcode 27 built the iOS app and native Mac direct-distribution target, including the Widgets extensions. The deployment target remains OS 26; schema-backed Siri actions require OS 27. Generated App Intents metadata contains `SystemSearchInAppIntent`, `OpenIntent`, the persistent archived-page entity, and five phrase shortcuts.
+- All 16 Swift package tests passed, including credential-free route round trips, rejection of ambiguous/unsafe links, and server-scoped page resolution.
+- The integration executable passed against an isolated CLI-initialized ArchiveBox server: actual token validation, browser session exchange, URL submission, snapshot search, individual snapshot resolution, bounded recent results, tag mutations, and scoped crawl removal.
+- `testNativeArchiveSearchAndDeepLinks` passed on a dedicated iPhone 17e simulator running iOS 27: connection through the public connection link, native search for a real saved URL, authenticated archive rendering, native sharing, exact no-results query, rejection of a link to another server, and successful cold launch of the saved page. Screenshots were inspected. This caught and fixed both a cancelled search request during SwiftUI layout transitions and stale state in the archived-page sheet.
+- Local evidence: `/tmp/archivebox-native-ui-verified.log`, `/tmp/archivebox-native-api.log`, `/tmp/archivebox-native-swift-final.log`, `/tmp/archivebox-native-mac-final.log`, and `/tmp/archivebox-native-acceptance-images/`.
+
+Siri voice recognition/dispatch on a physical device, Spotlight's visible ranking, cross-device Handoff, widget/control taps, and distribution provisioning for the new Widgets bundle still need device/release acceptance. Successful schema extraction is not a claim that Siri has executed the actions. Siri/Spotlight access uses Apple's system controls; no app-specific toggle was added.
+
+## Initial client acceptance
+
+Validated on 2026-09-16 using Xcode 27.0, an iPhone 18 Pro simulator running iOS 27.0, and isolated real ArchiveBox 0.9.35rc446 collections. The app deployment target is iOS 26. Since the system integration update above, builds require the Xcode 27 SDK.
 
 - Swift Testing: address normalization, IPv4/IPv6, known API/admin/web host alternatives, invalid address rejection, mixed-text URL extraction, deduplication, and non-web URL rejection.
 - iOS app and embedded share extension: built and installed successfully.

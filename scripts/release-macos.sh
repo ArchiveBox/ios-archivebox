@@ -27,7 +27,7 @@ ARCHIVEBOX_SIGNING_IDENTITY=$(security find-identity -v -p codesigning "$keychai
 export ARCHIVEBOX_APP_VERSION ARCHIVEBOX_BUILD_NUMBER ARCHIVEBOX_SPARKLE_PUBLIC_KEY="$SPARKLE_PUBLIC_KEY"
 ARCHIVEBOX_APP_VERSION=$(node -p 'require("./release.json").version')
 ARCHIVEBOX_BUILD_NUMBER=$(node -p 'require("./release.json").build')
-for plist in MacApp/Info.plist MacShareExtension/Info.plist SafariWebExtension/Info-macOS.plist; do
+for plist in MacApp/Info.plist MacShareExtension/Info.plist SafariWebExtension/Info-macOS.plist Widgets/Info-macOS.plist; do
  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $ARCHIVEBOX_APP_VERSION" "$plist"
  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $ARCHIVEBOX_BUILD_NUMBER" "$plist"
 done

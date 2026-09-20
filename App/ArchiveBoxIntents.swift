@@ -132,8 +132,9 @@ struct SearchArchiveBoxWithSiriIntent: ShowInAppSearchResultsIntent {
     static let searchScopes: [StringSearchScope] = [.general]
     var criteria: StringSearchCriteria
 
-    func perform() async throws -> some IntentResult & OpensIntent {
-        .result(opensIntent: OpenURLIntent(ArchiveRoute.search(criteria.term).url))
+    @MainActor func perform() async throws -> some IntentResult {
+        ArchiveNavigation.shared.open(.search(criteria.term))
+        return .result()
     }
 }
 
@@ -159,16 +160,16 @@ struct OpenArchivedPageWithSiriIntent: OpenIntent, URLRepresentableIntent {
 struct OpenArchiveSearchIntent: AppIntent {
     static let title: LocalizedStringResource = "Open ArchiveBox Search"
     static let supportedModes: IntentModes = .foreground
-    func perform() async throws -> some IntentResult & OpensIntent {
-        .result(opensIntent: OpenURLIntent(ArchiveRoute.search("").url))
+    @MainActor func perform() async throws -> some IntentResult {
+        try await OpenArchiveDestinationIntent(.search).perform()
     }
 }
 
 struct OpenAddURLsIntent: AppIntent {
     static let title: LocalizedStringResource = "Add URLs in ArchiveBox"
     static let supportedModes: IntentModes = .foreground
-    func perform() async throws -> some IntentResult & OpensIntent {
-        .result(opensIntent: OpenURLIntent(ArchiveRoute.add.url))
+    @MainActor func perform() async throws -> some IntentResult {
+        try await OpenArchiveDestinationIntent(.add).perform()
     }
 }
 

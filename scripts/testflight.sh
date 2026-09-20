@@ -38,7 +38,7 @@ security list-keychains -d user -s "$keychain" "$HOME/Library/Keychains/login.ke
 identity=$(security find-identity -v -p codesigning "$keychain" | awk '/"Apple Development:/ {print $2; exit}')
 [[ -n "$identity" ]] || { echo 'Apple Development identity missing' >&2; exit 1; }
 # XcodeGen's committed plists have literal versions, so update every product here.
-for plist in App/Info.plist ShareExtension/Info.plist SafariWebExtension/Info-iOS.plist MacApp/Info.plist MacShareExtension/Info.plist SafariWebExtension/Info-macOS.plist; do
+for plist in App/Info.plist ShareExtension/Info.plist SafariWebExtension/Info-iOS.plist MacApp/Info.plist MacShareExtension/Info.plist SafariWebExtension/Info-macOS.plist Widgets/Info-iOS.plist Widgets/Info-macOS.plist; do
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $RELEASE_BUILD" "$plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $RELEASE_VERSION" "$plist"
 done

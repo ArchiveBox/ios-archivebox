@@ -24,9 +24,7 @@ struct ArchiveBoxApp: App {
                 OpenAddURLs(navigationID: $addNavigationID)
             }
             CommandGroup(after: .textEditing) {
-                Button("Search Archive…", systemImage: "magnifyingglass") {
-                    ArchiveNavigation.shared.open(.search(""))
-                }.keyboardShortcut("f", modifiers: .command)
+                OpenArchiveSearch()
             }
             CommandGroup(replacing: .appInfo) {
                 Button("About ArchiveBox") { AppInformation.showAbout() }
@@ -49,6 +47,18 @@ struct ArchiveBoxApp: App {
 }
 
 #if os(macOS)
+private struct OpenArchiveSearch: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Search Archive…", systemImage: "magnifyingglass") {
+            ArchiveNavigation.shared.open(.search(""))
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }.keyboardShortcut("f", modifiers: .command)
+    }
+}
+
 private struct OpenConnectionSettings: View {
     @Environment(\.openWindow) private var openWindow
     @Binding var navigationID: UUID

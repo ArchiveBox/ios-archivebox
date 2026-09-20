@@ -83,6 +83,11 @@ struct IntegrationChecks {
         let missing = try await client.search(query: UUID().uuidString, configuration: configuration)
         guard missing.isEmpty else { fatalError("Search returned results for an unknown unique query") }
         print("PASS: authenticated snapshot search returns matching records and an empty list for no matches")
+        let resolved = try await client.snapshot(id: snapshotID, configuration: configuration)
+        guard resolved.id == snapshotID, resolved.url == url else { fatalError("Entity resolution returned a different snapshot") }
+        let recent = try await client.snapshots(limit: 1, configuration: configuration)
+        guard recent.count == 1 else { fatalError("Recent pages did not respect the requested limit") }
+        print("PASS: saved-page identity resolves through the real API and recent pages are bounded")
         print("PASS: tags inherit before snapshot creation and add/remove/clear afterward without resubmitting")
         // Removal must be scoped to this receipt, even if the same URL was shared twice.
         let otherShare = try await client.submit(urls: [url], configuration: configuration)

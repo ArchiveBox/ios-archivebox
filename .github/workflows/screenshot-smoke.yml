@@ -15,7 +15,7 @@ jobs:
       matrix:
         platform: ${{ fromJSON(inputs.mac_only && '["macos"]' || '["iphone", "macos"]') }}
     environment: testflight
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4

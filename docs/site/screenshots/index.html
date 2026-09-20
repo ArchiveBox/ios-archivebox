@@ -21,7 +21,6 @@ description: Explore real app captures on iPhone and Mac. Open any image to see 
     <p>{{ capture.platform_label }} · {{ capture.device | escape }}</p>
     {% assign image_path = '/screenshots/' | append: capture.path %}
     <a href="{{ image_path | relative_url }}?v={{ gallery.revision }}"><img src="{{ image_path | relative_url }}?v={{ gallery.revision }}" alt="{{ capture.title }} on {{ capture.platform_label }}" width="{{ capture.width }}" height="{{ capture.height }}" loading="lazy"></a>
-    <figcaption>{{ capture.width }} × {{ capture.height }} · <time datetime="{{ capture.captured_at }}">{{ capture.captured_at }}</time></figcaption>
   </figure>
 {% endfor %}
 </div>
@@ -33,14 +32,13 @@ description: Explore real app captures on iPhone and Mac. Open any image to see 
   <button type="button" data-platform="iphone" aria-pressed="false">iPhone</button>
 </div>
 <div class="native-gallery">
-{% assign previews = 'library-mac|home-iphone|extension-iphone|connection-mac' | split: '|' %}
+{% assign previews = 'library-mac|home-iphone|extension-iphone|connection-mac|archive-mac|archive-iphone|persona' | split: '|' %}
 {% for preview in previews %}
-  {% assign platform = 'macos' %}{% if preview contains 'iphone' %}{% assign platform = 'iphone' %}{% endif %}
+  {% assign platform = 'macos' %}{% if preview contains 'iphone' or preview == 'persona' %}{% assign platform = 'iphone' %}{% endif %}
   {% assign image = '/docs/screenshots/' | append: preview | append: '.png' %}
   <figure data-platform="{{ platform }}" id="{{ platform }}-{{ preview }}">
     <h2>{{ preview | replace: '-', ' ' | capitalize }}</h2>
     <a href="{{ image | relative_url }}"><img src="{{ image | relative_url }}" alt="{{ preview | replace: '-', ' ' }}" loading="lazy"></a>
-    <figcaption>App documentation screenshot · <a href="{{ image | relative_url }}">Full image</a></figcaption>
   </figure>
 {% endfor %}
 </div>

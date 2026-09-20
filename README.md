@@ -65,7 +65,7 @@ Your server must be reachable to save new links.
 
 </div>
 
-## Your server, your choice
+<h2 id="your-server-your-choice">Run your own server, or use a friend’s.</h2>
 
 Use an existing ArchiveBox server anywhere you can reach it, or keep your archive on your Mac with **ArchiveBox Server.app**.
 

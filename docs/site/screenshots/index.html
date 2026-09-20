@@ -33,7 +33,7 @@ description: Explore real app captures on iPhone and Mac. Open any image to see 
   <button type="button" data-platform="iphone" aria-pressed="false">iPhone</button>
 </div>
 <div class="native-gallery">
-{% assign previews = 'library-mac|home-iphone|extension-iphone' | split: '|' %}
+{% assign previews = 'library-mac|home-iphone|extension-iphone|connection-mac' | split: '|' %}
 {% for preview in previews %}
   {% assign platform = 'macos' %}{% if preview contains 'iphone' %}{% assign platform = 'iphone' %}{% endif %}
   {% assign image = '/docs/screenshots/' | append: preview | append: '.png' %}

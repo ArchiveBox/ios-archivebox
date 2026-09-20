@@ -1,6 +1,10 @@
 #!/bin/bash
 # Bootstrap a real, disposable ArchiveBox collection on a hosted screenshot runner.
 set -euo pipefail
+# Reuse ArchiveBox's existing screenshot-only setting before any CLI can own
+# the runtime. Hosted-runner load should not decorate the app gallery; disk,
+# memory, routing and security warnings remain enabled.
+export UI_SCREENSHOT_HIDE_HIGH_LOAD_WARNING=1
 umask 077
 backend=${1:?Usage: start-screenshot-server.sh BACKEND_CHECKOUT FRESH_DATA_DIRECTORY}
 data=${2:?Usage: start-screenshot-server.sh BACKEND_CHECKOUT FRESH_DATA_DIRECTORY}

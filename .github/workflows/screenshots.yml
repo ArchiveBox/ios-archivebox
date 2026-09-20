@@ -6,14 +6,17 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: app-captures-${{ github.ref }}
-  cancel-in-progress: false
 env:
   # Pin the real server so app captures are reproducible and record both revisions.
   BACKEND_REVISION: 9f6535006ab4df9849e0a7dab0a99eea9d745ebd
 jobs:
   capture:
+    concurrency:
+      group: app-captures-${{ matrix.platform }}-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -106,6 +109,10 @@ jobs:
           path: build/screenshots/gallery
           if-no-files-found: error
           retention-days: 90
+      - name: Publish this completed screenshot group
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
       - uses: actions/upload-artifact@v4
         with:
           name: app-screenshots-${{ matrix.platform }}

@@ -471,6 +471,18 @@ final class ArchiveBoxUITests: XCTestCase {
             XCTAssertFalse(app.navigationBars[screen].exists)
             XCTAssertTrue(app.webViews.firstMatch.frame.contains(back.frame))
             attach("\(screen) with back over web header", app: app)
+            let page = app.webViews.firstMatch
+            // Drag from the page margin so a link/form control cannot start a drag session.
+            page.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.25))
+                .press(forDuration: 0.1,
+                       thenDragTo: page.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.7)),
+                       withVelocity: .slow, thenHoldForDuration: 2)
+            attach("\(screen) after pulling down at top", app: app)
+            if screen == "Snapshots" {
+                page.swipeUp()
+                XCTAssertTrue(back.isHittable)
+                attach("Back over scrolled white content", app: app)
+            }
             back.tap()
             XCTAssertTrue(app.buttons["sidebar.snapshots"].isHittable)
         }

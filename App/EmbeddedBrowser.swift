@@ -132,6 +132,12 @@ import ArchiveBoxCore
         webPage.uiDelegate = routing
         webPage.allowsBackForwardNavigationGestures = true
         #if os(iOS)
+        let headerColor = UIColor(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255, alpha: 1)
+        webPage.isOpaque = false
+        webPage.backgroundColor = headerColor
+        webPage.underPageBackgroundColor = headerColor
+        webPage.scrollView.backgroundColor = headerColor
+        webPage.scrollView.bounces = false
         webPage.scrollView.contentInsetAdjustmentBehavior = .never
         #endif
         let page = PageSession(webPage, routing: routing, owner: self)

@@ -1,0 +1,32 @@
+.github/workflows/pages.yml
+  h_923c208e183a7b 15-16
+.github/workflows/screenshots.yml
+  h_923c208e183a7b 20,24,41,51,54,56-73,77,88,94-108
+ArchiveBox.xcodeproj/project.pbxproj
+  h_923c208e183a7b 25,245,254,338,363-370,388,563-579,758-761,827,992-999,1106-1121,1576-1591,1718-1733,2175-2190,2239-2249
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxServerScreenshots.xcscheme
+  h_923c208e183a7b 1-107
+ScreenshotTests/ArchiveBoxScreenshotTests.swift
+  h_923c208e183a7b 46-112,333
+ServerScreenshotTests/ServerScreenshotTests.swift
+  h_923c208e183a7b 1-97
+project.yml
+  h_923c208e183a7b 331-337,339-346
+scripts/build-screenshot-gallery.py
+  h_923c208e183a7b 4,12-15,24,33-34,69
+scripts/capture-app-screenshots.sh
+  h_923c208e183a7b 10,13,19,45-52,98,122,124
+scripts/restore-site-screenshots.py
+  h_923c208e183a7b 19-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8d7b7c0091353630dbad92221e8bb7de5b9f713f",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -195,8 +195,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
         case .users: view = usersView
         case .settings: view = settingsView
         }
-        view.frame = NSRect(origin: .zero, size: size)
-        window.contentView = view
+        // Refreshing server details can select the current tab repeatedly.
+        // Keep its hosting view attached so AppKit preserves accessibility parents.
+        if window.contentView !== view {
+            view.frame = NSRect(origin: .zero, size: size)
+            window.contentView = view
+        }
         // Toolbar metrics remain visible on every tab; closing the window stops polling.
         settings.monitor()
         if selectedScreen == .users { settings.refreshDetails() }

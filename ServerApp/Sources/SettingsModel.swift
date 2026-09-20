@@ -27,6 +27,7 @@ final class SettingsModel: ObservableObject {
     @Published var terminalConnected = false
     @Published var networkOptions = NetworkOptions.load()
     @Published var networkURLs: [URL] = []
+    @Published var settingsVisible = true
     @Published private var connectionAPIKey: String?
     var qrAPIKey: String? { ready && hasAdmin && !changingCollection ? connectionAPIKey : nil }
     private lazy var networkAccess = NetworkAccess(runtime: runtime)

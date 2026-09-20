@@ -44,8 +44,8 @@ struct PrivateSharingSection: View {
                     Spacer(minLength: 0)
                     if let url = model.tailscaleConnectionURL {
                         VStack(alignment: .center, spacing: 6) {
-                            ConnectionCode(server: url, apiKey: model.qrAPIKey, compact: true)
-                        }.frame(width: 165).accessibilityIdentifier("network.tailscaleQR")
+                            ConnectionCode(server: url, apiKey: model.qrAPIKey, compact: true, isVisible: model.settingsVisible)
+                        }.frame(width: 220).accessibilityIdentifier("network.tailscaleQR")
                     }
                 }
                 Divider()
@@ -132,7 +132,7 @@ struct PrivateSharingSection: View {
         .sheet(isPresented: $certificateSetup) { CertificateSetup(model: model) }
         .sheet(item: Binding(get: { selectedAddress.map(AddressSelection.init) }, set: { selectedAddress = $0?.url })) { item in
             VStack(alignment: .leading, spacing: 20) {
-                ConnectionCode(server: item.url, apiKey: model.qrAPIKey)
+                ConnectionCode(server: item.url, apiKey: model.qrAPIKey, isVisible: model.settingsVisible)
                 Button("Done") { selectedAddress = nil }
             }.padding(30).frame(width: 440)
         }

@@ -185,6 +185,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate, NSW
 
     func selectTab(_ screen: Screen) {
         selectedScreen = screens.contains(screen) ? screen : .settings
+        settings.settingsVisible = selectedScreen == .settings
         tabs.selectedSegment = screens.firstIndex(of: selectedScreen) ?? 0
         let size = window.contentView!.frame.size
         let view: NSView

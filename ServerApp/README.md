@@ -76,12 +76,16 @@ are disabled when Tailscale is not installed. The section links to installation
 and rechecks availability when you return to the app. LAN and custom-certificate
 options remain available independently.
 
-When Tailscale is connected, a connection QR is always visible in the section's
-upper-right corner. Scan it with the iPhone Camera to open the client, fill its
-address, and sign in using this Mac's existing administrator API key. The client
-verifies the key and saves it in Keychain. Treat the QR and shared connection link
-as administrator credentials. The toolbar copies only the primary connection
-address; derived localhost URLs remain available for the native admin session.
+When Tailscale is connected, a guest connection QR is always visible in the
+section's upper-right corner. It contains only the server address. The menu above
+it can reveal an admin QR with a warning: scanning signs a phone in using your
+admin account, granting control of your server. It returns to the guest QR when
+the window loses focus, you leave Settings, or 60 seconds pass.
+**Send an instant-login link to your phone** offers guest sharing first and admin
+sharing behind the same warning. Only explicitly chosen admin codes and links
+include the administrator API key. Hiding a code does not revoke a key already
+scanned or shared. The toolbar copies only the primary connection address;
+derived localhost URLs remain available for the native admin session.
 
 **Apply & verify access** validates settings through ArchiveBox's config CLI,
 restarts the container, checks the selected API addresses, and signs the native

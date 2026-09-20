@@ -256,11 +256,12 @@ struct MainView: View {
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.6), radius: 1)
                             .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive(), in: .circle)
                     .accessibilityLabel("Back to menu")
                     .accessibilityIdentifier("navigation.sidebar")
                     .padding(8)

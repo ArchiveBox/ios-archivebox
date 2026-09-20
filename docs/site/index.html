@@ -6,7 +6,7 @@ layout: default
 {% capture hero_gallery %}{% include hero-gallery.html product="client" %}{% endcapture %}
 {% assign original_hero = '<p class="hero-screenshot" align="center"><img src="docs/screenshots/library-mac.png" width="1080" alt="ArchiveBox.app on macOS, showing saved snapshots and the Collection and Admin sidebar"></p>' %}
 {% capture server_gallery %}{% include hero-gallery.html product="server" %}{% endcapture %}
-{% assign server_heading = '<h3 id="archivebox-serverapp">' %}
+{% assign server_heading = '<div class="server-download-heading">' %}
 {% capture server_with_gallery %}{{ server_gallery }}
 
 {{ server_heading }}{% endcapture %}

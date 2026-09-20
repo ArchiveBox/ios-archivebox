@@ -23,6 +23,7 @@
   let visible = false;
   let frame;
   let previous;
+  let offset = viewport.scrollLeft;
   function updateButton() {
     toggle.textContent = paused ? 'Play gallery' : 'Pause gallery';
     toggle.setAttribute('aria-pressed', String(paused));
@@ -30,7 +31,8 @@
   function tick(time) {
     const distance = group.getBoundingClientRect().width + 24;
     if (previous !== undefined && distance > 0) {
-      viewport.scrollLeft = (viewport.scrollLeft + Math.min(time - previous, 50) * 0.035) % distance;
+      offset = (offset + Math.min(time - previous, 50) * 0.035) % distance;
+      viewport.scrollLeft = offset;
     }
     previous = time;
     frame = requestAnimationFrame(tick);
@@ -38,6 +40,7 @@
   function sync() {
     cancelAnimationFrame(frame);
     previous = undefined;
+    offset = viewport.scrollLeft;
     if (!paused && !hovering && !focused && visible && !document.hidden) frame = requestAnimationFrame(tick);
   }
   toggle.hidden = false;

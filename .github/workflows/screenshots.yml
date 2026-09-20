@@ -30,6 +30,15 @@ jobs:
         # First simulator boot and dependency extraction otherwise compete with mdworker.
         run: sudo mdutil -a -i off
       - uses: actions/checkout@v4
+      - name: Set the disposable Mac desktop size
+        if: matrix.platform != 'iphone'
+        run: |
+          brew install displayplacer
+          displayplacer list
+          screen_id=$(displayplacer list | awk '/Persistent screen id:/ {print $4; exit}')
+          test -n "$screen_id"
+          displayplacer "id:$screen_id res:1920x1080 scaling:off"
+          swift -e 'import AppKit; let size = NSScreen.main!.frame.size; print("Desktop: \(size)"); precondition(size.width >= 1920 && size.height >= 1080, "Capture desktop is too small")'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

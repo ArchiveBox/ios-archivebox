@@ -1,0 +1,24 @@
+.github/workflows/screenshots.yml
+  h_923c208e183a7b 59
+ServerApp/server-image.py
+  h_923c208e183a7b 19,22,40-41,79-80,84
+docs/site/README.md
+  h_923c208e183a7b 38-45,47-62,66,69-72
+docs/site/_includes/hero-gallery.html
+  h_923c208e183a7b 6
+docs/site/screenshots/index.html
+  h_923c208e183a7b 18
+scripts/capture-app-screenshots.sh
+  h_923c208e183a7b 4,11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5d227fe1dbda26477f4de8785a9a12a1d637a196",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

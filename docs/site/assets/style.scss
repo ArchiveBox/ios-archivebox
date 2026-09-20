@@ -149,25 +149,6 @@ header nav .project-menu__links a:hover, header nav .project-menu__links a[aria-
 @media (max-width: 550px) { .native-gallery figure { padding: 8px; border-radius: 12px; } .gallery-platforms button { padding: 9px 16px; } }
 
 
-/* Full-bleed, manually scrollable gallery; JS gently advances through each image once. */
-.markdown-body .hero-gallery {
-  width: 100vw;
-  max-width: none;
-  margin: 12px calc(50% - 50vw) 36px;
-  padding: 8px 0;
-  overflow: hidden;
-  background: radial-gradient(ellipse at 25% 60%, #efdae5 0, transparent 65%), linear-gradient(120deg, #f5f0f4, #faf8f3 70%, #eaf0ec);
-  border-block: 1px solid #e9e2e3;
-}
-.hero-gallery-viewport { overflow-x: auto; scrollbar-width: none; padding: 8px 24px; overscroll-behavior-x: contain; }
-.hero-gallery-viewport::-webkit-scrollbar { display: none; }
-.hero-gallery-viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
-.hero-gallery-track, .hero-gallery-group { display: flex; align-items: stretch; gap: 24px; width: max-content; }
-.hero-gallery-card { display: block; flex: none; text-decoration: none !important; }
-.hero-gallery-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-.markdown-body .hero-gallery-card img { display: block; height: clamp(260px, 33vw, 460px); width: auto; max-width: none; object-fit: contain; border-radius: 10px; }
-
-.markdown-body .hero-gallery--server .hero-gallery-card img { height: clamp(240px, 28vw, 360px); }
 .gallery-products { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 36px; }
 .gallery-products button { padding: 14px 22px; border: 1px solid var(--line); border-radius: 28px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
 .gallery-products button[aria-selected="true"] { background: var(--accent); color: white; }

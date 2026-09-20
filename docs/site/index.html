@@ -11,5 +11,3 @@ layout: default
 
 {{ server_heading }}{% endcapture %}
 {{ readme | replace: server_heading, server_with_gallery | replace: original_hero, hero_gallery | markdownify }}
-
-<script src="{{ "/assets/hero-gallery.js" | relative_url }}" defer></script>

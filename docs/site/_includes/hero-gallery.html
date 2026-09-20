@@ -1,10 +1,5 @@
-<section class="hero-gallery{% if include.product == 'server' %} hero-gallery--server{% endif %}" aria-label="{% if include.product == 'server' %}ArchiveBox Server.app screenshots{% else %}ArchiveBox.app screenshots{% endif %}">
-  <div class="hero-gallery-viewport" tabindex="0" aria-label="App screenshots. Scroll sideways to explore.">
-    <div class="hero-gallery-track"><div class="hero-gallery-group">
-      {% assign captures = site.data.gallery | where: 'product', include.product %}
-      {% for capture in captures %}
-      <a class="hero-gallery-card" href="{{ capture.path | relative_url }}{% if capture.sha256 %}?v={{ capture.sha256 | slice: 0, 12 }}{% endif %}"><img src="{{ capture.path | relative_url }}{% if capture.sha256 %}?v={{ capture.sha256 | slice: 0, 12 }}{% endif %}" width="{{ capture.width }}" height="{{ capture.height }}" alt="{{ capture.title | escape }}" loading="lazy"></a>
-      {% endfor %}
-    </div></div>
-  </div>
-</section>
+{% if include.product == 'server' %}
+<!-- ARCHIVEBOX:MARQUEE-SERVER -->
+{% else %}
+<!-- ARCHIVEBOX:MARQUEE-CLIENT -->
+{% endif %}

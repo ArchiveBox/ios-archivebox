@@ -10,7 +10,7 @@ description: Explore ArchiveBox.app on iPhone and Mac, and ArchiveBox Server.app
 </div>
 {% assign products = 'client|server' | split: '|' %}
 {% for product in products %}
-<div class="native-gallery" id="gallery-{{ product }}" role="tabpanel" aria-labelledby="tab-{{ product }}" {% if product == 'server' %}hidden{% endif %}>
+<div class="native-gallery" id="gallery-{{ product }}" role="tabpanel" aria-labelledby="tab-{{ product }}">
 {% assign captures = site.data.gallery | where: 'product', product %}
 {% for capture in captures %}
   <figure data-platform="{{ capture.platform }}" id="{{ capture.platform }}-{{ capture.id }}">
@@ -29,6 +29,7 @@ function selectProduct(product) {
     document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
   }
 }
+selectProduct('client');
 for (const tab of tabs) {
   tab.addEventListener('click', () => selectProduct(tab.dataset.product));
   tab.addEventListener('keydown', event => {

@@ -1,0 +1,50 @@
+.github/workflows/build.yml
+  h_923c208e183a7b 7,20,25
+.github/workflows/release.yml
+  h_923c208e183a7b 15
+.github/workflows/screenshot-smoke.yml
+  h_923c208e183a7b 18
+.github/workflows/screenshots.yml
+  h_923c208e183a7b 21-22
+.github/workflows/testflight.yml
+  h_923c208e183a7b 34
+App/ArchiveBoxApp.swift
+  h_923c208e183a7b 27,50-61
+App/ArchiveBoxIntents.swift
+  h_923c208e183a7b 135-137,163-164,171-172
+App/ArchiveSearchView.swift
+  h_923c208e183a7b 16,87-106
+App/MainView.swift
+  h_923c208e183a7b 26,29-36,186-195,199-205,207-209,319,325
+IntegrationTests/Smoke.swift
+  h_923c208e183a7b 86-90
+README.md
+  h_923c208e183a7b 64,66,68-72,74,149,165
+UITests/ArchiveBoxUITests.swift
+  h_923c208e183a7b 57-120,564
+Widgets/ArchiveBoxWidgets.swift
+  h_923c208e183a7b 30-31,35
+docs/DEVELOPMENT.md
+  h_923c208e183a7b 7,22,26,32-33,45,57
+docs/VALIDATION.md
+  h_923c208e183a7b 3-15
+scripts/capture-app-screenshots.sh
+  h_923c208e183a7b 88-90,92
+scripts/release-macos.sh
+  h_923c208e183a7b 30
+scripts/release.mjs
+  h_923c208e183a7b 36
+scripts/testflight.sh
+  h_923c208e183a7b 41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d106ff3975babfddb5f16d693fc884bf4452fb8d",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

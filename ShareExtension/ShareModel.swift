@@ -73,6 +73,8 @@ final class ShareModel {
             state = .sent(urls.count)
             if isRemoving { await removeSubmission(); return }
             saveTags()
+            // Disabled: the share sheet already confirms that the server queued the URLs.
+            /*
             // Notify only after server acceptance. A notification failure must not
             // turn a successful POST into a retryable submission error.
             let center = UNUserNotificationCenter.current()
@@ -87,6 +89,7 @@ final class ShareModel {
                     NSLog("ArchiveBox share notification failed: %@", error.localizedDescription)
                 }
             }
+            */
         } catch {
             // Deliberately no automatic retry: a timed-out POST might already have been accepted.
             isRemoving = false

@@ -88,6 +88,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         assertPage("Downloads", app: app)
         capture("activity", app: app)
         openScreen("settings", app: app)
+        #if os(macOS)
+        // The real local server appears asynchronously and expands the settings
+        // form. Wait for that result before measuring where to scroll.
+        XCTAssertTrue(app.buttons["discovery.inline.result"].firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        #endif
         let guide = app.buttons["network.guide"]
         scrollTo(guide, app: app)
         press(guide)

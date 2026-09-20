@@ -33,7 +33,10 @@ targets:
   ArchiveBox:
     type: application
     platform: iOS
-    sources: [App]
+    sources:
+      - App
+      - path: LICENSE
+        buildPhase: resources
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -120,6 +123,8 @@ targets:
         excludes: [Info.plist, ArchiveBox.entitlements]
       - MacApp
       - MacLocalUI
+      - path: LICENSE
+        buildPhase: resources
     dependencies:
       - package: ArchiveBoxCore
       - target: ArchiveBoxMacShare

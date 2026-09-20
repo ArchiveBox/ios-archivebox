@@ -24,6 +24,7 @@ case "$app" in
         exit 1 ;;
 esac
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+cp ../LICENSE "$app/Contents/Resources/LICENSE"
 bash prepare-network.sh
 cp vendor/caddy/caddy "$app/Contents/Resources/caddy"
 cp vendor/caddy/LICENSE "$app/Contents/Resources/CADDY-LICENSE"

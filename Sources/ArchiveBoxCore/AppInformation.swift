@@ -30,7 +30,7 @@ public enum AppInformation {
 
     @MainActor public static func showAbout(server: Bool = false) {
         let credits = NSMutableAttributedString(string: (server ? serverDescription : clientDescription) + "\n\n" + copyright + "\n\n")
-        for link in links + [("Apple app license (MIT)", licenseURL)] {
+        for link in links + [("Apple app license (GPLv3)", licenseURL)] {
             credits.append(NSAttributedString(string: link.title + "\n", attributes: [.link: link.url]))
         }
         if server {

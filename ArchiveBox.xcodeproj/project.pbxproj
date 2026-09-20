@@ -78,6 +78,8 @@
 		EF3FB9C1948F2E787434F622 /* EmbeddedBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */; };
 		F01CE36160D577C892777BDA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9FEF08F660C652A54270A2A7 /* PrivacyInfo.xcprivacy */; };
 		FF3FF97F86C7CF66F057A90D /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3A614EEE696BEEF4D8A4877D /* ArchiveBoxCore */; };
+		19EF462472B823CBF3A659A0 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = F39708A8B2046BAB1F3590B1 /* LICENSE */; };
+		D8C69B55F672627859512D5C /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = F39708A8B2046BAB1F3590B1 /* LICENSE */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -193,6 +195,7 @@
 		FBB84723CF899A5CEA0BD4D7 /* ArchiveBoxUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ArchiveBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD4ACAAB038FDAB8C799888D /* ArchiveBoxDirect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBoxDirect.entitlements; sourceTree = "<group>"; };
 		FDD644D4A77BA2C5BB937B46 /* _locales */ = {isa = PBXFileReference; lastKnownFileType = folder; name = _locales; path = SafariWebExtension/Resources/_locales; sourceTree = SOURCE_ROOT; };
+		F39708A8B2046BAB1F3590B1 /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -281,6 +284,7 @@
 		50207F96BCDFC85B942E38EA = {
 			isa = PBXGroup;
 			children = (
+				F39708A8B2046BAB1F3590B1 /* LICENSE */,
 				FDD644D4A77BA2C5BB937B46 /* _locales */,
 				C3256103DC5A80A8AD540B97 /* assets */,
 				700EC0793913808E6B0A775D /* chunks */,
@@ -601,6 +605,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				19EF462472B823CBF3A659A0 /* LICENSE in Resources */,
 				D6F26885583F5A08B2DB7A06 /* AppIcon.icon in Resources */,
 				4675EE9F7878E54B4C075B09 /* Assets.xcassets in Resources */,
 				F01CE36160D577C892777BDA /* PrivacyInfo.xcprivacy in Resources */,
@@ -636,6 +641,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8C69B55F672627859512D5C /* LICENSE in Resources */,
 				08CF496446755EE1F61A5B46 /* AppIcon.icon in Resources */,
 				B90B871600969B03C521AAAF /* Assets.xcassets in Resources */,
 				62CBF5EEE11B21764655808C /* PrivacyInfo.xcprivacy in Resources */,

@@ -52,3 +52,13 @@ captures = [c for pair in zip_longest(*clients) for c in pair if c is not None] 
 GALLERY
 cd "$site_dir"
 BUNDLE_GEMFILE="$site_dir/Gemfile" bundle exec jekyll build --source "$stage_dir" --destination "$site_dir/_site" "$@"
+
+# Match Jekyll's preview prefix when checking root-relative public resources.
+site_baseurl=""
+site_previous=""
+for site_argument in "$@"; do
+    if [ "$site_previous" = "--baseurl" ]; then site_baseurl="$site_argument"; fi
+    case "$site_argument" in --baseurl=*) site_baseurl="${site_argument#--baseurl=}" ;; esac
+    site_previous="$site_argument"
+done
+uv run --no-project python "$repo_dir/.github/pages/site.py" render "$site_dir/_site" --baseurl "$site_baseurl"

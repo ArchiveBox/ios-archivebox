@@ -1,0 +1,60 @@
+App/AppEnvironment.swift
+  h_923c208e183a7b 6-11
+App/ArchiveBoxApp.swift
+  h_923c208e183a7b 26-30
+App/ArchiveBoxIntents.swift
+  h_923c208e183a7b 3-4,6,21,30,44,49-51,55-57,59-61,67-78,81-171,181,183-191
+App/ArchiveNavigation.swift
+  h_923c208e183a7b 1-37
+App/ArchiveSearchView.swift
+  h_923c208e183a7b 1-137
+App/ArchiveSystemIntegration.swift
+  h_923c208e183a7b 1-46
+App/Info.plist
+  h_923c208e183a7b 17-22,29-39,47-50,53-56
+App/MainView.swift
+  h_923c208e183a7b 4-5,24-28,31,37,98-99,137,156-198,208-209,218,273-277,302
+App/SettingsView.swift
+  h_923c208e183a7b 16,145,305
+ArchiveBox.xcodeproj/project.pbxproj
+  h_923c208e183a7b 13,19,24,33,36,42,46,54,56,59,62,66,68,70-71,75,81-82,88,90,92,95,116-122,137-143,151-164,176,189,205-207,213,216,224,226,239,242,245,247-248,273-280,289-296,330,332,334,337,367,375,378,409-412,419,448-455,476-483,501,531-567,608-644,659,714,724-732,741-749,789-792,804,840,880-883,887,900-915,934-937,943,948-956,966-974,1008-1012,1018-1027,1033-1037,1063-1079,1172-1205,1243-1261,1281-1314,1390-1425,1464-1480,1498-1516,1536-1552,1588-1606,1643-1693,1980-1996,2143-2153,2187-2197,2220-2241,2267-2270,2275-2278
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBox.xcscheme
+  h_923c208e183a7b 3
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxMac.xcscheme
+  h_923c208e183a7b 3
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxMacDirect.xcscheme
+  h_923c208e183a7b 3
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxMacScreenshots.xcscheme
+  h_923c208e183a7b 1-128
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxScreenshots.xcscheme
+  h_923c208e183a7b 1-128
+MacApp/Info.plist
+  h_923c208e183a7b 17-22,29-39,49-52,77,79
+Sources/ArchiveBoxCore/ArchiveBoxClient.swift
+  h_923c208e183a7b 89-92,103-109
+Sources/ArchiveBoxCore/ArchiveRoute.swift
+  h_923c208e183a7b 1-55
+Tests/ArchiveBoxCoreTests/ArchiveNavigationTests.swift
+  h_923c208e183a7b 1-24
+Widgets/ArchiveBoxMacWidgets.entitlements
+  h_923c208e183a7b 1-8
+Widgets/ArchiveBoxWidgets.swift
+  h_923c208e183a7b 1-64
+Widgets/Info-iOS.plist
+  h_923c208e183a7b 1-29
+Widgets/Info-macOS.plist
+  h_923c208e183a7b 1-29
+project.yml
+  h_923c208e183a7b 12,47,55,134,153,274-312
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2ad7e56aefb3655ba2aaed6eebda0c55fac31001",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

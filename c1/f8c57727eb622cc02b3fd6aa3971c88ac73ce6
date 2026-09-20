@@ -1,0 +1,22 @@
+docs/site/_includes/hero-gallery.html
+  h_923c208e183a7b 1-20
+docs/site/assets/hero-gallery.js
+  h_923c208e183a7b 1-56
+docs/site/assets/style.scss
+  h_923c208e183a7b 263-295
+docs/site/build.sh
+  h_923c208e183a7b 14
+docs/site/index.html
+  h_923c208e183a7b 6-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c1f8c57727eb622cc02b3fd6aa3971c88ac73ce6",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

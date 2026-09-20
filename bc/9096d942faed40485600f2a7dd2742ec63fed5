@@ -1,0 +1,14 @@
+docs/site/assets/hero-gallery.js
+  h_923c208e183a7b 26,34-35,43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bc9096d942faed40485600f2a7dd2742ec63fed5",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

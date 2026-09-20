@@ -8,6 +8,7 @@ import ArchiveBoxCore
     let page: WKWebView
     let routing: BrowserNavigation
     var errorMessage: String?
+    var isLoading = true
     private var started = false
     private var requestID: UUID?
     private var navigation: Task<Void, Never>?
@@ -16,20 +17,25 @@ import ArchiveBoxCore
     private var renewedLogin: URL?
     init(_ page: WKWebView, routing: BrowserNavigation, owner: WebPages) {
         self.page = page; self.routing = routing; self.owner = owner
-        routing.didFail = { [weak self] error in self?.errorMessage = error.localizedDescription }
+        routing.didFail = { [weak self] error in
+            self?.isLoading = false
+            self?.errorMessage = error.localizedDescription
+        }
         routing.didFinish = { [weak self] page in
-            guard let self else { return }
+            guard let self, page.url?.scheme != "about" else { return }
+            isLoading = false
             guard page.url?.path.contains("/login") == true else { renewedLogin = nil; return }
             // Renew an expired session once per login URL, including navigations
             // initiated inside a page rather than only the initial sidebar load.
             guard self.owner.hasCredentials, renewedLogin != page.url, let destination else { return }
             renewedLogin = page.url
+            isLoading = true
             navigation = Task {
                 do {
                     try await self.owner.authenticate(force: true)
                     try Task.checkCancellation()
                     page.load(URLRequest(url: destination))
-                } catch { if !Task.isCancelled { self.errorMessage = error.localizedDescription } }
+                } catch { if !Task.isCancelled { self.isLoading = false; self.errorMessage = error.localizedDescription } }
             }
         }
     }
@@ -42,6 +48,7 @@ import ArchiveBoxCore
         navigation?.cancel()
         navigation = nil
         page.stopLoading()
+        isLoading = true
         // Stop timers and redirects in cached pages while credentials are absent.
         // Keep the destination so the same connection can authenticate and reload it.
         page.loadHTMLString("", baseURL: nil)
@@ -55,6 +62,7 @@ import ArchiveBoxCore
         self.requestID = requestID
         navigation?.cancel()
         errorMessage = nil
+        isLoading = true
         // Navigation belongs to the cached page, not a transient SwiftUI view.
         // Sidebar transitions must not cancel a load and leave a blank cached page.
         navigation = Task {
@@ -65,7 +73,7 @@ import ArchiveBoxCore
                 try Task.checkCancellation()
                 page.load(URLRequest(url: url))
             }
-            catch { if !Task.isCancelled { errorMessage = error.localizedDescription } }
+            catch { if !Task.isCancelled { isLoading = false; errorMessage = error.localizedDescription } }
         }
     }
 }

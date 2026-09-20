@@ -522,6 +522,36 @@ final class ArchiveBoxUITests: XCTestCase {
         }
     }
 
+    func testAddPageLoadingAndHelpFillViewport() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["sidebar.snapshots"])
+        waitForExpectations(timeout: 25)
+        app.buttons["sidebar.add"].tap()
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
+        XCTAssertEqual(app.scrollViews["add.content"].frame.maxY, app.frame.maxY, accuracy: 1)
+        if app.staticTexts["Loading Add URLs…"].exists {
+            attach("Add URLs loading", app: app)
+            XCTAssertTrue(app.buttons["navigation.sidebar"].isHittable)
+        }
+        XCTAssertTrue(app.webViews.links["Home"].firstMatch.waitForExistence(timeout: 30))
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["Loading Add URLs…"])
+        waitForExpectations(timeout: 30)
+        XCTAssertEqual(app.scrollViews["add.content"].frame.maxY, app.frame.maxY, accuracy: 1)
+        XCTAssertGreaterThan(app.staticTexts["More ways to add"].frame.minY, app.webViews.firstMatch.frame.maxY)
+        XCTAssertTrue(app.staticTexts["More ways to add"].isHittable)
+        attach("Add URLs form and inline help fill viewport", app: app)
+        app.staticTexts["More ways to add"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)),
+                   withVelocity: .slow, thenHoldForDuration: 1)
+        attach("Add URLs help on neutral background", app: app)
+        let guide = app.images["iPhone share sheet with ArchiveBox available in the Apps list"]
+        XCTAssertTrue(guide.exists)
+        XCTAssertGreaterThan(guide.frame.height, 0)
+        XCTAssertTrue(app.frame.contains(guide.frame), app.debugDescription)
+    }
+
     func testWebviewsFillBottomSafeArea() {
         continueAfterFailure = false
         let app = XCUIApplication()

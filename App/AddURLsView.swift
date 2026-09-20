@@ -10,9 +10,25 @@ struct AddURLsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     if let server = model.verifiedServer {
-                        ServerWebView(url: server.appending(path: "add/"), title: "Add URLs", session: pages.page(for: "add-\(server)", baseURL: model.displayedBaseURL,
-                            server: model.verifiedServer, token: model.verifiedToken), reloadID: reloadID)
-                            .id(server).frame(maxWidth: .infinity).frame(height: geometry.size.height * 0.8)
+                        let session = pages.page(for: "add-\(server)", baseURL: model.displayedBaseURL,
+                            server: model.verifiedServer, token: model.verifiedToken)
+                        ServerWebView(url: server.appending(path: "add/"), title: "Add URLs", session: session, reloadID: reloadID)
+                            .overlay {
+                                if session.isLoading && session.errorMessage == nil {
+                                    VStack(spacing: 0) {
+                                        #if os(iOS)
+                                        Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)
+                                            .frame(height: 60)
+                                        #endif
+                                        ProgressView("Loading Add URLs…")
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .background(.background)
+                                            .accessibilityIdentifier("add.loading")
+                                    }
+                                }
+                            }
+                            .id(server).frame(maxWidth: .infinity)
+                            .frame(height: geometry.size.height * (session.isLoading && session.errorMessage == nil ? 1 : 0.8))
                     } else {
                         ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Set up Connection Settings to use the embedded Add URLs form."))
                     }
@@ -75,6 +91,8 @@ struct AddURLsView: View {
                     }.padding(20).frame(maxWidth: 1000)
                 }.frame(maxWidth: .infinity)
             }
+            .accessibilityIdentifier("add.content")
+            .background(.background, ignoresSafeAreaEdges: .bottom)
         }
     }
 }

@@ -157,7 +157,7 @@ struct MainView: View {
         NavigationSplitView(columnVisibility: visibility, preferredCompactColumn: $compactColumn) {
             List {
                 rows([.add, .agent])
-                Section("Collection") { rows([.crawls, .schedules, .snapshots, .results, .tags]) }
+                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags]) }
                 Section {
                     rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
                 } header: {
@@ -250,6 +250,7 @@ struct MainView: View {
         ForEach(screens, id: \.self) { screen in
             Button { activate(screen) } label: {
                 Label(screen.info.title, systemImage: screen.info.icon)
+                    .fontWeight(screen == .snapshots ? .semibold : .regular)
                     .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }
                 .buttonStyle(.plain)

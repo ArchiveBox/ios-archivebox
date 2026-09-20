@@ -1,0 +1,16 @@
+Sources/ArchiveBoxCore/ArchiveBoxClient.swift
+  h_923c208e183a7b 172-183
+Tests/ArchiveBoxCoreTests/NetworkErrorTests.swift
+  h_923c208e183a7b 1-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1b1e4938006bb0c573f197ee55570b49d01be93c",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

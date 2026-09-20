@@ -1,0 +1,24 @@
+ArchiveBox.xcodeproj/project.pbxproj
+  h_923c208e183a7b 81-82,198,287,608,644
+LICENSE
+  h_923c208e183a7b 1-674
+README.md
+  h_923c208e183a7b 154
+ServerApp/build.sh
+  h_923c208e183a7b 27
+Sources/ArchiveBoxCore/AppInformation.swift
+  h_923c208e183a7b 33
+project.yml
+  h_923c208e183a7b 36-39,126-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "151c44f9d0f60f29021e022bce2d2c3763155146",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

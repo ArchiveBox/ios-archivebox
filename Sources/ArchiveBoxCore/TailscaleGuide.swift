@@ -205,12 +205,12 @@ public struct TailscaleGuide: View {
                 if audience == .tailnet {
                     Link("Tailscale DNS settings ↗", destination: URL(string: "https://login.tailscale.com/admin/dns")!)
                     Text("Forward HTTP on the tailnet, preserving the requested hostname:")
-                    command("\(cli) serve --bg --tcp=18081 tcp://127.0.0.1:\(port)")
-                    Text("Use port 18081 in every ArchiveBox address. Tailscale encrypts this HTTP traffic between peers. To stop: tailscale serve --tcp=18081 off.").font(.caption)
+                    command("\(cli) serve --bg --tcp=5797 tcp://127.0.0.1:\(port)")
+                    Text("Use port 5797 in every ArchiveBox address. Tailscale encrypts this HTTP traffic between peers. To stop: tailscale serve --tcp=5797 off.").font(.caption)
                 } else {
                     Text("The Mac companion listens only on 127.0.0.1. Run a reverse proxy bound to your LAN address; keep router port forwarding off. For example, install Caddy, replace 192.168.1.10 with the server’s fixed LAN IP, and run this Caddyfile:")
                     command("""
-                    http://\(domain):18081, http://*.\(domain):18081 {
+                    http://\(domain):5797, http://*.\(domain):5797 {
                         bind 192.168.1.10
                         reverse_proxy 127.0.0.1:\(port)
                     }
@@ -221,7 +221,7 @@ public struct TailscaleGuide: View {
             }
             backendPort
             step(audience == .lan ? 2 : 3, "Keep replay on separate subdomains", "Set the base address below in ArchiveBox’s HTTP, TLS, and DNS settings. Choose safe-subdomains-fullreplay, then Apply & Restart. Keep the original Host header in the proxy; don’t rewrite every request to one host.", icon: "square.stack.3d.up")
-            configuration(base: "\(audience == .internet ? "https" : "http")://\(domain)\(audience == .internet ? "" : ":18081")", mode: "safe-subdomains-fullreplay")
+            configuration(base: "\(audience == .internet ? "https" : "http")://\(domain)\(audience == .internet ? "" : ":5797")", mode: "safe-subdomains-fullreplay")
             Text("For LAN and tailnet access with the same names, use split DNS: LAN clients resolve to the LAN proxy, tailnet clients to the tailnet proxy. Both proxies must accept the same port.").font(.caption).foregroundStyle(.secondary)
         }
     }

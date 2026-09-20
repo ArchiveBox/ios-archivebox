@@ -60,15 +60,15 @@ CI builds both apps and all three kinds of extension and runs Swift package test
 xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
   -destination 'platform=iOS Simulator,name=YOUR_INSTALLED_IPHONE' \
   DEVELOPMENT_TEAM=YOUR_TEAM_ID \
-  ARCHIVEBOX_TEST_SERVER=http://localhost:8947 \
+  ARCHIVEBOX_TEST_SERVER=http://localhost:5797 \
   ARCHIVEBOX_TEST_TOKEN="$ARCHIVEBOX_TEST_TOKEN" test
 ```
 
 This tests Archive connection gating and the real admin login page, invalid/valid keys, the live persona picker, saved settings after relaunch, and Safari’s real system share sheet. For the Safari web extension capture path, first run `testEnableSafariExtensionThroughSettings`, enable **Save full-page screenshots locally** and **Upload to server** in the extension Configuration page, then run `testSafariCaptureWithScreenshotUpload`. It submits a unique example.com URL and requires the screenshot upload to succeed against the configured real server. The test launches ArchiveBox first so Xcode installs the current bundled extension before Safari opens it. Use an expendable key: Xcode test artifacts may contain test input. No network interception or seeded app settings.
 
 ```sh
-ARCHIVEBOX_TEST_SERVER=http://localhost:8947 \
-ARCHIVEBOX_EXPECTED_SERVER=http://localhost:8947 \
+ARCHIVEBOX_TEST_SERVER=http://localhost:5797 \
+ARCHIVEBOX_EXPECTED_SERVER=http://localhost:5797 \
 ARCHIVEBOX_TEST_PERSONA=AppleAcceptance \
 ARCHIVEBOX_TEST_TOKEN="$ARCHIVEBOX_TEST_TOKEN" swift run ArchiveBoxIntegration
 ```

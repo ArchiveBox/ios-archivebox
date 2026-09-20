@@ -26,7 +26,7 @@ published screenshots or upscale them to manufacture a higher resolution.
 
 The iPhone images use real 1206 × 2622 simulator captures in
 `docs/screenshots/raw/`. `docs/screenshots/frame.html?screen=home-iphone`
-(and `connection-iphone`, `share-iphone`, `extension-iphone`) adds the same device
+(and `extension-iphone`) adds the same device
 frame and transparent shadow to each. Serve that directory locally and export
 at a 750 × 1500 viewport with a 2× pixel ratio to retain the original screen
 pixels in a 1500 × 3000 PNG. Inspect the entire exported frame before publishing;

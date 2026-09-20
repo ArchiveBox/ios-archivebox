@@ -1,6 +1,6 @@
 # Server configuration contract
 
-The Apple app, Android app, and browser extension implement this contract independently. Keep this document and `server_registry.example.json` identical in all three repositories. There is no shared runtime library and no old-schema migration, alias, or compatibility reader.
+The Apple app, Android app, and browser extension implement this contract independently. Keep this document and `server_registry.example.json` identical in all three repositories. There is no shared runtime library. The unreleased Apple and Android apps adopt this schema directly. The published Chrome and Firefox extension requires the one-time upgrade described below.
 
 ## Stored configuration
 
@@ -21,6 +21,14 @@ Resolve and capture a server configuration before starting work. Pass it explici
 Native share receipts remain in memory. Recent tags and submission state belong to `server_id`. The extension keeps one local snapshot `id` and `remote_copies[server_id]` containing the server-returned `crawl_id` and `snapshot_id`, `submitted_at`, `submitted_to`, `persona`, and `status`. Never use a local snapshot ID as an implicit remote ID. `accepted` means the crawl is persisted; `complete` means metadata and requested local uploads finished, not that the server finished archiving. Failed or interrupted uploads leave the copy accepted and ineligible for local retention cleanup.
 
 Tag edits/uploads target the selected copy's remote snapshot ID. Removal targets its recorded crawl, matching native share removal. Remove only that server's local receipt after confirmed deletion. Cookie consent and remote persona references are scoped by both server and local persona IDs. Retention requires every recorded remote copy to be complete and verifies each exact remote ID+URL against its server before deleting local bytes.
+
+## Published browser extension upgrade
+
+Before reading or writing current state, the extension migrates published storage under a cross-context lock. A single local storage write publishes the registry, snapshot copies, persona references, cookie-sync bindings, and `storage_schema_version: 1` together. Subsequent loads use only the current schema. The old singleton server/key (including the older synchronized server URL), selected local persona, and upload preferences become one profile and its policy. Global preferences, local snapshot IDs, capture paths/bytes, persona cookies, and settings stay intact.
+
+Only an explicit matching submission destination associates old remote IDs with a profile. Unattributed history is retained as `unassigned_remote_copy` and prevents automatic local cleanup. Published submission timestamps do not prove that uploads finished, so migrated receipts begin as `accepted`; a successful new sync establishes `complete`. No local ID is promoted to a server ID. Existing cookie-sync consent transfers only to the same server origin and local persona; changing a destination never grants consent. Unmatched legacy connection/consent data remains available for recovery and is not used for requests.
+
+The extension also retains the published legacy `/add/` protocol. Its browser-only `LegacySubmissionReceipt` has `legacy: true` and a nullable `crawl_id`: HTML confirmation cannot manufacture a server ID. These copies remain `accepted`, and local cleanup cannot treat them as complete. Native API receipts remain strict. Creating a new local capture invalidates completion for every copy whose upload policy requests that capture; failed uploads retain local bytes.
 
 ## Next version
 

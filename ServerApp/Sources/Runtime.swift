@@ -65,7 +65,10 @@ final class Runtime: Sendable {
         }
         let expected = browserProfileMounts
         let environment = (configuration?["initProcess"] as? [String: Any])?["environment"] as? [String] ?? []
-        return environment.contains("ARCHIVEBOX_HOST_BROWSER_PROFILES=/data/.host-browser-profiles") && mounts.count == expected.count && expected.allSatisfy { profile in
+        let arguments = (configuration?["initProcess"] as? [String: Any])?["arguments"] as? [String] ?? []
+        let ports = configuration?["publishedPorts"] as? [[String: Any]] ?? []
+        return arguments.last == "0.0.0.0:5797" && ports.contains { $0["containerPort"] as? Int == 5797 && $0["hostPort"] as? Int == address.port }
+            && environment.contains("ARCHIVEBOX_HOST_BROWSER_PROFILES=/data/.host-browser-profiles") && mounts.count == expected.count && expected.allSatisfy { profile in
             mounts.contains {
                 $0["source"] as? String == profile.source && $0["destination"] as? String == profile.destination
                     && ($0["options"] as? [String] ?? []).contains("ro")
@@ -208,7 +211,8 @@ final class Runtime: Sendable {
         _ = try command(["run", "--detach", "--name", name, "--cpus", "4", "--memory", "4G",
                          "--env", "OPENCODE_ENABLED=true", "--env", "ARCHIVEBOX_HOST_BROWSER_PROFILES=/data/.host-browser-profiles",
                          "--publish", "127.0.0.1:\(address.port!):5797",
-                         "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:dev"])
+                         "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:dev",
+                         "archivebox", "server", "--init", "0.0.0.0:5797"])
         // Dependency installs in a previous container's writable layer do not
         // survive recreation. Resolve them again without modifying the image.
         _ = try command(["exec", "--workdir", "/data", name, "/app/bin/docker_entrypoint.sh",

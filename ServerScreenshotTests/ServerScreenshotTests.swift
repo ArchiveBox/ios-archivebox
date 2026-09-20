@@ -78,7 +78,10 @@ final class ServerScreenshotTests: XCTestCase {
     /// The local-network prompt belongs to the system, not app.alerts. XCTest's
     /// default monitor does not recognize the macOS 27 "Allow … to find" wording.
     private func approvePermission(_ alert: XCUIElement) -> Bool {
-        let text = alert.debugDescription.lowercased()
+        // debugDescription truncates AXValue, including the permission's name.
+        let text = alert.staticTexts.allElementsBoundByIndex.map {
+            $0.label + " " + ($0.value as? String ?? "")
+        }.joined(separator: " ").lowercased()
         guard text.contains("archivebox"),
               text.contains("local network") || text.contains("notifications") else { return false }
         let allow = alert.buttons["Allow"]

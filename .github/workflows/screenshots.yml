@@ -22,10 +22,14 @@ jobs:
       matrix:
         platform: [iphone, macos, server]
     # Siri system schemas require the Xcode 27 SDK.
-    runs-on: xcode-27
+    runs-on: ${{ matrix.platform == 'server' && vars.SERVER_SCREENSHOT_RUNNER || 'xcode-27' }}
     environment: testflight
     timeout-minutes: 45
     steps:
+      - name: Verify the companion runner can start real containers
+        if: matrix.platform == 'server'
+        run: |
+          swift -e 'import Virtualization; guard VZVirtualMachine.isSupported else { fatalError("Apple Container requires virtualization. Set SERVER_SCREENSHOT_RUNNER to a disposable macOS runner with virtualization enabled.") }'
       - name: Disable Spotlight indexing on the disposable capture runner
         # First simulator boot and dependency extraction otherwise compete with mdworker.
         run: sudo mdutil -a -i off

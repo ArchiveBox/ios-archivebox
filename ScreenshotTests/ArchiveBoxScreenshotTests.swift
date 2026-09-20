@@ -464,6 +464,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let image = CGImageSourceCreateImageAtIndex(source, 0, nil)!
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
+        // Hosted Macs do not expose an Apple Neural Engine to Vision.
+        request.usesCPUOnly = true
         do { try VNImageRequestHandler(cgImage: image).perform([request]) }
         catch { XCTFail("Could not inspect rendered page: \(error)"); return }
         let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")

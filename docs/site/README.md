@@ -26,7 +26,7 @@ published screenshots or upscale them to manufacture a higher resolution.
 
 The iPhone images use real 1206 × 2622 simulator captures in
 `docs/screenshots/raw/`. `docs/screenshots/frame.html?screen=home-iphone`
-(and `extension-iphone`) adds the same device
+(and `connection-iphone`, `share-iphone`, `extension-iphone`) adds the same device
 frame and transparent shadow to each. Serve that directory locally and export
 at a 750 × 1500 viewport with a 2× pixel ratio to retain the original screen
 pixels in a 1500 × 3000 PNG. Inspect the entire exported frame before publishing;
@@ -68,3 +68,6 @@ was used. Build that output with `ALLOW_INCOMPLETE_SCREENSHOTS=1` and optionally
 must never be deployed. Full-resolution PNGs retain the original capture pixels.
 The share extension is captured through Safari on every platform. The optional
 Server.app and external browser/settings destinations are outside this app gallery.
+
+Keep existing published documentation captures until replacement captures are ready.
+A port or configuration change alone is not a reason to delete screenshots.

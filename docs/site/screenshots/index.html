@@ -10,8 +10,8 @@ description: Explore real app captures on iPhone and Mac. Open any image to see 
 {% unless gallery.complete %}<p class="gallery-preview">Incomplete local preview. This gallery is not ready to publish.</p>{% endunless %}
 <p class="gallery-provenance">App <a href="https://github.com/ArchiveBox/ios-archivebox/commit/{{ gallery.revision }}">{{ gallery.revision | slice: 0, 12 }}</a> · Server <a href="https://github.com/ArchiveBox/ArchiveBox/commit/{{ gallery.backend_revision }}">{{ gallery.backend_revision | slice: 0, 12 }}</a> · <a href="{{ '/screenshots/manifest.json' | relative_url }}">Capture manifest</a></p>
 <div class="gallery-platforms" role="group" aria-label="Choose a device">
-  <button type="button" data-platform="all" aria-pressed="false">All devices</button>
-  {% for platform in gallery.platforms %}<button type="button" data-platform="{{ platform.id }}" aria-pressed="{% if platform.id == 'macos' %}true{% else %}false{% endif %}">{{ platform.label }}</button>{% endfor %}
+  <button type="button" data-platform="all" aria-pressed="true">All devices</button>
+  {% for platform in gallery.platforms %}<button type="button" data-platform="{{ platform.id }}" aria-pressed="false">{{ platform.label }}</button>{% endfor %}
 </div>
 <p class="gallery-provenance">Includes native navigation, embedded server pages, and the share extension on every device. The separate Server app and external browser/settings pages are outside this gallery.</p>
 <div class="native-gallery">
@@ -27,14 +27,14 @@ description: Explore real app captures on iPhone and Mac. Open any image to see 
 {% else %}
 <p>Selected screenshots from the app documentation. The full automated gallery will appear here after its first complete capture.</p>
 <div class="gallery-platforms" role="group" aria-label="Choose a device">
-  <button type="button" data-platform="all" aria-pressed="false">All devices</button>
-  <button type="button" data-platform="macos" aria-pressed="true">Mac</button>
+  <button type="button" data-platform="all" aria-pressed="true">All devices</button>
+  <button type="button" data-platform="macos" aria-pressed="false">Mac</button>
   <button type="button" data-platform="iphone" aria-pressed="false">iPhone</button>
 </div>
 <div class="native-gallery">
-{% assign previews = 'library-mac|home-iphone|extension-iphone|connection-mac|archive-mac|archive-iphone|persona' | split: '|' %}
+{% assign previews = 'library-mac|home-iphone|extension-iphone|connection-mac|archive-mac|archive-iphone|persona|connection-iphone|share-iphone|server-mac|server-shell|server-activity|server-clients|settings' | split: '|' %}
 {% for preview in previews %}
-  {% assign platform = 'macos' %}{% if preview contains 'iphone' or preview == 'persona' %}{% assign platform = 'iphone' %}{% endif %}
+  {% assign platform = 'macos' %}{% if preview contains 'iphone' or preview == 'persona' or preview == 'settings' %}{% assign platform = 'iphone' %}{% endif %}
   {% assign image = '/docs/screenshots/' | append: preview | append: '.png' %}
   <figure data-platform="{{ platform }}" id="{{ platform }}-{{ preview }}">
     <h2>{{ preview | replace: '-', ' ' | capitalize }}</h2>
@@ -51,7 +51,7 @@ description: Explore real app captures on iPhone and Mac. Open any image to see 
     for (const figure of figures) figure.hidden = platform !== 'all' && figure.dataset.platform !== platform;
   }
   for (const button of buttons) button.addEventListener('click', () => selectPlatform(button.dataset.platform));
-  selectPlatform(Array.from(figures).some(figure => figure.dataset.platform === 'macos') ? 'macos' : 'all');
+  selectPlatform('all');
   function revealLinkedCapture() {
     let target;
     try { target = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch { return; }

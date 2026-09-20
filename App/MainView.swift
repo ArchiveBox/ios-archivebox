@@ -4,6 +4,9 @@ import UserNotifications
 
 struct MainView: View {
     @Environment(\.openURL) private var openURL
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
     @Bindable var settings: SettingsModel
     var settingsNavigationID: UUID? = nil
     var addNavigationID: UUID? = nil
@@ -236,7 +239,33 @@ struct MainView: View {
             #if os(iOS)
             .navigationTitle(screen.info.title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.visible, for: .navigationBar)
+            .toolbar(screen == .settings ? .visible : .hidden, for: .navigationBar)
+            .background {
+                if screen != .settings {
+                    Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)
+                        .ignoresSafeArea(.container, edges: .top)
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                if screen != .settings && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
+                    Button {
+                        withAnimation {
+                            compactColumn = .sidebar
+                            columnVisibility = .all
+                        }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: .circle)
+                    .accessibilityLabel("Back to menu")
+                    .accessibilityIdentifier("navigation.sidebar")
+                    .padding(8)
+                }
+            }
             #endif
         }
         #if os(macOS)

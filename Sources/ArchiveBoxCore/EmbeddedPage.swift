@@ -31,8 +31,10 @@ import WebKit
             """#
 
     private static let navigationSource = #"""
+            const isIOS = /iP(?:ad|hone|od)/.test(navigator.userAgent)
+                || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             // Move the existing breadcrumb nodes to retain their links and labels.
-            // A single flex row avoids two independently sized server navbars.
+            // Keep one header while preserving the server's mobile stacking.
             const header = document.querySelector('#header');
             if (header?.querySelector('#branding img')) {
                 let crumbs = document.querySelector('.breadcrumbs');
@@ -82,6 +84,19 @@ import WebKit
                     }
                     #header.archivebox-app-header .breadcrumbs a:hover { text-decoration:underline; }
                     #header.archivebox-app-header a:focus-visible { outline:2px solid white; outline-offset:3px; }
+                `;
+                document.head.append(style);
+            }
+            if (isIOS) {
+                // Leave room for the native menu button inside the web header.
+                const style = document.createElement('style');
+                style.textContent = `
+                    #header.archivebox-app-header, .header-top {
+                        box-sizing:border-box; min-height:60px; padding-left:64px!important;
+                    }
+                    @media (max-width:520px) {
+                        #header.archivebox-app-header { padding-right:64px!important; }
+                    }
                 `;
                 document.head.append(style);
             }

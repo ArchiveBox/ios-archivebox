@@ -253,7 +253,8 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["API key rejected"].waitForExistence(timeout: 20))
         app.secureTextFields["apiKey"].typeText("\n")
         app.buttons["getAPIKey"].tap()
-        XCTAssertTrue(app.navigationBars["Admin"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["navigation.sidebar"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.navigationBars["Admin"].exists)
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
         openScreen("Add URLs", app: app)
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
@@ -440,20 +441,42 @@ final class ArchiveBoxUITests: XCTestCase {
             openScreen("Connection Settings", app: app)
             XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 25), app.debugDescription)
             openScreen("Snapshots", app: app)
-            XCTAssertTrue(app.navigationBars["Snapshots"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(app.buttons["navigation.sidebar"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(app.navigationBars["Snapshots"].exists)
             XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 30), app.debugDescription)
             // The compact header intentionally hides Logout. Verify a protected
             // administrator capability instead of depending on hidden chrome.
             openScreen("Users", app: app)
             XCTAssertTrue(app.webViews.links.matching(NSPredicate(format: "label ==[c] 'Add user'")).firstMatch.waitForExistence(timeout: 20), app.debugDescription)
             XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists)
-            XCTAssertLessThan(app.navigationBars.firstMatch.frame.height, 65)
+            XCTAssertTrue(app.webViews.firstMatch.frame.contains(app.buttons["navigation.sidebar"].frame))
             openScreen("AI Agent", app: app)
             XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
             XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'New session'")).firstMatch.waitForExistence(timeout: 45), app.debugDescription)
             attach("Authenticated AI Agent", app: app)
             app.terminate()
         }
+    }
+
+    func testWebPageBackButtonOverlaysHeader() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        skipIntroductionIfNeeded(app)
+        for screen in ["Snapshots", "Users"] {
+            openScreen(screen, app: app)
+            let back = app.buttons["navigation.sidebar"]
+            XCTAssertTrue(back.waitForExistence(timeout: 10), app.debugDescription)
+            XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 30), app.debugDescription)
+            XCTAssertFalse(app.navigationBars[screen].exists)
+            XCTAssertTrue(app.webViews.firstMatch.frame.contains(back.frame))
+            attach("\(screen) with back over web header", app: app)
+            back.tap()
+            XCTAssertTrue(app.buttons["sidebar.snapshots"].isHittable)
+        }
+        openScreen("Connection Settings", app: app)
+        XCTAssertTrue(app.navigationBars["Connection Settings"].exists)
+        XCTAssertFalse(app.buttons["navigation.sidebar"].exists)
     }
 
     private func skipIntroductionIfNeeded(_ app: XCUIApplication) {
@@ -464,14 +487,16 @@ final class ArchiveBoxUITests: XCTestCase {
     private func openScreen(_ name: String, app: XCUIApplication) {
         let identifiers = ["Add URLs": "add", "AI Agent": "agent", "Snapshots": "snapshots", "Admin": "admin", "Users": "users", "Connection Settings": "settings"]
         let item = app.buttons["sidebar." + identifiers[name]!]
-        if !item.isHittable {
-            let back = app.navigationBars.buttons.firstMatch
-            if back.exists { back.tap() }
+        let sidebar = app.collectionViews.firstMatch
+        if !sidebar.isHittable {
+            let back = app.buttons["navigation.sidebar"].exists ? app.buttons["navigation.sidebar"] : app.navigationBars.buttons.firstMatch
+            if back.isHittable { back.tap() }
         }
         // The connected app starts on its menu; returning from a detail keeps
         // the sidebar's scroll position. Search from the top in either case.
-        for _ in 0..<5 where !item.isHittable { app.swipeDown() }
-        for _ in 0..<8 where !item.isHittable { app.swipeUp() }
+        XCTAssertTrue(sidebar.isHittable, app.debugDescription)
+        for _ in 0..<5 where !item.isHittable { sidebar.swipeDown() }
+        for _ in 0..<8 where !item.isHittable { sidebar.swipeUp() }
         XCTAssertTrue(item.waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(item.isHittable, app.debugDescription)
         XCTAssertTrue(item.isEnabled, app.debugDescription)

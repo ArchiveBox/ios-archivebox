@@ -1,17 +1,17 @@
-<div align="center" class="hero">
+<div align="center" class="hero" data-platform-group>
 <img class="app-icon" src="App/AppIcon.icon/Assets/ArchiveBox.png" width="88" height="88" alt="ArchiveBox app icon">
 <p class="eyebrow">YOUR WEB, PRESERVED.</p>
 <h1>ArchiveBox.app</h1>
 <p class="hero-description">Save the web you want to keep.<br>At home on iPhone, iPad, and Mac.</p>
 <p class="actions">
-<a class="button primary" href="https://testflight.apple.com/join/wUG6DS6z"><img class="button-icon" src="docs/icons/phone.svg" width="18" height="18" alt=""> ArchiveBox for iOS <img class="button-icon" src="docs/icons/app-store.svg" width="18" height="18" alt=""></a>
-<a class="button secondary" href="https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.app.zip"><img class="button-icon" src="docs/icons/apple.svg" width="18" height="18" alt=""> ArchiveBox for macOS <img class="button-icon" src="docs/icons/download.svg" width="18" height="18" alt=""></a>
+<a class="button primary is-platform-match" data-platform="ios" data-platform-default href="https://testflight.apple.com/join/wUG6DS6z"><img class="button-icon" src="docs/icons/phone.svg" width="18" height="18" alt=""> ArchiveBox for iOS <img class="button-icon" src="docs/icons/app-store.svg" width="18" height="18" alt=""></a>
+<a class="button secondary" data-platform="macos" href="https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.app.zip"><img class="button-icon" src="docs/icons/apple.svg" width="18" height="18" alt=""> ArchiveBox for macOS <img class="button-icon" src="docs/icons/download.svg" width="18" height="18" alt=""></a>
 <a class="button secondary" href="https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.Server.app.zip"><img class="button-icon" src="docs/icons/apple.svg" width="18" height="18" alt=""> ArchiveBox Server for macOS <img class="button-icon" src="docs/icons/download.svg" width="18" height="18" alt=""></a>
 </p>
 <p class="actions other-platforms" aria-label="ArchiveBox for other platforms">
-<a class="button platform" href="https://android.archivebox.io/"><img class="button-icon" src="docs/icons/android.svg" width="16" height="16" alt=""> Android <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
-<a class="button platform" href="https://windows.archivebox.io/"><img class="button-icon" src="docs/icons/windows.svg" width="16" height="16" alt=""> Windows <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
-<a class="button platform" href="https://linux.archivebox.io/"><img class="button-icon" src="docs/icons/linux.svg" width="16" height="16" alt=""> Linux <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
+<a class="button platform" data-platform="android" href="https://android.archivebox.io/"><img class="button-icon" src="docs/icons/android.svg" width="16" height="16" alt=""> Android <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
+<a class="button platform" data-platform="windows" href="https://windows.archivebox.io/"><img class="button-icon" src="docs/icons/windows.svg" width="16" height="16" alt=""> Windows <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
+<a class="button platform" data-platform="linux" href="https://linux.archivebox.io/"><img class="button-icon" src="docs/icons/linux.svg" width="16" height="16" alt=""> Linux <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
 <a class="button platform" href="https://archivebox.io/#install-compose"><img class="button-icon" src="docs/icons/docker.svg" width="16" height="16" alt=""> Docker <img class="button-icon" src="docs/icons/download.svg" width="16" height="16" alt=""></a>
 </p>
 <p class="platforms">iOS 26+ · iPadOS 26+ · macOS 26+ · Free &amp; open source</p>

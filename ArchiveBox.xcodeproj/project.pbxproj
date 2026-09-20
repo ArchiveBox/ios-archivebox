@@ -22,6 +22,7 @@
 		172FB23D038018B6A6CAD2CF /* chunks in Resources */ = {isa = PBXBuildFile; fileRef = 700EC0793913808E6B0A775D /* chunks */; };
 		1975E82F4F9F9C01D9B31347 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
 		19EF462472B823CBF3A659A0 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = F39708A8B2046BAB1F3590B1 /* LICENSE */; };
+		1F3B977D299CD14BD17F0630 /* ServerScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE425D21AB311B3FFBF937D /* ServerScreenshotTests.swift */; };
 		278968F1B897252967362CE7 /* MacShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B79EA74D933530383C6CAEC3 /* MacShareViewController.swift */; };
 		27A5B1EC1DC952B955E3BBDA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06F8051E8FD4E6F293429D02 /* Assets.xcassets */; };
 		27E690C9BFA8B6ADFB8FAA92 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
@@ -241,6 +242,7 @@
 		CA994EC8E1863D30F98F5DF0 /* ShareModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareModel.swift; sourceTree = "<group>"; };
 		CE692F504F915CED4D0F2B11 /* ArchiveBoxScreenshots.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ArchiveBoxScreenshots.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6D6D87022C828E6A0A3470A /* LocalServerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServerSection.swift; sourceTree = "<group>"; };
+		DC45189B31F80C89FC7BF852 /* ArchiveBoxServerScreenshots.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ArchiveBoxServerScreenshots.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2E03A230BA381FB0FFF529C /* icon */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icon; path = SafariWebExtension/Resources/icon; sourceTree = SOURCE_ROOT; };
 		EE1005DDD66FE2FA58E7DCCE /* ArchiveBoxWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ArchiveBoxWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F17AFF5065DB2022281D7DA8 /* content-scripts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "content-scripts"; path = "SafariWebExtension/Resources/content-scripts"; sourceTree = SOURCE_ROOT; };
@@ -249,6 +251,7 @@
 		F6FFAFC4E7B7DE68C6E3AA4D /* AddURLsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddURLsView.swift; sourceTree = "<group>"; };
 		F8D4293A9356D86C9E8027ED /* UPSTREAM-LICENSE */ = {isa = PBXFileReference; path = "UPSTREAM-LICENSE"; sourceTree = "<group>"; };
 		FBB84723CF899A5CEA0BD4D7 /* ArchiveBoxUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ArchiveBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FCE425D21AB311B3FFBF937D /* ServerScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerScreenshotTests.swift; sourceTree = "<group>"; };
 		FD4ACAAB038FDAB8C799888D /* ArchiveBoxDirect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ArchiveBoxDirect.entitlements; sourceTree = "<group>"; };
 		FDD644D4A77BA2C5BB937B46 /* _locales */ = {isa = PBXFileReference; lastKnownFileType = folder; name = _locales; path = SafariWebExtension/Resources/_locales; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -332,6 +335,7 @@
 				7E1143C29B7AABCCEF5C17C7 /* ArchiveBoxMacWidgets.appex */,
 				64A998C41FA84FA2DF5C07B9 /* ArchiveBoxSafari.appex */,
 				CE692F504F915CED4D0F2B11 /* ArchiveBoxScreenshots.xctest */,
+				DC45189B31F80C89FC7BF852 /* ArchiveBoxServerScreenshots.xctest */,
 				60A108FCA1936A3321963D9E /* ArchiveBoxShare.appex */,
 				FBB84723CF899A5CEA0BD4D7 /* ArchiveBoxUITests.xctest */,
 				EE1005DDD66FE2FA58E7DCCE /* ArchiveBoxWidgets.appex */,
@@ -356,6 +360,14 @@
 			path = MacLocalUI;
 			sourceTree = "<group>";
 		};
+		3C5397A4DA4533FF5201E1D3 /* ServerScreenshotTests */ = {
+			isa = PBXGroup;
+			children = (
+				FCE425D21AB311B3FFBF937D /* ServerScreenshotTests.swift */,
+			);
+			path = ServerScreenshotTests;
+			sourceTree = "<group>";
+		};
 		50207F96BCDFC85B942E38EA = {
 			isa = PBXGroup;
 			children = (
@@ -373,6 +385,7 @@
 				8803382AB21247B36619CE24 /* Resources */,
 				23394C05ACE572F2F631D45B /* SafariWebExtension */,
 				ABD8E76D0991F0BE06B1CD38 /* ScreenshotTests */,
+				3C5397A4DA4533FF5201E1D3 /* ServerScreenshotTests */,
 				B260911BC92EC950CF46EBA4 /* ShareExtension */,
 				70E99D78A4A6F3672596D179 /* UITests */,
 				D7543DFBEB1DA2CA670FAF3A /* Widgets */,
@@ -546,6 +559,23 @@
 			productName = ArchiveBoxMacWidgets;
 			productReference = 7E1143C29B7AABCCEF5C17C7 /* ArchiveBoxMacWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
+		};
+		3E6E2FF7D99105D1CFED85AA /* ArchiveBoxServerScreenshots */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1E02BF9B1C5C1011F22193D7 /* Build configuration list for PBXNativeTarget "ArchiveBoxServerScreenshots" */;
+			buildPhases = (
+				A8EF6CD55D99342774ACE32B /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ArchiveBoxServerScreenshots;
+			packageProductDependencies = (
+			);
+			productName = ArchiveBoxServerScreenshots;
+			productReference = DC45189B31F80C89FC7BF852 /* ArchiveBoxServerScreenshots.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		3FDF37FEC95E4E5313E41D4B /* ArchiveBoxMacScreenshots */ = {
 			isa = PBXNativeTarget;
@@ -725,6 +755,10 @@
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
+					3E6E2FF7D99105D1CFED85AA = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
 					3FDF37FEC95E4E5313E41D4B = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
@@ -790,6 +824,7 @@
 				3A7BC577CD8BA00A4623DA50 /* ArchiveBoxMacWidgets */,
 				5ED15DDE4B1A343D311A0068 /* ArchiveBoxScreenshots */,
 				3FDF37FEC95E4E5313E41D4B /* ArchiveBoxMacScreenshots */,
+				3E6E2FF7D99105D1CFED85AA /* ArchiveBoxServerScreenshots */,
 			);
 		};
 /* End PBXProject section */
@@ -954,6 +989,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A8EF6CD55D99342774ACE32B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1F3B977D299CD14BD17F0630 /* ServerScreenshotTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D110D7D6623FEA6F35F66D7C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1059,6 +1102,22 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = DebugDirect;
+		};
+		069E2B83066D6DAD6808038B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBoxServerScreenshots;
+				SDKROOT = macosx;
+			};
+			name = Release;
 		};
 		08A0B92CFF6230AE50A8F926 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -1514,6 +1573,22 @@
 			};
 			name = Release;
 		};
+		761FAAB54A3F8CD5EB173B23 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBoxServerScreenshots;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
 		7762F189BDA2883C5F588BC8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1639,6 +1714,22 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
+		};
+		9EB76F41BA6C0E230A8BC185 /* ReleaseDirect */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBoxServerScreenshots;
+				SDKROOT = macosx;
+			};
+			name = ReleaseDirect;
 		};
 		A27A16808AC2A9308415526E /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -2081,6 +2172,22 @@
 			};
 			name = Debug;
 		};
+		EC18C388BF620987CE2E39BA /* DebugDirect */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.archivebox.ArchiveBoxServerScreenshots;
+				SDKROOT = macosx;
+			};
+			name = DebugDirect;
+		};
 		EFACD3BD9CE8D3656819EA7E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2125,6 +2232,17 @@
 				52B8ADAC51CFB796090B3760 /* DebugDirect */,
 				E34BCE72072BD7B96F2E8EEF /* Release */,
 				C2CD9BC45A21AE07ADE7B0B7 /* ReleaseDirect */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1E02BF9B1C5C1011F22193D7 /* Build configuration list for PBXNativeTarget "ArchiveBoxServerScreenshots" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				761FAAB54A3F8CD5EB173B23 /* Debug */,
+				EC18C388BF620987CE2E39BA /* DebugDirect */,
+				069E2B83066D6DAD6808038B /* Release */,
+				9EB76F41BA6C0E230A8BC185 /* ReleaseDirect */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

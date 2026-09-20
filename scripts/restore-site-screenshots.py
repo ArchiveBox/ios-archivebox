@@ -16,6 +16,90 @@ parser.add_argument("kind", choices=["archivebox", "ios", "extension"])
 parser.add_argument("destination", type=Path)
 args = parser.parse_args()
 args.destination.mkdir(parents=True, exist_ok=True)
+# Native capture jobs publish independently: one failed device must not hide the
+# other jobs' validated galleries or prevent normal Pages deployments.
+if args.kind == 'ios':
+    import shutil
+    import tempfile
+
+    groups = {}
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        repo = os.environ.get('GITHUB_REPOSITORY', 'ArchiveBox/ios-archivebox')
+        if os.environ.get('GH_TOKEN'):
+            runs = json.loads(subprocess.check_output([
+                'gh', 'api', f'repos/{repo}/actions/workflows/screenshots.yml/runs?branch=main&per_page=100'
+            ]))['workflow_runs']
+            for run in runs:
+                if run['event'] not in ('push', 'workflow_dispatch'):
+                    continue
+                artifacts = json.loads(subprocess.check_output([
+                    'gh', 'api', f'repos/{repo}/actions/runs/{run["id"]}/artifacts'
+                ]))['artifacts']
+                for artifact in artifacts:
+                    platform = artifact['name'].removeprefix('site-screenshots-')
+                    if platform not in ('iphone', 'macos', 'server') or platform in groups or artifact['expired']:
+                        continue
+                    destination = root / platform
+                    subprocess.run(['gh', 'run', 'download', str(run['id']), '--repo', repo,
+                                    '--name', artifact['name'], '--dir', str(destination)], check=True)
+                    manifest = json.loads((destination / 'manifest.json').read_text())
+                    if manifest.get('complete') is not True or manifest['revision'] != run['head_sha']:
+                        raise ValueError('Native capture artifact has invalid provenance')
+                    if not manifest['captures'] or any(c['platform'] != platform for c in manifest['captures']):
+                        raise ValueError('Native capture artifact has the wrong device group')
+                    groups[platform] = (manifest, destination)
+                if len(groups) == 3:
+                    break
+        # Retain published groups if their Actions artifacts have expired.
+        base = 'https://app.archivebox.io/screenshots/'
+        try:
+            with urlopen(base + 'manifest.json', timeout=60) as response:
+                published = json.load(response)
+        except HTTPError as error:
+            if error.code != 404:
+                raise
+            published = None
+        if published:
+            if published.get('complete') is not True:
+                raise ValueError('Published native gallery must contain complete capture groups')
+            for platform in ('iphone', 'macos', 'server'):
+                captures = [c for c in published['captures'] if c['platform'] == platform]
+                if platform in groups or not captures:
+                    continue
+                destination = root / platform
+                for capture in captures:
+                    relative = PurePosixPath(capture['path'])
+                    if relative.is_absolute() or '..' in relative.parts or ':' in str(relative) or '\\' in str(relative):
+                        raise ValueError('Unsafe screenshot path')
+                    target = destination / relative
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with urlopen(base + str(relative), timeout=60) as response:
+                        target.write_bytes(response.read())
+                groups[platform] = (dict(published, captures=captures), destination)
+        captures = []
+        for manifest, source in groups.values():
+            for capture in manifest['captures']:
+                relative = PurePosixPath(capture['path'])
+                if relative.is_absolute() or '..' in relative.parts or ':' in str(relative) or '\\' in str(relative):
+                    raise ValueError('Unsafe screenshot path')
+                image = source / relative
+                if capture.get('sha256') and hashlib.sha256(image.read_bytes()).hexdigest() != capture['sha256']:
+                    raise ValueError(f'Screenshot checksum mismatch: {relative}')
+                target = args.destination / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(image, target)
+                captures.append(dict(capture, revision=capture.get('revision', manifest['revision']),
+                                     backend_revision=capture.get('backend_revision', manifest['backend_revision'])))
+        if captures:
+            merged = dict(complete=True, revision=captures[0]['revision'], backend_revision=captures[0]['backend_revision'],
+                          captures=captures, platforms=[{'id': p, 'label': p} for p in groups])
+            (args.destination / 'manifest.json').write_text(json.dumps(merged, indent=2) + '\n')
+            print(f'Restored {len(captures)} captures from {len(groups)} independently validated groups')
+        else:
+            print('No generated native captures available yet; retain documentation screenshots')
+    raise SystemExit(0)
+
 # Only successful default-branch capture runs are eligible, never PR artifacts.
 if os.environ.get("GH_TOKEN"):
     repo = os.environ["GITHUB_REPOSITORY"]

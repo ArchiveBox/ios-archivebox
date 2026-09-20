@@ -328,7 +328,22 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  ArchiveBoxServerScreenshots:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [ServerScreenshotTests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
+  ArchiveBoxServerScreenshots:
+    build:
+      targets:
+        ArchiveBoxServerScreenshots: [test]
+    test:
+      targets: [ArchiveBoxServerScreenshots]
+      environmentVariables:
+        ARCHIVEBOX_SERVER_APP: '$(ARCHIVEBOX_SERVER_APP)'
   ArchiveBoxMacDirect:
     build:
       targets:

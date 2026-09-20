@@ -43,6 +43,73 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
     }
+    /// Product tour using the shipping onboarding, saved connection and real backend.
+    /// The exhaustive testAllScreens remains available separately.
+    func testGalleryScreens() throws {
+        continueAfterFailure = false
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.buttons["setup.choose"].waitForExistence(timeout: 20), "Use a fresh capture runner")
+        capture("onboarding", app: app)
+        press(app.buttons["setup.choose"])
+        XCTAssertTrue(app.buttons["setup.mac"].waitForExistence(timeout: 5))
+        capture("setup-choices", app: app)
+        press(app.buttons["setup.mac"])
+        XCTAssertTrue(app.buttons["setup.connect"].waitForExistence(timeout: 5))
+        capture("setup-mac", app: app)
+        press(app.buttons["setup.back"])
+        press(app.buttons["setup.docker"])
+        capture("setup-docker", app: app)
+        press(app.buttons["setup.connect"])
+        let field = app.textFields["serverURL"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        capture("connection-disconnected", app: app)
+        replace(field, with: server)
+        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20), app.debugDescription)
+        replace(app.secureTextFields["apiKey"], with: token)
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
+        press(app.buttons["saveConnection"])
+        capture("connection-connected", app: app)
+        for (id, marker) in [("add", "Create a new Crawl"), ("snapshots", "Example Domain"), ("crawls", "Search Crawls")] {
+            openScreen(id, app: app)
+            assertPage(marker, app: app)
+            capture(id, app: app)
+        }
+        openScreen("agent", app: app)
+        let start = app.webViews.buttons["Start using Agent"]
+        XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
+        capture("agent-welcome", app: app)
+        press(start)
+        assertPage("New session", app: app)
+        capture("agent", app: app)
+        openScreen("openActivity", app: app)
+        assertPage("Downloads", app: app)
+        capture("activity", app: app)
+        openScreen("settings", app: app)
+        let guide = app.buttons["network.guide"]
+        scrollTo(guide, app: app)
+        press(guide)
+        XCTAssertTrue(app.buttons["network.discover"].waitForExistence(timeout: 10), app.debugDescription)
+        capture("tailscale", app: app)
+        press(app.buttons["network.discover"])
+        XCTAssertTrue(app.buttons["discovery.search"].waitForExistence(timeout: 10), app.debugDescription)
+        capture("discovery", app: app)
+    }
+
+    private func scrollTo(_ element: XCUIElement, app: XCUIApplication) {
+        for _ in 0..<8 {
+            if element.isHittable { break }
+            #if os(macOS)
+            app.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: -280)
+            #else
+            app.swipeUp()
+            #endif
+        }
+        XCTAssertTrue(element.isHittable, app.debugDescription)
+    }
+
     func testAllScreens() throws {
         continueAfterFailure = false
         let interruption = addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
@@ -263,6 +330,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     private func replace(_ field: XCUIElement, with value: String) {
+        scrollTo(field, app: XCUIApplication())
         press(field)
         field.typeKey("a", modifierFlags: .command)
         field.typeText(XCUIKeyboardKey.delete.rawValue)

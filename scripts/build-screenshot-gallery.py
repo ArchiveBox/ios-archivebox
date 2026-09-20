@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate real XCTest exports and stage the native screenshot gallery."""
 import argparse
+import hashlib
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -8,10 +9,10 @@ import re
 import shutil
 import struct
 
-COMMON = "connection-disconnected connection-connected sidebar add add-guide persona-picker safari-setup agent-welcome agent activity crawls schedules snapshots results tags admin users personas keys webhooks processes machines interfaces binaries plugins workers logs".split()
-SHARE = ['share-accepted', 'share-tags', 'share-removal-confirmation', 'share-removed']
-EXPECTED = {p: COMMON + SHARE + (['connection-local', 'about'] if p == 'macos' else []) for p in ['iphone', 'macos']}
-LABELS = {'iphone': 'iPhone', 'macos': 'Mac'}
+CLIENT = "onboarding setup-choices setup-mac setup-docker connection-disconnected connection-connected add snapshots crawls agent-welcome agent activity tailscale discovery".split()
+SERVER = "startup onboarding create-admin client-setup network tailscale-guide https certificate-options clients add-user shell admin activity collection choose-collection".split()
+EXPECTED = {'iphone': CLIENT, 'macos': CLIENT, 'server': SERVER}
+LABELS = {'iphone': 'iPhone', 'macos': 'Mac', 'server': 'ArchiveBox Server for Mac'}
 
 
 def main():
@@ -20,6 +21,7 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('build/screenshots/gallery'))
     parser.add_argument('--revision', required=True)
     parser.add_argument('--backend-revision', required=True)
+    parser.add_argument('--platform', choices=list(EXPECTED), help='Validate and publish one independent capture group')
     parser.add_argument('--smoke', action='store_true', help='Local preview only: accept incomplete real captures; never publish this output.')
     args = parser.parse_args()
     if not re.fullmatch(r'[0-9a-f]{40}', args.revision):
@@ -28,6 +30,8 @@ def main():
         parser.error('--backend-revision must be a full Git commit SHA')
     captures = []
     for platform, expected in EXPECTED.items():
+        if args.platform and platform != args.platform:
+            continue
         source = args.input / platform
         if args.smoke and not source.exists():
             continue
@@ -62,7 +66,7 @@ def main():
                 if min(width, height) <= 0:
                     raise ValueError(f'{image}: invalid dimensions')
                 timestamp = datetime.fromtimestamp(float(attachment['timestamp']), timezone.utc).isoformat()
-                found[screen] = dict(id=screen, platform=platform, platform_label=LABELS[platform], title=screen.replace('-', ' ').title(), width=width, height=height, captured_at=timestamp, device=attachment['deviceName'], path=f'images/{platform}/{screen}.png', source=image)
+                found[screen] = dict(id=screen, revision=args.revision, backend_revision=args.backend_revision, product="server" if platform == "server" else "client", platform=platform, platform_label=LABELS[platform], title=screen.replace('-', ' ').title(), width=width, height=height, sha256=hashlib.sha256(image.read_bytes()).hexdigest(), captured_at=timestamp, device=attachment['deviceName'], path=f'images/{platform}/{screen}.png', source=image)
         missing = set(expected) - found.keys()
         if missing and not args.smoke:
             raise ValueError(f'{platform}: missing screenshots: {", ".join(sorted(missing))}')

@@ -7,14 +7,16 @@ mode=${3:-smoke}
 case "$mode" in
   smoke) method=testLaunchScreenshot ;;
   full) method=testAllScreens ;;
+  gallery) method=testGalleryScreens ;;
   *) echo "Mode must be smoke or full." >&2; exit 2 ;;
 esac
+class=ArchiveBoxScreenshotTests
 mkdir -p "$output"
 output=$(cd "$output" && pwd)
 signing=(CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=)
 case "$platform" in
 
-  macos)
+  macos|server)
     scheme=ArchiveBoxMacScreenshots
     destination='platform=macOS'
     : "${DEVELOPER_ID_PROFILES:?}" "${DEVELOPER_ID_P12:?}" "${DEVELOPER_ID_PASSWORD:?}" "${RUNNER_TEMP:?}"
@@ -40,6 +42,14 @@ case "$platform" in
     security list-keychains -d user -s "$keychain" "$HOME/Library/Keychains/login.keychain-db"
     identity=$(security find-identity -v -p codesigning "$keychain" | awk '/"Developer ID Application:/ {print $2; exit}')
     [[ -n "$identity" ]] || { echo 'Developer ID Application identity missing' >&2; exit 1; }
+    if [[ "$platform" == server ]]; then
+      export ARCHIVEBOX_SIGNING_IDENTITY="$identity"
+      bash ServerApp/build.sh
+      export ARCHIVEBOX_SERVER_APP="$PWD/ServerApp/dist/ArchiveBox Server.app"
+      scheme=ArchiveBoxServerScreenshots
+      class=ServerScreenshotTests
+      xcodegen generate
+    else
     # Override signing only in the disposable CI project. Shipping entitlements remain intact.
     cat > "$signing_spec" <<YAML
 include: project.yml
@@ -85,6 +95,7 @@ schemes:
 YAML
     xcodegen generate --spec "$signing_spec"
     signing=(-configuration Release)
+    fi
     ;;
   iphone|ipad)
     scheme=ArchiveBoxScreenshots
@@ -108,8 +119,9 @@ xcodebuild -project ArchiveBox.xcodeproj -scheme "$scheme" \
   -destination "$destination" -derivedDataPath "$output/DerivedData" \
   -resultBundlePath "$output/Capture.xcresult" \
   -parallel-testing-enabled NO \
-  -only-testing:"$scheme/ArchiveBoxScreenshotTests/$method" \
+  -only-testing:"$scheme/$class/$method" \
   "${signing[@]}" \
+  ARCHIVEBOX_SERVER_APP="${ARCHIVEBOX_SERVER_APP:-}" \
   ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}" \
   ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}" test || {
     result=$?

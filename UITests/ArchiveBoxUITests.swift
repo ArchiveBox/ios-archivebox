@@ -522,6 +522,47 @@ final class ArchiveBoxUITests: XCTestCase {
         }
     }
 
+    func testWebviewsFillBottomSafeArea() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["sidebar.snapshots"])
+        waitForExpectations(timeout: 25)
+        for (screen, identifier) in [("Snapshots", "snapshots"), ("AI Agent", "agent")] {
+            app.buttons["sidebar.\(identifier)"].tap()
+            XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
+            if identifier == "snapshots" {
+                XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 30))
+            } else {
+                XCTAssertTrue(app.webViews.links["Home"].firstMatch.waitForExistence(timeout: 30))
+            }
+            XCTAssertEqual(app.webViews.firstMatch.frame.maxY, app.frame.maxY, accuracy: 1)
+            XCTAssertFalse(app.staticTexts["navigation.activity.title"].exists)
+            XCTAssertTrue(app.webViews.firstMatch.frame.contains(app.buttons["navigation.sidebar"].frame))
+            attach("\(screen) fills bottom safe area", app: app)
+            app.buttons["navigation.sidebar"].tap()
+        }
+    }
+
+    func testActivityHeaderSeparatesBackButtonFromWebContent() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["sidebar.snapshots"])
+        waitForExpectations(timeout: 25)
+        app.buttons["sidebar.openActivity"].tap()
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'CRAWLS'")).firstMatch.waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["navigation.activity.title"].waitForExistence(timeout: 5))
+        let back = app.buttons["navigation.sidebar"]
+        XCTAssertTrue(back.isHittable)
+        XCTAssertLessThanOrEqual(back.frame.maxY, app.webViews.firstMatch.frame.minY)
+        XCTAssertEqual(app.webViews.firstMatch.frame.maxY, app.frame.maxY, accuracy: 1)
+        attach("Activity with native header and full height webview", app: app)
+        back.tap()
+        XCTAssertTrue(app.buttons["sidebar.snapshots"].isHittable)
+    }
+
     func testWebPageBackButtonOverlaysHeader() {
         continueAfterFailure = false
         let app = XCUIApplication()

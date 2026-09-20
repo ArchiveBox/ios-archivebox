@@ -165,6 +165,7 @@ struct ServerWebView: View {
                 }
             }
             #if os(iOS)
+            .ignoresSafeArea(.container, edges: .bottom)
             .navigationTitle(title)
             #endif
             .task(id: reloadID) { session.load(url, requestID: reloadID) }

@@ -303,6 +303,10 @@ struct MainView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    #if os(iOS)
+                    // Web content fills the home-indicator area as well as the detail column.
+                    .ignoresSafeArea(.container, edges: .bottom)
+                    #endif
                     #if os(macOS)
                     // Apply at the detail column: a child WebView cannot fill the
                     // titlebar or bottom inset reserved by its navigation container.
@@ -319,6 +323,21 @@ struct MainView: View {
                 if screen != .settings && screen != .search {
                     Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)
                         .ignoresSafeArea(.container, edges: .top)
+                }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if screen == .activity {
+                    // Activity strips the server header, so reserve a native bar
+                    // for the menu button instead of covering the live status text.
+                    Text(screen.info.title)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 64)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 60)
+                        .background(Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255))
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("navigation.activity.title")
                 }
             }
             .overlay(alignment: .topLeading) {

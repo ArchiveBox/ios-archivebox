@@ -79,7 +79,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let start = app.webViews.buttons["Start using Agent"]
         XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(start.isHittable, app.debugDescription)
-        Thread.sleep(forTimeInterval: 30)
+        Thread.sleep(forTimeInterval: 10)
         capture("agent-welcome", app: app)
         press(start)
         assertPage("New session", app: app)
@@ -180,7 +180,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                 let start = app.webViews.buttons["Start using Agent"]
                 XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
                 XCTAssertTrue(start.isHittable, app.debugDescription)
-                Thread.sleep(forTimeInterval: 30)
+                Thread.sleep(forTimeInterval: 10)
                 capture("agent-welcome", app: app)
                 press(start)
             }
@@ -461,7 +461,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         waitForExpectations(timeout: 10)
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
         // Allow the embedded page to finish painting before its gallery capture.
-        Thread.sleep(forTimeInterval: 30)
+        Thread.sleep(forTimeInterval: 10)
     }
 
     #if os(iOS)

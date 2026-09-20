@@ -119,7 +119,7 @@ final class ServerScreenshotTests: XCTestCase {
         waitForExpectations(timeout: 10)
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
         // Allow the embedded page to finish painting before its gallery capture.
-        Thread.sleep(forTimeInterval: 30)
+        Thread.sleep(forTimeInterval: 10)
     }
 
     private func select(_ name: String, _ app: XCUIApplication) {

@@ -13,7 +13,7 @@ jobs:
   build-macos:
     concurrency:
       group: macos-capture-build-${{ github.ref }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     # Siri schemas need SDK27; the app supports macOS26. Keep WebKit captures on
     # stable macOS: the macOS27 preview image fails IOSurface creation even for
     # an isolated sandboxed WKWebView loading example.com.

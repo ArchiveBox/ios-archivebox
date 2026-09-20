@@ -24,6 +24,7 @@ import ArchiveBoxCore
         routing.didFinish = { [weak self] page in
             guard let self, page.url?.scheme != "about" else { return }
             isLoading = false
+            if !owner.hasCredentials { owner.onWebLogin?(page) }
             guard page.url?.path.contains("/login") == true else { renewedLogin = nil; return }
             // Renew an expired session once per login URL, including navigations
             // initiated inside a page rather than only the initial sidebar load.
@@ -86,6 +87,7 @@ import ArchiveBoxCore
     private var baseURL: URL?
     private var clearingSession: Task<Void, Never>?
     var hasCredentials: Bool { server != nil && token != nil }
+    var onWebLogin: ((WKWebView) -> Void)?
 
     func reconnectFailedPages() {
         for page in pages.values where page.errorMessage != nil { page.reconnect() }
@@ -93,21 +95,22 @@ import ArchiveBoxCore
 
     func configure(server: URL?, baseURL: URL?, token: String?) {
         guard self.server != server || self.token != token || self.baseURL != baseURL else { return }
+        let changedServer = self.server != server
         // A cached page belongs to the server it was created for. Changing its
         // routing boundary would send its old navigations to the external browser.
-        for key in pages.keys.filter({ pages[$0]?.routing.baseURL != baseURL }) {
+        for key in pages.keys.filter({ changedServer || pages[$0]?.routing.baseURL != baseURL }) {
             pages.removeValue(forKey: key)?.disconnect()
         }
         self.server = server; self.token = token
         self.baseURL = baseURL
-        if server == nil || token == nil {
+        if changedServer || server == nil || token == nil {
             for page in pages.values { page.disconnect() }
             let previous = clearingSession
             clearingSession = Task {
                 await previous?.value
                 await authentication.clear()
             }
-            return
+            if server == nil || token == nil { return }
         }
         for page in pages.values { page.reconnect() }
     }

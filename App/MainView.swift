@@ -131,6 +131,10 @@ struct MainView: View {
             if reachable { pages.reconnectFailedPages() }
         }
         .onChange(of: "\(settings.verifiedServer?.absoluteString ?? "")\n\(settings.verifiedToken ?? "")", initial: true) {
+            pages.onWebLogin = { [weak settings, weak authentication = pages.authentication] page in
+                guard let settings, let authentication else { return }
+                settings.useWebLogin(page, authentication: authentication)
+            }
             pages.configure(server: settings.verifiedServer, baseURL: settings.displayedBaseURL, token: settings.verifiedToken)
         }
         .confirmationDialog("Connect to this ArchiveBox server?", isPresented: $confirmingServer) {
@@ -221,7 +225,7 @@ struct MainView: View {
             compactColumn = .detail
         }
         .onChange(of: settings.verifiedServer) { old, new in
-            if old != nil && old != new { openedPage = nil }
+            if old != nil && old != new { openedPage = nil; searchQuery = "" }
             if settings.verifiedServer == nil, let selection, !selection.isHelp, selection != .add { self.selection = .settings }
         }
     }

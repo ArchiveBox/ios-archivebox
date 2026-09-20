@@ -14,6 +14,37 @@ import WebKit
 
     public init() {}
 
+    /// Only the configured control origin (or its exact admin sibling) may hand
+    /// credentials to the app. The broader replay/navigation boundary is not enough.
+    public nonisolated static func isTrustedAdminPage(_ url: URL, server: URL) -> Bool {
+        guard ["http", "https"].contains(server.scheme ?? ""), url.scheme == server.scheme,
+              url.user == nil, url.password == nil,
+              (url.port ?? (url.scheme == "https" ? 443 : 80)) == (server.port ?? (server.scheme == "https" ? 443 : 80)),
+              let host = url.host?.lowercased(), let configuredHost = server.host?.lowercased(),
+              (url.path == "/admin" || url.path.hasPrefix("/admin/")),
+              !url.path.hasPrefix("/admin/login"), !url.path.hasPrefix("/admin/logout") else { return false }
+        if host == configuredHost { return true }
+        guard !configuredHost.contains(":"), !configuredHost.split(separator: ".").allSatisfy({ UInt8($0) != nil }) else { return false }
+        let prefix = ["api.", "admin.", "web."].first { configuredHost.hasPrefix($0) }
+        let base = prefix.map { String(configuredHost.dropFirst($0.count)) } ?? configuredHost
+        return host == "admin." + base
+    }
+
+    /// Admin templates already create/reuse this user's key for their REST widgets.
+    /// Read that existing value from the main frame; never export cookies or widen REST auth.
+    public func apiKey(from webView: WKWebView, server: URL) async throws -> String? {
+        guard webView.configuration.websiteDataStore === dataStore,
+              let url = webView.url, Self.isTrustedAdminPage(url, server: server) else { return nil }
+        let value = try await webView.callAsyncJavaScript("""
+            if (window.location.href !== pageURL) return null;
+            const key = window.ARCHIVEBOX_API_KEY;
+            return typeof key === 'string' && key.trim() ? key.trim() : null;
+            """, arguments: ["pageURL": url.absoluteString], in: nil, contentWorld: .page)
+        try Task.checkCancellation()
+        guard webView.url == url, Self.isTrustedAdminPage(url, server: server) else { return nil }
+        return value as? String
+    }
+
     public func authenticate(server: URL, token: String, force: Bool = false) async throws {
         let configuration = Credentials(server: server, token: token)
         if !force, credentials == configuration,

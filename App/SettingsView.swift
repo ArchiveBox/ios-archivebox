@@ -1,8 +1,48 @@
 import ArchiveBoxCore
 import SwiftUI
+import WebKit
 
 @MainActor @Observable
 final class SettingsModel {
+    var rememberedServers: [ServerConfiguration] = []
+
+    func useRememberedServer(_ configuration: ServerConfiguration) {
+        do {
+            var registry = try AppEnvironment.store.load()
+            guard let saved = registry.servers.first(where: { $0.id == configuration.id }) else { return }
+            registry.active_server_id = saved.id
+            try AppEnvironment.store.save(registry)
+            serverChanged()
+            #if os(macOS)
+            connectionMode = .remote
+            UserDefaults.standard.set(connectionMode.rawValue, forKey: "connectionMode")
+            #endif
+            server_id = saved.id
+            serverText = saved.server.absoluteString
+            tokenText = saved.token
+            persona = saved.persona ?? ""
+            dismissSetupGuide()
+            ArchiveSystemIndex.connectionChanged()
+            scheduleValidation()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func forgetServer(_ configuration: ServerConfiguration) {
+        do {
+            var registry = try AppEnvironment.store.load()
+            let forgotten = registry.servers.filter { $0.server == configuration.server }
+            let current = server_id == configuration.id || (try? ServerAddress.normalize(serverText)) == configuration.server
+            for saved in forgotten { registry.remove(saved.id) }
+            if current { registry.active_server_id = nil }
+            try AppEnvironment.store.save(registry)
+            for saved in forgotten {
+                UserDefaults.standard.removeObject(forKey: "share.recentTags." + saved.id)
+            }
+            rememberedServers = Array(registry.servers.prefix(3))
+            if current { serverChanged(); serverText = "" }
+            ArchiveSystemIndex.connectionChanged()
+        } catch { errorMessage = error.localizedDescription }
+    }
     var showsSetupGuide = !UserDefaults.standard.bool(forKey: "setupGuideDismissed")
 
     func dismissSetupGuide() {
@@ -13,6 +53,7 @@ final class SettingsModel {
     func resetSetup() {
         do {
             try AppEnvironment.store.clear()
+            rememberedServers = []
             ArchiveSystemIndex.connectionChanged()
             #if os(macOS)
             localServer.cancel()
@@ -50,6 +91,32 @@ final class SettingsModel {
             tokenText = apiKey
             await testToken() // Validates and persists to Keychain before loading personas.
             if !Task.isCancelled, verifiedToken != nil { save() }
+        }
+    }
+
+    func useWebLogin(_ page: WKWebView, authentication: BrowserAuthentication) {
+        guard let server = verifiedServer, verifiedToken == nil,
+              tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !busy,
+              let url = page.url, BrowserAuthentication.isTrustedAdminPage(url, server: server) else { return }
+        validation?.cancel()
+        busy = true
+        validation = Task {
+            defer { if !Task.isCancelled { busy = false } }
+            do {
+                guard let token = try await authentication.apiKey(from: page, server: server) else { return }
+                try Task.checkCancellation()
+                guard verifiedServer == server, verifiedToken == nil,
+                      tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                tokenText = token
+                // Use the normal verification + Keychain path. A page-provided
+                // value is never saved before the configured server validates it.
+                await testToken()
+                if !Task.isCancelled, verifiedToken == token, errorMessage == nil {
+                    savedMessage = "Signed in. Your API key was configured automatically."
+                }
+            } catch {
+                if !Task.isCancelled { tokenError = "Couldn’t configure your API key automatically. You can still copy and paste it from the server’s API Keys page." }
+            }
         }
     }
 
@@ -158,12 +225,13 @@ final class SettingsModel {
         guard !didLoad else { return }
         didLoad = true
         do {
+            let registry = try AppEnvironment.store.load()
+            rememberedServers = Array(registry.servers.prefix(3))
+            let config = registry.active_server
             #if os(macOS)
-            // Each connection mode owns its credentials; a local profile must
-            // never inherit a remote server's URL or API key.
-            let config = try savedConfiguration(for: connectionMode)
-            #else
-            let config = try AppEnvironment.store.load().active_server
+            if let config {
+                connectionMode = [ServerAddress.localAPI, ServerAddress.localServer].contains(config.server) ? .local : .remote
+            }
             #endif
             if let config {
                 dismissSetupGuide()
@@ -215,6 +283,7 @@ final class SettingsModel {
             // Remember success without closing a guide reopened during this check.
             UserDefaults.standard.set(true, forKey: "setupGuideDismissed")
             serverMessage = changed ? "Connected. Using \(server.absoluteString)." : "Connected to ArchiveBox."
+            try persistConnection()
 
         } catch { if !Task.isCancelled { serverError = error.localizedDescription } }
     }
@@ -285,16 +354,23 @@ final class SettingsModel {
     }
 
     private func persistConnection() throws {
-        guard let server = verifiedServer, let token = verifiedToken, token == tokenText else { return }
+        guard let server = verifiedServer else { return }
         var registry = try AppEnvironment.store.load()
+        let selects_destination = server_id == nil
         let existing = registry.servers.first { $0.id == server_id }
             ?? registry.servers.first { $0.server == server }
         let configuration = ServerConfiguration(id: existing?.id ?? UUID().uuidString.lowercased(),
-            name: existing?.name ?? "", server: server, token: token, persona: persona.isEmpty ? nil : persona)
+            name: existing?.name ?? "", server: server, token: verifiedToken ?? existing?.token ?? "", persona: persona.isEmpty ? nil : persona)
         registry.upsert(configuration)
+        registry.servers.removeAll { $0.id == configuration.id }
+        registry.servers.insert(configuration, at: 0)
+        let expired = Array(registry.servers.dropFirst(3))
+        for saved in expired { registry.remove(saved.id) }
         registry.active_server_id = configuration.id
-        registry.default_server_ids = [configuration.id]
+        if selects_destination { registry.default_server_ids = [configuration.id] }
         try AppEnvironment.store.save(registry)
+        for saved in expired { UserDefaults.standard.removeObject(forKey: "share.recentTags." + saved.id) }
+        rememberedServers = Array(registry.servers.prefix(3))
         server_id = configuration.id
         ArchiveSystemIndex.connectionChanged()
     }
@@ -414,7 +490,7 @@ struct SettingsView: View {
                     }
                     if let error = model.tokenError { Text(error).foregroundStyle(.red) }
                 } header: { Text("API key") } footer: {
-                    Text("An API key gives this app access to your archive. After connecting, choose Get Key, sign in to your server, create a key, and paste it here. Your key is checked and saved automatically.")
+                    Text("Choose Get Key and sign in to your server. Your API key is configured automatically after login. You can also paste a key here.")
                 }
 
 
@@ -504,6 +580,28 @@ struct SettingsView: View {
                 Button("Search again", systemImage: "arrow.clockwise") { nearby.start() }
                     .labelStyle(.iconOnly).buttonStyle(.borderless)
                     .accessibilityIdentifier("discovery.inline.refresh")
+            }
+            ForEach(model.rememberedServers) { saved in
+                HStack(spacing: 10) {
+                    Button {
+                        focusedField = nil
+                        model.useRememberedServer(saved)
+                    } label: {
+                        Label {
+                            Text(saved.server.absoluteString)
+                                .font(.subheadline.monospaced()).lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        } icon: { Image(systemName: "clock.arrow.circlepath") }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("history.server.\(saved.id)")
+                    Button("Forget server", systemImage: "minus.circle", role: .destructive) {
+                        model.forgetServer(saved)
+                    }
+                    .labelStyle(.iconOnly).buttonStyle(.borderless)
+                    .help("Forget this server and its saved API key")
+                    .accessibilityIdentifier("history.forget.\(saved.id)")
+                }
             }
             if nearby.results.isEmpty {
                 Text(nearby.running ? "Looking for ArchiveBox servers…" : "No servers found yet. Check that your server is running and Local Network access is allowed.")

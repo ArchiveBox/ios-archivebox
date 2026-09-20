@@ -23,6 +23,11 @@ final class ShareModel {
 
     func load(items: [NSExtensionItem]) async {
         do {
+            // Remove old extension-private suggestions; new ones are shared so
+            // Connection Settings can erase them when a server is forgotten.
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.hasPrefix("share.recentTags.") {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
             var links: [URL] = []
             for item in items {
                 for provider in item.attachments ?? [] {
@@ -41,7 +46,7 @@ final class ShareModel {
                 throw ArchiveBoxError.message("Open the ArchiveBox app first to test and save your server and API key, then share this link again.")
             }
             self.configuration = configuration
-            recentTags = ArchiveTags.recentlyUsed(server_id: configuration.id)
+            recentTags = try AppEnvironment.store.recentTags(serverID: configuration.id)
             state = .ready
             await submit()
         } catch {
@@ -123,7 +128,7 @@ final class ShareModel {
                 do {
                     try await ArchiveBoxClient().updateTags(pending, for: receipt, configuration: configuration)
                     let added = pending.filter { tag in !savedTags.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame } }
-                    recentTags = ArchiveTags.recentlyUsed(server_id: configuration.id, adding: added)
+                    recentTags = try AppEnvironment.store.recentTags(serverID: configuration.id, adding: added)
                     savedTags = pending
                 } catch {
                     tagError = error.localizedDescription

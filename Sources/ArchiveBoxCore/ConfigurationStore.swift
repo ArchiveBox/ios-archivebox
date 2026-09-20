@@ -72,7 +72,9 @@ public struct ServerRegistry: Codable, Sendable, Equatable {
 /// Submitted URLs, receipts, and browser sessions remain in memory.
 public struct ConfigurationStore: Sendable {
     private let item: KeychainItem
+    private let accessGroup: String
     public init(accessGroup: String) {
+        self.accessGroup = accessGroup
         item = KeychainItem(service: "io.archivebox.configuration", account: "server_registry", accessGroup: accessGroup)
     }
     public func load() throws -> ServerRegistry {
@@ -83,9 +85,29 @@ public struct ConfigurationStore: Sendable {
     }
     public func save(_ registry: ServerRegistry) throws {
         try registry.validate()
+        let removed = try load().servers.filter { old in !registry.servers.contains { $0.id == old.id } }
         try item.save(JSONEncoder().encode(registry))
+        for server in removed { try tagItem(server.id).clear() }
     }
-    public func clear() throws { try item.clear() }
+    public func clear() throws {
+        for server in try load().servers { try tagItem(server.id).clear() }
+        try item.clear()
+    }
+
+    // Share-extension preferences must be forgettable by the containing app,
+    // so server-scoped suggestions live in the same shared Keychain group.
+    private func tagItem(_ id: String) -> KeychainItem {
+        KeychainItem(service: "io.archivebox.recent-tags", account: id, accessGroup: accessGroup)
+    }
+    public func recentTags(serverID: String, adding tags: [String] = []) throws -> [String] {
+        guard try load().servers.contains(where: { $0.id == serverID }) else { return [] }
+        let item = tagItem(serverID)
+        let previous = try item.load().map { try JSONDecoder().decode([String].self, from: $0) } ?? []
+        guard !tags.isEmpty else { return previous }
+        let recent = Array(ArchiveTags.normalize(Array(tags.reversed()) + previous).prefix(2))
+        try item.save(JSONEncoder().encode(recent))
+        return recent
+    }
 }
 
 /// Shared Keychain mechanics; each caller chooses its own service/account scope.

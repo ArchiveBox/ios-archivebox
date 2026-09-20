@@ -95,8 +95,8 @@
     "product": "server",
     "platform": "server",
     "title": "Server Mac",
-    "width": 2584,
-    "height": 2092
+    "width": 2360,
+    "height": 1800
   },
   {
     "id": "server-shell",
@@ -104,8 +104,8 @@
     "product": "server",
     "platform": "server",
     "title": "Server Shell",
-    "width": 2584,
-    "height": 2092
+    "width": 2360,
+    "height": 1800
   },
   {
     "id": "server-activity",
@@ -113,8 +113,8 @@
     "product": "server",
     "platform": "server",
     "title": "Server Activity",
-    "width": 2584,
-    "height": 2092
+    "width": 2360,
+    "height": 1800
   },
   {
     "id": "server-clients",
@@ -122,7 +122,7 @@
     "product": "server",
     "platform": "server",
     "title": "Server Clients",
-    "width": 2584,
-    "height": 2092
+    "width": 2360,
+    "height": 1800
   }
 ]

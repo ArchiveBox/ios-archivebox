@@ -118,6 +118,8 @@ final class ServerScreenshotTests: XCTestCase {
         expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: content)
         waitForExpectations(timeout: 10)
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
+        // Allow the embedded page to finish painting before its gallery capture.
+        Thread.sleep(forTimeInterval: 10)
     }
 
     private func select(_ name: String, _ app: XCUIApplication) {

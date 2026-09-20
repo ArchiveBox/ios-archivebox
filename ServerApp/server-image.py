@@ -16,10 +16,10 @@ def get(url, token=None):
         return json.load(response), response.headers
 
 
-def resolve():
+def resolve(require_tip=True):
     revision = subprocess.check_output(
         ["git", "ls-remote", "https://github.com/ArchiveBox/ArchiveBox.git", "refs/heads/dev"], text=True
-    ).split()[0]
+    ).split()[0] if require_tip else None
     registries = [
         ("registry-1.docker.io", "https://auth.docker.io/token?service=registry.docker.io&scope=repository:archivebox/archivebox:pull"),
         ("ghcr.io", "https://ghcr.io/token?service=ghcr.io&scope=repository:archivebox/archivebox:pull"),
@@ -37,6 +37,8 @@ def resolve():
             manifest, _ = get(base + "/manifests/" + descriptor["digest"], token)
             config, _ = get(base + "/blobs/" + manifest["config"]["digest"], token)
             actual = config["config"]["Labels"]["org.opencontainers.image.revision"]
+            if revision is None:
+                revision = actual
             if actual != revision:
                 raise SystemExit(f"{host}:dev ({architecture}) is at {actual}, but origin/dev is {revision}. Wait for the ArchiveBox image release to finish before building the app.")
             if architecture == "arm64":
@@ -74,7 +76,9 @@ def verify(path):
 os.chdir(Path(__file__).resolve().parent)
 if sys.argv[1:] == ["resolve"]:
     resolve()
+elif sys.argv[1:] == ["resolve", "--published"]:
+    resolve(require_tip=False)
 elif len(sys.argv) == 3 and sys.argv[1] == "verify":
     verify(sys.argv[2])
 else:
-    raise SystemExit("Usage: server-image.py resolve | verify /absolute/path/images.tar")
+    raise SystemExit("Usage: server-image.py resolve [--published] | verify /absolute/path/images.tar")

@@ -1,14 +1,14 @@
 #!/bin/bash
 # Real headful XCTest capture. Run only on a disposable macOS CI runner.
 set -euo pipefail
-platform=${1:?Usage: capture-app-screenshots.sh iphone|ipad|macos OUTPUT_DIRECTORY smoke|full}
+platform=${1:?Usage: capture-app-screenshots.sh iphone|ipad|macos|server OUTPUT_DIRECTORY smoke|full|gallery}
 output=${2:-build/screenshots/$platform}
 mode=${3:-smoke}
 case "$mode" in
   smoke) method=testLaunchScreenshot ;;
   full) method=testAllScreens ;;
   gallery) method=testGalleryScreens ;;
-  *) echo "Mode must be smoke or full." >&2; exit 2 ;;
+  *) echo "Mode must be smoke, full, or gallery." >&2; exit 2 ;;
 esac
 class=ArchiveBoxScreenshotTests
 mkdir -p "$output"

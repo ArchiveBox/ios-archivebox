@@ -35,39 +35,38 @@ background, rounded clipping, or another shadow around these PNGs.
 
 The **App website** workflow builds pull requests without deploying and deploys
 commits to `main` through GitHub Actions to <https://app.archivebox.io/>.
-The separate **Capture native app screenshots** workflow captures iPhone and Mac
-on app changes to `main`. Successful captures trigger a new website deployment;
-other website builds retain the latest complete gallery. iPad capture is disabled
-for now.
-The repository's Pages source must be **GitHub Actions**. App distribution and
-TestFlight continue to use their own release workflows.
+The separate **Capture native app screenshots** workflow drives the shipping apps
+with XCTest on disposable Macs: 14 screens each for iPhone and Mac, and 15 screens
+for ArchiveBox Server.app. It reuses the real ArchiveBox bootstrap and the signed
+companion build, including its container runtime. Onboarding is completed through
+ordinary UI controls; there are no screenshot-specific app flags or injected states.
+The exhaustive `testAllScreens` capture remains available with the collector's
+`full` argument; the site's `gallery` tour focuses on onboarding, connections,
+Add URLs, snapshots, AI Agent, activity, discovery and network guidance.
 
-The Screenshots page is generated from real XCTest attachments for iPhone and
-Mac. CI captures the current app revision against a pinned ArchiveBox server,
-then runs:
+Each device job validates its own complete image set and publishes a separate
+`site-screenshots-iphone`, `site-screenshots-macos`, or `site-screenshots-server`
+artifact, retaining its app/backend revisions and PNG checksums. Pages restores
+the newest validated set for each device independently, including successful jobs
+from a run where another device failed. Capture completion triggers another Pages
+build. Normal website pushes never wait for a capture job. Previously published
+images remain available if capture artifacts expire.
+
+`documentation-screenshots.json` supplies the existing photos only for device
+groups that have never produced a validated capture. Preserve these images until
+replacement captures are available; a port change alone is not a reason to delete
+them. The same gallery data powers both product tabs and the two homepage marquees.
+The main marquee contains only client screenshots; the smaller marquee between
+the comparison table and Server.app button contains only companion screenshots.
+
+To validate exported XCTest attachments for one device:
 
 ```sh
 uv run --no-project python scripts/build-screenshot-gallery.py \
-  --revision "$GITHUB_SHA" --backend-revision "$BACKEND_REVISION"
+  --platform iphone --revision "$GITHUB_SHA" --backend-revision "$BACKEND_REVISION"
 ```
 
-Run that command from the repository root. Each
-`build/screenshots/{iphone,macos}/metadata.json` must contain matching
-`revision`, `backend_revision`, and `platform` values alongside the exported
-`attachments/manifest.json`. The converter validates all required named screens,
-PNG dimensions, timestamps, and provenance before staging original images under
-`build/screenshots/gallery/`. No generated captures are committed.
-
-Before the first complete capture, `build.sh` publishes the documentation images.
-Once a generated gallery is available, it must contain all 31 iPhone and 33 Mac
-screenshots.
-To inspect a genuine partial capture export, the converter's explicit `--smoke`
-flag permits missing screens/platforms and `--backend-revision none` when no server
-was used. Build that output with `ALLOW_INCOMPLETE_SCREENSHOTS=1` and optionally
-`SCREENSHOT_GALLERY_DIR=/path/to/gallery`; it is visibly marked incomplete and
-must never be deployed. Full-resolution PNGs retain the original capture pixels.
-The share extension is captured through Safari on every platform. The optional
-Server.app and external browser/settings destinations are outside this app gallery.
-
-Keep existing published documentation captures until replacement captures are ready.
-A port or configuration change alone is not a reason to delete screenshots.
+The capture script exports original XCTest PNGs plus attachment metadata. The
+validator requires every named screen, a real PNG, and matching source provenance.
+Its `--smoke` option permits an incomplete local preview only; Pages rejects it.
+No generated CI captures are committed. iPad capture remains disabled.

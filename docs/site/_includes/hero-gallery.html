@@ -3,7 +3,7 @@
     <div class="hero-gallery-track"><div class="hero-gallery-group">
       {% assign captures = site.data.gallery | where: 'product', include.product %}
       {% for capture in captures %}
-      <a class="hero-gallery-card" href="{{ capture.path | relative_url }}"><img src="{{ capture.path | relative_url }}" width="{{ capture.width }}" height="{{ capture.height }}" alt="{{ capture.title | escape }}" loading="lazy"></a>
+      <a class="hero-gallery-card" href="{{ capture.path | relative_url }}{% if capture.sha256 %}?v={{ capture.sha256 | slice: 0, 12 }}{% endif %}"><img src="{{ capture.path | relative_url }}{% if capture.sha256 %}?v={{ capture.sha256 | slice: 0, 12 }}{% endif %}" width="{{ capture.width }}" height="{{ capture.height }}" alt="{{ capture.title | escape }}" loading="lazy"></a>
       {% endfor %}
     </div></div>
   </div>

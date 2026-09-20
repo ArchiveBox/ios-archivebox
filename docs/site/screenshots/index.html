@@ -15,7 +15,7 @@ description: Explore ArchiveBox.app on iPhone and Mac, and ArchiveBox Server.app
 {% for capture in captures %}
   <figure data-platform="{{ capture.platform }}" id="{{ capture.platform }}-{{ capture.id }}">
     <h2>{{ capture.title }}</h2>
-    <a href="{{ capture.path | relative_url }}"><img src="{{ capture.path | relative_url }}" alt="{{ capture.title | escape }}" width="{{ capture.width }}" height="{{ capture.height }}" loading="lazy"></a>
+    <a href="{{ capture.path | relative_url }}{% if capture.sha256 %}?v={{ capture.sha256 | slice: 0, 12 }}{% endif %}"><img src="{{ capture.path | relative_url }}{% if capture.sha256 %}?v={{ capture.sha256 | slice: 0, 12 }}{% endif %}" alt="{{ capture.title | escape }}" width="{{ capture.width }}" height="{{ capture.height }}" loading="lazy"></a>
   </figure>
 {% endfor %}
 </div>

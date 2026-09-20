@@ -65,6 +65,12 @@ targets:
         CODE_SIGN_IDENTITY: '$identity'
         DEVELOPMENT_TEAM: Q3VA4FKRSA
         PROVISIONING_PROFILE_SPECIFIER: ArchiveBox Safari GitHub Developer ID
+  ArchiveBoxMacWidgets:
+    settings:
+      base:
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: '$identity'
+        DEVELOPMENT_TEAM: Q3VA4FKRSA
   ArchiveBoxMacScreenshots:
     settings:
       base:

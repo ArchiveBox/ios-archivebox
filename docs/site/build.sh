@@ -21,6 +21,7 @@ mkdir -p "$stage_dir/_data" "$stage_dir/screenshots"
 cp "$site_dir/screenshots/index.html" "$stage_dir/screenshots/index.html"
 uv run --no-project python - "$site_dir/documentation-screenshots.json" "$gallery_dir" "$stage_dir" <<'GALLERY'
 import json, os, shutil, sys
+from itertools import zip_longest
 from pathlib import Path
 catalog, generated, stage = map(Path, sys.argv[1:])
 captures = json.loads(catalog.read_text())
@@ -40,6 +41,13 @@ if manifest_path.exists():
     platforms = {c['platform'] for c in current}
     captures = [c for c in captures if c['platform'] not in platforms] + current
     shutil.copytree(generated, stage / 'screenshots', dirs_exist_ok=True)
+# Alternate Mac and iPhone views in both the gallery and the hero strip.
+priority = ['snapshots', 'library-mac', 'home-iphone', 'add', 'agent', 'activity', 'connection-connected']
+def order(capture):
+    return priority.index(capture['id']) if capture['id'] in priority else len(priority)
+clients = [sorted([c for c in captures if c['platform'] == platform], key=order) for platform in ('macos', 'iphone')]
+server = [c for c in captures if c['product'] == 'server']
+captures = [c for pair in zip_longest(*clients) for c in pair if c is not None] + server
 (stage / '_data/gallery.json').write_text(json.dumps(captures))
 GALLERY
 cd "$site_dir"

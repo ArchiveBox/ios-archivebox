@@ -424,15 +424,16 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     #if os(iOS)
     private func declinePasswordPrompt() {
-        let alert = XCUIApplication().alerts["Save Password?"]
-        if alert.exists {
-            let notNow = alert.buttons["Not Now"]
+        let app = XCUIApplication()
+        let prompt = app.staticTexts["Save Password?"]
+        if prompt.exists {
+            let notNow = app.buttons["Not Now"]
             XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
             notNow.tap()
-            expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: alert)
+            expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: prompt)
             waitForExpectations(timeout: 5)
         }
-        XCTAssertFalse(alert.exists, "The disposable API key must not be saved to Passwords")
+        XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")
     }
     #endif
 

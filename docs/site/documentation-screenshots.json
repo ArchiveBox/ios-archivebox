@@ -23,8 +23,8 @@
     "product": "client",
     "platform": "macos",
     "title": "Connection Mac",
-    "width": 4718592,
-    "height": 4292935744
+    "width": 800,
+    "height": 760
   },
   {
     "id": "connection-iphone",
@@ -59,8 +59,8 @@
     "product": "client",
     "platform": "macos",
     "title": "Archive Mac",
-    "width": 4718592,
-    "height": 4292935744
+    "width": 800,
+    "height": 760
   },
   {
     "id": "archive-iphone",

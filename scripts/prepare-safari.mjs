@@ -6,7 +6,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const revision = 'bc2f738f3cf45dff8289ebec1585ee166732a48d'; // Safari export imports + popup sizing; includes OPFS upload fix
+const revision = 'db69698d02c627cf71113a53076696670aad73a1'; // Shared server registry and server-scoped submissions
 const source = resolve(process.env.ARCHIVEBOX_EXTENSION_SOURCE || resolve(root, '../archivebox-browser-extension'));
 const output = resolve(root, 'SafariWebExtension/Resources');
 const run = (program, args, cwd = root) => execFileSync(program, args, { cwd, stdio: 'inherit' });

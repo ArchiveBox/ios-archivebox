@@ -102,7 +102,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         for _ in 0..<8 {
             if element.isHittable { break }
             #if os(macOS)
-            app.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: -280)
+            let pane = app.scrollViews.containing(.any, identifier: element.identifier).firstMatch
+            XCTAssertTrue(pane.exists, "Missing scroll pane for \(element.identifier)")
+            pane.scroll(byDeltaX: 0, deltaY: -280)
             #else
             app.swipeUp()
             #endif

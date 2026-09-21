@@ -37,6 +37,8 @@ if manifest_path.exists():
         raise SystemExit('Missing capture provenance')
     current = []
     for capture in manifest['captures']:
+        if capture['path'] != f"images/{capture['platform']}/{capture['id']}.png":
+            raise SystemExit(f"Screenshot path must use platform and view ID: {capture['path']}")
         image = generated / capture['path']
         if not image.is_file():
             raise SystemExit(f'Missing screenshot: {image}')

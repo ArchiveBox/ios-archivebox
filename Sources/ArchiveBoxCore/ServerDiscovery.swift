@@ -48,7 +48,7 @@ public final class ServerDiscovery: NSObject {
             if let network = try? JSONDecoder().decode(TailscaleNetwork.self, from: Data(extraHosts.utf8)) {
                 for device in network.devices.prefix(128) {
                     for host in (device.TailscaleIPs ?? []) + [device.hostname].compactMap({ $0 }) {
-                        candidates += Self.addresses(host: host, source: "Imported Tailscale device")
+                        candidates += Self.addresses(host: host, source: device.hostname.map { "Tailscale · \($0)" } ?? "Imported Tailscale device")
                     }
                 }
             } else {
@@ -72,7 +72,7 @@ public final class ServerDiscovery: NSObject {
                 var tailnet: [(String, String)] = []
                 for device in devices {
                     for host in (device.TailscaleIPs ?? []) + [device.hostname].compactMap({ $0 }) {
-                        tailnet += Self.addresses(host: host, source: "Tailscale")
+                        tailnet += Self.addresses(host: host, source: device.hostname.map { "Tailscale · \($0)" } ?? "Tailscale")
                     }
                 }
                 await probe(tailnet)
@@ -115,11 +115,42 @@ public final class ServerDiscovery: NSObject {
     private func add(_ result: Found) {
         if let index = results.firstIndex(where: { $0.id == result.id }) {
             // Keep the advertised server name even if a port probe won the race.
-            if result.source.hasPrefix("Bonjour") { results[index] = result }
+            if result.source.hasPrefix("Bonjour") ||
+                (result.source.contains(" · ") && !results[index].source.hasPrefix("Bonjour")) {
+                results[index] = result
+            }
             return
         }
         results.append(result)
         results.sort { $0.url.absoluteString < $1.url.absoluteString }
+        if result.source == "Local network", let host = result.url.host {
+            // Resolve only confirmed servers, without delaying discovery or changing their URL.
+            resolving.append(Task {
+                let name = await Task.detached(priority: .utility) { Self.hostname(for: host) }.value
+                guard !Task.isCancelled, let name,
+                      let index = results.firstIndex(where: { $0.id == result.id }),
+                      results[index].source == "Local network" else { return }
+                results[index] = Found(url: result.url, source: "Local network · \(name)")
+            })
+        }
+    }
+
+    private nonisolated static func hostname(for host: String) -> String? {
+        var address = sockaddr_in()
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        address.sin_family = sa_family_t(AF_INET)
+        guard inet_pton(AF_INET, host, &address.sin_addr) == 1 else { return nil }
+        var name = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+        let status = withUnsafePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getnameinfo($0, socklen_t(MemoryLayout<sockaddr_in>.size), &name,
+                            socklen_t(name.count), nil, 0, NI_NAMEREQD)
+            }
+        }
+        guard status == 0 else { return nil }
+        let hostname = String(decoding: name.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        return hostname.isEmpty || hostname == host ? nil : hostname
     }
 
     private static func addresses(host: String, source: String) -> [(String, String)] {
@@ -194,7 +225,8 @@ extension ServerDiscovery: @preconcurrency NetServiceBrowserDelegate, @preconcur
             }
         }
         let candidates = addresses
-        let source = "Bonjour · \(sender.name)"
+        let hostname = sender.hostName?.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        let source = "Bonjour · \(hostname ?? sender.name)"
         resolving.append(Task { [client] in
             for address in candidates {
                 guard !Task.isCancelled else { return }

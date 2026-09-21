@@ -583,7 +583,9 @@ struct SettingsView: View {
     }
 
     private var nearbyServers: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let rememberedURLs = Set(model.rememberedServers.map { $0.server.absoluteString })
+        let discovered = nearby.results.filter { !rememberedURLs.contains($0.url.absoluteString) }
+        return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Label("Available servers", systemImage: "network")
                     .font(.subheadline.weight(.semibold))
@@ -623,13 +625,13 @@ struct SettingsView: View {
                     .accessibilityIdentifier("history.forget.\(saved.id)")
                 }
             }
-            if nearby.results.isEmpty {
+            if nearby.results.isEmpty && model.rememberedServers.isEmpty {
                 Text(nearby.running ? "Looking for ArchiveBox servers…" : "No servers found yet. Check that your server is running and Local Network access is allowed.")
                     .font(.caption).foregroundStyle(.secondary)
-            } else {
+            } else if !discovered.isEmpty {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(nearby.results) { found in
+                        ForEach(discovered) { found in
                             Button {
                                 focusedField = nil
                                 if (try? ServerAddress.normalize(model.serverText)) != found.url {
@@ -639,7 +641,8 @@ struct SettingsView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "externaldrive.connected.to.line.below")
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text(found.source).font(.subheadline)
+                                        Text(found.source).font(.subheadline).lineLimit(1)
+                                            .help(found.source)
                                         Text(found.url.absoluteString).font(.caption.monospaced())
                                             .foregroundStyle(.secondary).lineLimit(2)
                                     }
@@ -654,7 +657,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .frame(height: min(CGFloat(nearby.results.count) * 62, 186))
+                .frame(height: min(CGFloat(discovered.count) * 62, 186))
             }
             Text("Choose a server, or enter its address below.")
                 .font(.caption).foregroundStyle(.secondary)

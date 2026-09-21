@@ -58,7 +58,11 @@ cat > "$credentials/export.plist" <<PLIST
 PLIST
 PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/ArchiveBox-direct.xcarchive" \
  -exportPath "$RUNNER_TEMP/ArchiveBox-direct" -exportOptionsPlist "$credentials/export.plist"
-bash ServerApp/build.sh
+# Existing Server.app installs use UTC timestamp builds. Keep that sequence for
+# Sparkle; the client and TestFlight keep the separate release.json counter.
+server_build=$(date -u +%Y%m%d%H%M%S)
+ARCHIVEBOX_BUILD_NUMBER="$server_build" bash ServerApp/build.sh
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' 'ServerApp/dist/ArchiveBox Server.app/Contents/Info.plist')" == "$server_build" ]]
 for product in client server; do
  if [[ "$product" == client ]]; then app="$RUNNER_TEMP/ArchiveBox-direct/ArchiveBox.app"; zip="$PWD/dist/ArchiveBox.app.zip"
  else app="$PWD/ServerApp/dist/ArchiveBox Server.app"; zip="$PWD/dist/ArchiveBox.Server.app.zip"; fi

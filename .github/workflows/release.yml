@@ -11,15 +11,14 @@ concurrency:
   group: release-apps-main
   cancel-in-progress: false
 jobs:
-  release:
+  prepare:
     if: github.ref == 'refs/heads/main'
-    runs-on: xcode-27
-    environment: testflight
-    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
+      ready: ${{ steps.version.outputs.ready }}
       version: ${{ steps.version.outputs.version }}
       sha: ${{ steps.version.outputs.sha }}
-      published: ${{ steps.publish.outcome == 'success' }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -32,24 +31,34 @@ jobs:
       - name: Reserve version for this main commit
         id: version
         run: node scripts/release.mjs prepare
+  release:
+    needs: prepare
+    if: needs.prepare.outputs.ready == 'true'
+    runs-on: xcode-27
+    environment: testflight
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: pnpm/action-setup@v4
-        if: steps.version.outputs.ready == 'true'
         with:
           version: '10.33.2'
       - uses: astral-sh/setup-uv@v7
-        if: steps.version.outputs.ready == 'true'
       - name: Prepare pinned Safari extension
-        if: steps.version.outputs.ready == 'true'
         run: node scripts/prepare-safari.mjs
       - name: Test shared code
-        if: steps.version.outputs.ready == 'true'
         run: swift test
       - name: Resolve current ArchiveBox dev image from both registries
-        if: steps.version.outputs.ready == 'true'
         id: server-image
         run: uv run --no-project python ServerApp/server-image.py resolve
       - uses: actions/cache/restore@v4
-        if: steps.version.outputs.ready == 'true'
         id: payload
         with:
           path: |
@@ -58,12 +67,12 @@ jobs:
             ServerApp/payload/vmlinux
           key: server-payload-arm64-${{ steps.server-image.outputs.digest }}-${{ hashFiles('ServerApp/prepare.sh', 'ServerApp/server-image.py') }}
       - name: Download resolved server runtime and images
-        if: steps.version.outputs.ready == 'true' && steps.payload.outputs.cache-hit != 'true'
+        if: steps.payload.outputs.cache-hit != 'true'
         env:
           ARCHIVEBOX_SERVER_IMAGE: ${{ steps.server-image.outputs.image }}
         run: bash ServerApp/prepare.sh
       - uses: actions/cache/save@v4
-        if: steps.version.outputs.ready == 'true' && steps.payload.outputs.cache-hit != 'true'
+        if: steps.payload.outputs.cache-hit != 'true'
         with:
           path: |
             ServerApp/vendor
@@ -71,7 +80,6 @@ jobs:
             ServerApp/payload/vmlinux
           key: server-payload-arm64-${{ steps.server-image.outputs.digest }}-${{ hashFiles('ServerApp/prepare.sh', 'ServerApp/server-image.py') }}
       - name: Build, sign, notarize and verify both ZIPs
-        if: steps.version.outputs.ready == 'true'
         env:
           ARCHIVEBOX_SERVER_IMAGE: ${{ steps.server-image.outputs.image }}
           DEVELOPER_ID_PROFILES: ${{ secrets.DEVELOPER_ID_PROFILES }}
@@ -84,17 +92,16 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: bash scripts/release-macos.sh
       - name: Publish tested artifacts and release notes
-        if: steps.version.outputs.ready == 'true'
         id: publish
         env:
           TESTFLIGHT_PUBLIC_URL: ${{ vars.TESTFLIGHT_PUBLIC_URL }}
         run: node scripts/release.mjs publish
   testflight:
-    needs: release
-    if: needs.release.outputs.published == 'true'
+    needs: prepare
+    if: needs.prepare.outputs.ready == 'true'
     uses: ./.github/workflows/testflight.yml
     secrets: inherit
     with:
       platform: both
-      version: ${{ needs.release.outputs.version }}
-      ref: ${{ needs.release.outputs.sha }}
+      version: ${{ needs.prepare.outputs.version }}
+      ref: ${{ needs.prepare.outputs.sha }}

@@ -1,4 +1,7 @@
 #!/bin/bash
+# Downloads outside the Mac App Store need Developer ID signing + notarization.
+# These credentials/profiles are not interchangeable with the Apple Distribution
+# signing used by testflight.sh for both TestFlight and public App Store builds.
 set -euo pipefail
 : "${DEVELOPER_ID_PROFILES:?}" "${DEVELOPER_ID_P12:?}" "${DEVELOPER_ID_PASSWORD:?}" "${SPARKLE_PRIVATE_KEY:?}" "${SPARKLE_PUBLIC_KEY:?}"
 : "${ASC_PRIVATE_KEY:?}" "${ASC_KEY_ID:?}" "${ASC_ISSUER_ID:?}" "${RUNNER_TEMP:?}"
@@ -58,6 +61,7 @@ cat > "$credentials/export.plist" <<PLIST
 PLIST
 PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/ArchiveBox-direct.xcarchive" \
  -exportPath "$RUNNER_TEMP/ArchiveBox-direct" -exportOptionsPlist "$credentials/export.plist"
+uv run scripts/verify-signing.py --mode developer-id "$RUNNER_TEMP/ArchiveBox-direct/ArchiveBox.app"
 # Existing Server.app installs use UTC timestamp builds. Keep that sequence for
 # Sparkle; the client and TestFlight keep the separate release.json counter.
 server_build=$(date -u +%Y%m%d%H%M%S)

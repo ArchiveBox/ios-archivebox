@@ -30,11 +30,14 @@ macOS 26+. The optional server ZIP includes the runtime, Linux kernel and pinned
 ArchiveBox container image. The client ZIP contains none of those large assets.
 The stable `server-updates` prerelease holds only Sparkle's update feed.
 
-After publication, the existing TestFlight workflow builds the exact reserved
+In parallel, the existing TestFlight workflow builds the exact reserved
 commit for iOS and macOS, assigns internal testing, and submits external beta
 review. [Public TestFlight invitation](https://testflight.apple.com/join/wUG6DS6z).
 Apple must approve external builds; successful upload is not public availability.
 A TestFlight review failure does not unpublish the notarized Mac downloads.
+The TestFlight script verifies both the archive and exported distribution package
+before uploading. The direct-download script verifies the exported Mac client's
+signing before notarization. See [signing policy and local releases](TESTFLIGHT.md).
 
 The `testflight` GitHub environment holds `ASC_KEY_ID`, `ASC_ISSUER_ID`,
 `ASC_PRIVATE_KEY`, `DEVELOPER_ID_P12` (base64),

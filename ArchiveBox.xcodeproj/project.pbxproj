@@ -501,6 +501,7 @@
 				BEC7CE719728F2689859EC29 /* Resources */,
 				9B76106DBE54AA8A08F69E31 /* Frameworks */,
 				01577DFF99719A252CB231EB /* Embed Foundation Extensions */,
+				2151001B0E615B07D1F234E5 /* Seal package resources with enclosing product */,
 			);
 			buildRules = (
 			);
@@ -524,6 +525,7 @@
 				5A254BE08254FC77C43A6DD5 /* Sources */,
 				F64B2BA320CB44980A128DF9 /* Resources */,
 				1631B8F87E9533007E9993D1 /* Frameworks */,
+				3EC49B8AECD5C5FA309A657A /* Seal package resources with enclosing product */,
 			);
 			buildRules = (
 			);
@@ -543,6 +545,7 @@
 			buildPhases = (
 				D81962190F6E5F33F76DE4F8 /* Sources */,
 				475EEB6CBE8D937379DE3DF2 /* Frameworks */,
+				C0EC00344AD5E4E98A029A90 /* Seal package resources with enclosing product */,
 			);
 			buildRules = (
 			);
@@ -578,6 +581,7 @@
 			buildConfigurationList = 623D3AB4470AB2009081E849 /* Build configuration list for PBXNativeTarget "ArchiveBoxMacScreenshots" */;
 			buildPhases = (
 				4351C153EE70A8C4CE853B4B /* Sources */,
+				72B55ABDDD829D21EE31E8D3 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -598,6 +602,7 @@
 				D99A8C738B79D4FB78CB81C1 /* Sources */,
 				D04FAF6F360F8AE07B514C1D /* Resources */,
 				B47E7711D6328389D5D6D187 /* Frameworks */,
+				9987DC5227EB03597BCB86AE /* Seal package resources with enclosing product */,
 			);
 			buildRules = (
 			);
@@ -618,6 +623,7 @@
 				EC295D16B3004070EC3FD96B /* Sources */,
 				9BA963367B90815B7C7DE758 /* Resources */,
 				3AA3C545B1BEFD9C66719D3F /* Frameworks */,
+				3594F0708D62065CF79130E7 /* Seal package resources with enclosing product */,
 			);
 			buildRules = (
 			);
@@ -637,6 +643,7 @@
 			buildPhases = (
 				8DB0D9C37D5CC6B0F32004AE /* Sources */,
 				81DB4D5559775AFC8C7B9AE2 /* Frameworks */,
+				6CFB77AD62E77B9C95FA8C57 /* Seal package resources with enclosing product */,
 			);
 			buildRules = (
 			);
@@ -655,6 +662,7 @@
 			buildConfigurationList = B563DFF459880EB3D3B10AF9 /* Build configuration list for PBXNativeTarget "ArchiveBoxScreenshots" */;
 			buildPhases = (
 				443799C5202D132765AEFDE6 /* Sources */,
+				C6BF38EDF25D599590947A68 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -676,6 +684,7 @@
 				47C69F19A84F14F557005E0D /* Resources */,
 				B5B67EE36B50E1E6569B80A7 /* Frameworks */,
 				A1E0401938A41541202A7B55 /* Embed Foundation Extensions */,
+				410FF951FB7267FDD3D3FAFA /* Seal package resources with enclosing product */,
 			);
 			buildRules = (
 			);
@@ -717,6 +726,7 @@
 				D110D7D6623FEA6F35F66D7C /* Sources */,
 				80C912D358EEDC6EBE63B96B /* Resources */,
 				813FD0826ADB50CA9F76B524 /* Frameworks */,
+				32C7532FE6F02215DC698EBF /* Seal package resources with enclosing product */,
 			);
 			buildRules = (
 			);
@@ -837,6 +847,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		72B55ABDDD829D21EE31E8D3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		80C912D358EEDC6EBE63B96B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -873,6 +890,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C6BF38EDF25D599590947A68 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D04FAF6F360F8AE07B514C1D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -899,6 +923,161 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		2151001B0E615B07D1F234E5 /* Seal package resources with enclosing product */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Seal package resources with enclosing product";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\n# WHY: Xcode 27 archives SwiftPM's data bundle with Apple Development, but an\n# App Store export can leave that signature intact while re-signing the enclosing\n# app with Apple Distribution. This caused ITMS-90284 in all four Mac products.\n# A team-ID check or codesign --verify alone misses this: both certificates can\n# belong to the same team, and each signature can be individually valid.\n#\n# Run after SwiftPM copies resources, BEFORE Xcode signs the enclosing product.\n# Codeless bundles at the resource location (Contents/Resources on Mac, the flat\n# product directory on iOS) are sealed by that product's signature:\n# https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle\n# Removing this data-only signature does not leave the data unprotected: changing\n# its bytes after product signing invalidates the enclosing signature.\n#\n# Only modify the target's copied bundle: SwiftPM's shared product may still be\n# used by concurrent builds. If this bundle gains code, its signing needs review;\n# never extend signature removal to executable bundles.\n#\n# project.yml is the source of the eight target phases; XcodeGen embeds this file\n# into project.pbxproj. Regenerate the committed project after changing this file\n# so Xcode Organizer, xcodebuild and CI all execute the same policy.\nbundle=\"${TARGET_BUILD_DIR:?}/${UNLOCALIZED_RESOURCES_FOLDER_PATH:?}/ArchiveBoxCore_ArchiveBoxCore.bundle\"\ncontents=\"$bundle\"\nresources=\"$bundle\"\nif [[ -d \"$bundle/Contents\" ]]; then\n    contents=\"$bundle/Contents\"\n    resources=\"$contents/Resources\"\nfi\nplist=\"$contents/Info.plist\"\n[[ -f \"$plist\" && -f \"$resources/public_suffix_list.dat\" ]] || {\n    echo \"error: Missing ArchiveBoxCore resource bundle: $bundle\" >&2; exit 1;\n}\nif /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"$plist\" >/dev/null 2>&1; then\n    echo \"error: ArchiveBoxCore resources now contain an executable; review their signing policy\" >&2\n    exit 1\nfi\n# Only the known data bundle is touched, never an executable or its entitlements.\nif [[ -d \"$contents/_CodeSignature\" ]]; then\n    /usr/bin/codesign --remove-signature \"$bundle\"\n    # codesign leaves the now-empty signature directory behind.\n    rmdir \"$contents/_CodeSignature\"\nfi\n[[ ! -d \"$contents/_CodeSignature\" ]] || {\n    echo \"error: Resource bundle still carries an independent signature\" >&2; exit 1;\n}\n";
+		};
+		32C7532FE6F02215DC698EBF /* Seal package resources with enclosing product */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Seal package resources with enclosing product";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\n# WHY: Xcode 27 archives SwiftPM's data bundle with Apple Development, but an\n# App Store export can leave that signature intact while re-signing the enclosing\n# app with Apple Distribution. This caused ITMS-90284 in all four Mac products.\n# A team-ID check or codesign --verify alone misses this: both certificates can\n# belong to the same team, and each signature can be individually valid.\n#\n# Run after SwiftPM copies resources, BEFORE Xcode signs the enclosing product.\n# Codeless bundles at the resource location (Contents/Resources on Mac, the flat\n# product directory on iOS) are sealed by that product's signature:\n# https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle\n# Removing this data-only signature does not leave the data unprotected: changing\n# its bytes after product signing invalidates the enclosing signature.\n#\n# Only modify the target's copied bundle: SwiftPM's shared product may still be\n# used by concurrent builds. If this bundle gains code, its signing needs review;\n# never extend signature removal to executable bundles.\n#\n# project.yml is the source of the eight target phases; XcodeGen embeds this file\n# into project.pbxproj. Regenerate the committed project after changing this file\n# so Xcode Organizer, xcodebuild and CI all execute the same policy.\nbundle=\"${TARGET_BUILD_DIR:?}/${UNLOCALIZED_RESOURCES_FOLDER_PATH:?}/ArchiveBoxCore_ArchiveBoxCore.bundle\"\ncontents=\"$bundle\"\nresources=\"$bundle\"\nif [[ -d \"$bundle/Contents\" ]]; then\n    contents=\"$bundle/Contents\"\n    resources=\"$contents/Resources\"\nfi\nplist=\"$contents/Info.plist\"\n[[ -f \"$plist\" && -f \"$resources/public_suffix_list.dat\" ]] || {\n    echo \"error: Missing ArchiveBoxCore resource bundle: $bundle\" >&2; exit 1;\n}\nif /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"$plist\" >/dev/null 2>&1; then\n    echo \"error: ArchiveBoxCore resources now contain an executable; review their signing policy\" >&2\n    exit 1\nfi\n# Only the known data bundle is touched, never an executable or its entitlements.\nif [[ -d \"$contents/_CodeSignature\" ]]; then\n    /usr/bin/codesign --remove-signature \"$bundle\"\n    # codesign leaves the now-empty signature directory behind.\n    rmdir \"$contents/_CodeSignature\"\nfi\n[[ ! -d \"$contents/_CodeSignature\" ]] || {\n    echo \"error: Resource bundle still carries an independent signature\" >&2; exit 1;\n}\n";
+		};
+		3594F0708D62065CF79130E7 /* Seal package resources with enclosing product */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Seal package resources with enclosing product";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\n# WHY: Xcode 27 archives SwiftPM's data bundle with Apple Development, but an\n# App Store export can leave that signature intact while re-signing the enclosing\n# app with Apple Distribution. This caused ITMS-90284 in all four Mac products.\n# A team-ID check or codesign --verify alone misses this: both certificates can\n# belong to the same team, and each signature can be individually valid.\n#\n# Run after SwiftPM copies resources, BEFORE Xcode signs the enclosing product.\n# Codeless bundles at the resource location (Contents/Resources on Mac, the flat\n# product directory on iOS) are sealed by that product's signature:\n# https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle\n# Removing this data-only signature does not leave the data unprotected: changing\n# its bytes after product signing invalidates the enclosing signature.\n#\n# Only modify the target's copied bundle: SwiftPM's shared product may still be\n# used by concurrent builds. If this bundle gains code, its signing needs review;\n# never extend signature removal to executable bundles.\n#\n# project.yml is the source of the eight target phases; XcodeGen embeds this file\n# into project.pbxproj. Regenerate the committed project after changing this file\n# so Xcode Organizer, xcodebuild and CI all execute the same policy.\nbundle=\"${TARGET_BUILD_DIR:?}/${UNLOCALIZED_RESOURCES_FOLDER_PATH:?}/ArchiveBoxCore_ArchiveBoxCore.bundle\"\ncontents=\"$bundle\"\nresources=\"$bundle\"\nif [[ -d \"$bundle/Contents\" ]]; then\n    contents=\"$bundle/Contents\"\n    resources=\"$contents/Resources\"\nfi\nplist=\"$contents/Info.plist\"\n[[ -f \"$plist\" && -f \"$resources/public_suffix_list.dat\" ]] || {\n    echo \"error: Missing ArchiveBoxCore resource bundle: $bundle\" >&2; exit 1;\n}\nif /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"$plist\" >/dev/null 2>&1; then\n    echo \"error: ArchiveBoxCore resources now contain an executable; review their signing policy\" >&2\n    exit 1\nfi\n# Only the known data bundle is touched, never an executable or its entitlements.\nif [[ -d \"$contents/_CodeSignature\" ]]; then\n    /usr/bin/codesign --remove-signature \"$bundle\"\n    # codesign leaves the now-empty signature directory behind.\n    rmdir \"$contents/_CodeSignature\"\nfi\n[[ ! -d \"$contents/_CodeSignature\" ]] || {\n    echo \"error: Resource bundle still carries an independent signature\" >&2; exit 1;\n}\n";
+		};
+		3EC49B8AECD5C5FA309A657A /* Seal package resources with enclosing product */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Seal package resources with enclosing product";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\n# WHY: Xcode 27 archives SwiftPM's data bundle with Apple Development, but an\n# App Store export can leave that signature intact while re-signing the enclosing\n# app with Apple Distribution. This caused ITMS-90284 in all four Mac products.\n# A team-ID check or codesign --verify alone misses this: both certificates can\n# belong to the same team, and each signature can be individually valid.\n#\n# Run after SwiftPM copies resources, BEFORE Xcode signs the enclosing product.\n# Codeless bundles at the resource location (Contents/Resources on Mac, the flat\n# product directory on iOS) are sealed by that product's signature:\n# https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle\n# Removing this data-only signature does not leave the data unprotected: changing\n# its bytes after product signing invalidates the enclosing signature.\n#\n# Only modify the target's copied bundle: SwiftPM's shared product may still be\n# used by concurrent builds. If this bundle gains code, its signing needs review;\n# never extend signature removal to executable bundles.\n#\n# project.yml is the source of the eight target phases; XcodeGen embeds this file\n# into project.pbxproj. Regenerate the committed project after changing this file\n# so Xcode Organizer, xcodebuild and CI all execute the same policy.\nbundle=\"${TARGET_BUILD_DIR:?}/${UNLOCALIZED_RESOURCES_FOLDER_PATH:?}/ArchiveBoxCore_ArchiveBoxCore.bundle\"\ncontents=\"$bundle\"\nresources=\"$bundle\"\nif [[ -d \"$bundle/Contents\" ]]; then\n    contents=\"$bundle/Contents\"\n    resources=\"$contents/Resources\"\nfi\nplist=\"$contents/Info.plist\"\n[[ -f \"$plist\" && -f \"$resources/public_suffix_list.dat\" ]] || {\n    echo \"error: Missing ArchiveBoxCore resource bundle: $bundle\" >&2; exit 1;\n}\nif /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"$plist\" >/dev/null 2>&1; then\n    echo \"error: ArchiveBoxCore resources now contain an executable; review their signing policy\" >&2\n    exit 1\nfi\n# Only the known data bundle is touched, never an executable or its entitlements.\nif [[ -d \"$contents/_CodeSignature\" ]]; then\n    /usr/bin/codesign --remove-signature \"$bundle\"\n    # codesign leaves the now-empty signature directory behind.\n    rmdir \"$contents/_CodeSignature\"\nfi\n[[ ! -d \"$contents/_CodeSignature\" ]] || {\n    echo \"error: Resource bundle still carries an independent signature\" >&2; exit 1;\n}\n";
+		};
+		410FF951FB7267FDD3D3FAFA /* Seal package resources with enclosing product */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Seal package resources with enclosing product";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\n# WHY: Xcode 27 archives SwiftPM's data bundle with Apple Development, but an\n# App Store export can leave that signature intact while re-signing the enclosing\n# app with Apple Distribution. This caused ITMS-90284 in all four Mac products.\n# A team-ID check or codesign --verify alone misses this: both certificates can\n# belong to the same team, and each signature can be individually valid.\n#\n# Run after SwiftPM copies resources, BEFORE Xcode signs the enclosing product.\n# Codeless bundles at the resource location (Contents/Resources on Mac, the flat\n# product directory on iOS) are sealed by that product's signature:\n# https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle\n# Removing this data-only signature does not leave the data unprotected: changing\n# its bytes after product signing invalidates the enclosing signature.\n#\n# Only modify the target's copied bundle: SwiftPM's shared product may still be\n# used by concurrent builds. If this bundle gains code, its signing needs review;\n# never extend signature removal to executable bundles.\n#\n# project.yml is the source of the eight target phases; XcodeGen embeds this file\n# into project.pbxproj. Regenerate the committed project after changing this file\n# so Xcode Organizer, xcodebuild and CI all execute the same policy.\nbundle=\"${TARGET_BUILD_DIR:?}/${UNLOCALIZED_RESOURCES_FOLDER_PATH:?}/ArchiveBoxCore_ArchiveBoxCore.bundle\"\ncontents=\"$bundle\"\nresources=\"$bundle\"\nif [[ -d \"$bundle/Contents\" ]]; then\n    contents=\"$bundle/Contents\"\n    resources=\"$contents/Resources\"\nfi\nplist=\"$contents/Info.plist\"\n[[ -f \"$plist\" && -f \"$resources/public_suffix_list.dat\" ]] || {\n    echo \"error: Missing ArchiveBoxCore resource bundle: $bundle\" >&2; exit 1;\n}\nif /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"$plist\" >/dev/null 2>&1; then\n    echo \"error: ArchiveBoxCore resources now contain an executable; review their signing policy\" >&2\n    exit 1\nfi\n# Only the known data bundle is touched, never an executable or its entitlements.\nif [[ -d \"$contents/_CodeSignature\" ]]; then\n    /usr/bin/codesign --remove-signature \"$bundle\"\n    # codesign leaves the now-empty signature directory behind.\n    rmdir \"$contents/_CodeSignature\"\nfi\n[[ ! -d \"$contents/_CodeSignature\" ]] || {\n    echo \"error: Resource bundle still carries an independent signature\" >&2; exit 1;\n}\n";
+		};
+		6CFB77AD62E77B9C95FA8C57 /* Seal package resources with enclosing product */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Seal package resources with enclosing product";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\n# WHY: Xcode 27 archives SwiftPM's data bundle with Apple Development, but an\n# App Store export can leave that signature intact while re-signing the enclosing\n# app with Apple Distribution. This caused ITMS-90284 in all four Mac products.\n# A team-ID check or codesign --verify alone misses this: both certificates can\n# belong to the same team, and each signature can be individually valid.\n#\n# Run after SwiftPM copies resources, BEFORE Xcode signs the enclosing product.\n# Codeless bundles at the resource location (Contents/Resources on Mac, the flat\n# product directory on iOS) are sealed by that product's signature:\n# https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle\n# Removing this data-only signature does not leave the data unprotected: changing\n# its bytes after product signing invalidates the enclosing signature.\n#\n# Only modify the target's copied bundle: SwiftPM's shared product may still be\n# used by concurrent builds. If this bundle gains code, its signing needs review;\n# never extend signature removal to executable bundles.\n#\n# project.yml is the source of the eight target phases; XcodeGen embeds this file\n# into project.pbxproj. Regenerate the committed project after changing this file\n# so Xcode Organizer, xcodebuild and CI all execute the same policy.\nbundle=\"${TARGET_BUILD_DIR:?}/${UNLOCALIZED_RESOURCES_FOLDER_PATH:?}/ArchiveBoxCore_ArchiveBoxCore.bundle\"\ncontents=\"$bundle\"\nresources=\"$bundle\"\nif [[ -d \"$bundle/Contents\" ]]; then\n    contents=\"$bundle/Contents\"\n    resources=\"$contents/Resources\"\nfi\nplist=\"$contents/Info.plist\"\n[[ -f \"$plist\" && -f \"$resources/public_suffix_list.dat\" ]] || {\n    echo \"error: Missing ArchiveBoxCore resource bundle: $bundle\" >&2; exit 1;\n}\nif /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"$plist\" >/dev/null 2>&1; then\n    echo \"error: ArchiveBoxCore resources now contain an executable; review their signing policy\" >&2\n    exit 1\nfi\n# Only the known data bundle is touched, never an executable or its entitlements.\nif [[ -d \"$contents/_CodeSignature\" ]]; then\n    /usr/bin/codesign --remove-signature \"$bundle\"\n    # codesign leaves the now-empty signature directory behind.\n    rmdir \"$contents/_CodeSignature\"\nfi\n[[ ! -d \"$contents/_CodeSignature\" ]] || {\n    echo \"error: Resource bundle still carries an independent signature\" >&2; exit 1;\n}\n";
+		};
+		9987DC5227EB03597BCB86AE /* Seal package resources with enclosing product */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Seal package resources with enclosing product";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\n# WHY: Xcode 27 archives SwiftPM's data bundle with Apple Development, but an\n# App Store export can leave that signature intact while re-signing the enclosing\n# app with Apple Distribution. This caused ITMS-90284 in all four Mac products.\n# A team-ID check or codesign --verify alone misses this: both certificates can\n# belong to the same team, and each signature can be individually valid.\n#\n# Run after SwiftPM copies resources, BEFORE Xcode signs the enclosing product.\n# Codeless bundles at the resource location (Contents/Resources on Mac, the flat\n# product directory on iOS) are sealed by that product's signature:\n# https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle\n# Removing this data-only signature does not leave the data unprotected: changing\n# its bytes after product signing invalidates the enclosing signature.\n#\n# Only modify the target's copied bundle: SwiftPM's shared product may still be\n# used by concurrent builds. If this bundle gains code, its signing needs review;\n# never extend signature removal to executable bundles.\n#\n# project.yml is the source of the eight target phases; XcodeGen embeds this file\n# into project.pbxproj. Regenerate the committed project after changing this file\n# so Xcode Organizer, xcodebuild and CI all execute the same policy.\nbundle=\"${TARGET_BUILD_DIR:?}/${UNLOCALIZED_RESOURCES_FOLDER_PATH:?}/ArchiveBoxCore_ArchiveBoxCore.bundle\"\ncontents=\"$bundle\"\nresources=\"$bundle\"\nif [[ -d \"$bundle/Contents\" ]]; then\n    contents=\"$bundle/Contents\"\n    resources=\"$contents/Resources\"\nfi\nplist=\"$contents/Info.plist\"\n[[ -f \"$plist\" && -f \"$resources/public_suffix_list.dat\" ]] || {\n    echo \"error: Missing ArchiveBoxCore resource bundle: $bundle\" >&2; exit 1;\n}\nif /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"$plist\" >/dev/null 2>&1; then\n    echo \"error: ArchiveBoxCore resources now contain an executable; review their signing policy\" >&2\n    exit 1\nfi\n# Only the known data bundle is touched, never an executable or its entitlements.\nif [[ -d \"$contents/_CodeSignature\" ]]; then\n    /usr/bin/codesign --remove-signature \"$bundle\"\n    # codesign leaves the now-empty signature directory behind.\n    rmdir \"$contents/_CodeSignature\"\nfi\n[[ ! -d \"$contents/_CodeSignature\" ]] || {\n    echo \"error: Resource bundle still carries an independent signature\" >&2; exit 1;\n}\n";
+		};
+		C0EC00344AD5E4E98A029A90 /* Seal package resources with enclosing product */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Seal package resources with enclosing product";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\nset -euo pipefail\n# WHY: Xcode 27 archives SwiftPM's data bundle with Apple Development, but an\n# App Store export can leave that signature intact while re-signing the enclosing\n# app with Apple Distribution. This caused ITMS-90284 in all four Mac products.\n# A team-ID check or codesign --verify alone misses this: both certificates can\n# belong to the same team, and each signature can be individually valid.\n#\n# Run after SwiftPM copies resources, BEFORE Xcode signs the enclosing product.\n# Codeless bundles at the resource location (Contents/Resources on Mac, the flat\n# product directory on iOS) are sealed by that product's signature:\n# https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle\n# Removing this data-only signature does not leave the data unprotected: changing\n# its bytes after product signing invalidates the enclosing signature.\n#\n# Only modify the target's copied bundle: SwiftPM's shared product may still be\n# used by concurrent builds. If this bundle gains code, its signing needs review;\n# never extend signature removal to executable bundles.\n#\n# project.yml is the source of the eight target phases; XcodeGen embeds this file\n# into project.pbxproj. Regenerate the committed project after changing this file\n# so Xcode Organizer, xcodebuild and CI all execute the same policy.\nbundle=\"${TARGET_BUILD_DIR:?}/${UNLOCALIZED_RESOURCES_FOLDER_PATH:?}/ArchiveBoxCore_ArchiveBoxCore.bundle\"\ncontents=\"$bundle\"\nresources=\"$bundle\"\nif [[ -d \"$bundle/Contents\" ]]; then\n    contents=\"$bundle/Contents\"\n    resources=\"$contents/Resources\"\nfi\nplist=\"$contents/Info.plist\"\n[[ -f \"$plist\" && -f \"$resources/public_suffix_list.dat\" ]] || {\n    echo \"error: Missing ArchiveBoxCore resource bundle: $bundle\" >&2; exit 1;\n}\nif /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"$plist\" >/dev/null 2>&1; then\n    echo \"error: ArchiveBoxCore resources now contain an executable; review their signing policy\" >&2\n    exit 1\nfi\n# Only the known data bundle is touched, never an executable or its entitlements.\nif [[ -d \"$contents/_CodeSignature\" ]]; then\n    /usr/bin/codesign --remove-signature \"$bundle\"\n    # codesign leaves the now-empty signature directory behind.\n    rmdir \"$contents/_CodeSignature\"\nfi\n[[ ! -d \"$contents/_CodeSignature\" ]] || {\n    echo \"error: Resource bundle still carries an independent signature\" >&2; exit 1;\n}\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		34830900E512D9084BFB1555 /* Sources */ = {
@@ -1086,6 +1265,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/ArchiveBox.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1137,6 +1317,7 @@
 				CODE_SIGN_ENTITLEMENTS = MacShareExtension/ArchiveBoxMacShare.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = MacShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1156,6 +1337,7 @@
 				CODE_SIGN_ENTITLEMENTS = MacApp/ArchiveBoxMac.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = MacApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1172,6 +1354,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ArchiveBoxShare.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1192,6 +1375,7 @@
 				CODE_SIGN_ENTITLEMENTS = MacApp/ArchiveBoxDirect.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = MacApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1209,6 +1393,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = SafariWebExtension/ArchiveBoxSafari.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "SafariWebExtension/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1243,6 +1428,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "Widgets/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1263,6 +1449,7 @@
 				CODE_SIGN_ENTITLEMENTS = SafariWebExtension/ArchiveBoxMacSafari.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "SafariWebExtension/Info-macOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1282,6 +1469,7 @@
 				CODE_SIGN_ENTITLEMENTS = MacApp/ArchiveBoxMac.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = MacApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1300,6 +1488,7 @@
 				CODE_SIGN_ENTITLEMENTS = Widgets/ArchiveBoxMacWidgets.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "Widgets/Info-macOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1319,6 +1508,7 @@
 				CODE_SIGN_ENTITLEMENTS = MacShareExtension/ArchiveBoxMacShare.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = MacShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1335,6 +1525,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "Widgets/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1447,6 +1638,7 @@
 				CODE_SIGN_ENTITLEMENTS = Widgets/ArchiveBoxMacWidgets.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "Widgets/Info-macOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1463,6 +1655,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "Widgets/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1483,6 +1676,7 @@
 				CODE_SIGN_ENTITLEMENTS = MacShareExtension/ArchiveBoxMacShare.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = MacShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1502,6 +1696,7 @@
 				CODE_SIGN_ENTITLEMENTS = SafariWebExtension/ArchiveBoxMacSafari.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "SafariWebExtension/Info-macOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1555,6 +1750,7 @@
 				CODE_SIGN_ENTITLEMENTS = Widgets/ArchiveBoxMacWidgets.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "Widgets/Info-macOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1590,6 +1786,7 @@
 				CODE_SIGN_ENTITLEMENTS = MacShareExtension/ArchiveBoxMacShare.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = MacShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1624,6 +1821,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ArchiveBoxShare.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1661,6 +1859,7 @@
 				CODE_SIGN_ENTITLEMENTS = Widgets/ArchiveBoxMacWidgets.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "Widgets/Info-macOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1678,6 +1877,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = SafariWebExtension/ArchiveBoxSafari.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "SafariWebExtension/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1696,6 +1896,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ArchiveBoxShare.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1763,6 +1964,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "Widgets/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1783,6 +1985,7 @@
 				CODE_SIGN_ENTITLEMENTS = SafariWebExtension/ArchiveBoxMacSafari.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "SafariWebExtension/Info-macOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1962,6 +2165,7 @@
 				CODE_SIGN_ENTITLEMENTS = MacApp/ArchiveBoxDirect.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = MacApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1996,6 +2200,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = SafariWebExtension/ArchiveBoxSafari.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "SafariWebExtension/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2014,6 +2219,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ArchiveBoxShare.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2033,6 +2239,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/ArchiveBox.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2049,6 +2256,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = SafariWebExtension/ArchiveBoxSafari.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "SafariWebExtension/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2154,6 +2362,7 @@
 				CODE_SIGN_ENTITLEMENTS = SafariWebExtension/ArchiveBoxMacSafari.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = "SafariWebExtension/Info-macOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2188,6 +2397,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/ArchiveBox.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2205,6 +2415,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/ArchiveBox.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

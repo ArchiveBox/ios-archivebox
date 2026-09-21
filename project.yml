@@ -39,6 +39,8 @@ targets:
         buildPhase: resources
     settings:
       base:
+        # The phase normalizes the copied SwiftPM resource before product signing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - package: ArchiveBoxCore
@@ -75,6 +77,11 @@ targets:
       path: App/ArchiveBox.entitlements
       properties:
         keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+    postBuildScripts:
+      - name: Seal package resources with enclosing product
+        path: scripts/seal-package-resources.sh
+        basedOnDependencyAnalysis: false
+
   ArchiveBoxShare:
     type: app-extension
     platform: iOS
@@ -86,6 +93,8 @@ targets:
       - package: ArchiveBoxCore
     settings:
       base:
+        # The phase normalizes the copied SwiftPM resource before product signing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Share
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
@@ -108,6 +117,11 @@ targets:
       path: ShareExtension/ArchiveBoxShare.entitlements
       properties:
         keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+    postBuildScripts:
+      - name: Seal package resources with enclosing product
+        path: scripts/seal-package-resources.sh
+        basedOnDependencyAnalysis: false
+
   ArchiveBoxUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -134,6 +148,8 @@ targets:
       - target: ArchiveBoxMacWidgets
     settings:
       base:
+        # The phase normalizes the copied SwiftPM resource before product signing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_NAME: ArchiveBox
         PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox
         CODE_SIGN_ENTITLEMENTS: MacApp/ArchiveBoxMac.entitlements
@@ -168,6 +184,11 @@ targets:
         NSLocalNetworkUsageDescription: Find ArchiveBox servers nearby and connect to your archive.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
+    postBuildScripts:
+      - name: Seal package resources with enclosing product
+        path: scripts/seal-package-resources.sh
+        basedOnDependencyAnalysis: false
+
   ArchiveBoxMacShare:
     type: app-extension
     platform: macOS
@@ -181,6 +202,8 @@ targets:
       - package: ArchiveBoxCore
     settings:
       base:
+        # The phase normalizes the copied SwiftPM resource before product signing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Share
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
@@ -206,6 +229,11 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
         keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+    postBuildScripts:
+      - name: Seal package resources with enclosing product
+        path: scripts/seal-package-resources.sh
+        basedOnDependencyAnalysis: false
+
   ArchiveBoxSafari:
     type: app-extension
     platform: iOS
@@ -234,6 +262,8 @@ targets:
       - package: ArchiveBoxCore
     settings:
       base:
+        # The phase normalizes the copied SwiftPM resource before product signing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Safari
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
@@ -250,6 +280,11 @@ targets:
       path: SafariWebExtension/ArchiveBoxSafari.entitlements
       properties:
         keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+    postBuildScripts:
+      - name: Seal package resources with enclosing product
+        path: scripts/seal-package-resources.sh
+        basedOnDependencyAnalysis: false
+
   ArchiveBoxMacSafari:
     type: app-extension
     platform: macOS
@@ -258,6 +293,8 @@ targets:
       - package: ArchiveBoxCore
     settings:
       base:
+        # The phase normalizes the copied SwiftPM resource before product signing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Safari
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
@@ -271,6 +308,11 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
         keychain-access-groups: ['$(ARCHIVEBOX_KEYCHAIN_GROUP)']
+    postBuildScripts:
+      - name: Seal package resources with enclosing product
+        path: scripts/seal-package-resources.sh
+        basedOnDependencyAnalysis: false
+
   ArchiveBoxWidgets:
     type: app-extension
     platform: iOS
@@ -279,6 +321,8 @@ targets:
       - package: ArchiveBoxCore
     settings:
       base:
+        # The phase normalizes the copied SwiftPM resource before product signing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Widgets
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
@@ -288,6 +332,11 @@ targets:
         CFBundleDisplayName: ArchiveBox
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    postBuildScripts:
+      - name: Seal package resources with enclosing product
+        path: scripts/seal-package-resources.sh
+        basedOnDependencyAnalysis: false
+
   ArchiveBoxMacWidgets:
     type: app-extension
     platform: macOS
@@ -296,6 +345,8 @@ targets:
       - package: ArchiveBoxCore
     settings:
       base:
+        # The phase normalizes the copied SwiftPM resource before product signing.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: io.archivebox.ArchiveBox.Widgets
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
@@ -310,6 +361,11 @@ targets:
       path: Widgets/ArchiveBoxMacWidgets.entitlements
       properties:
         com.apple.security.app-sandbox: true
+    postBuildScripts:
+      - name: Seal package resources with enclosing product
+        path: scripts/seal-package-resources.sh
+        basedOnDependencyAnalysis: false
+
   ArchiveBoxScreenshots:
     type: bundle.ui-testing
     platform: iOS

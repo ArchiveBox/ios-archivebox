@@ -2,6 +2,9 @@ import { readFileSync, appendFileSync } from 'node:fs';
 import { createPrivateKey, sign } from 'node:crypto';
 import { setTimeout } from 'node:timers/promises';
 
+// Signing is complete before this runs. Beta groups control who can test the
+// distribution-signed build; betaAppReviewSubmissions is TestFlight review,
+// not public App Store submission (which can use the same uploaded build).
 const env = process.env;
 const key = createPrivateKey(readFileSync(env.ASC_KEY_PATH));
 const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -28,6 +31,11 @@ if (publicGroup && (publicGroup.attributes.isInternalGroup || !publicGroup.attri
   throw new Error('External group must belong to this app and have its public link enabled.');
 }
 const pending = new Set(env.RELEASE_PLATFORM === 'both' ? ['IOS', 'MAC_OS'] : [env.RELEASE_PLATFORM === 'iOS' ? 'IOS' : 'MAC_OS']);
+// Xcode/altool reporting upload success only means Apple received the package.
+// Require the exact marketing version + build + platform to process as VALID;
+// iOS acceptance must never conceal a rejected Mac delivery. Some rejected
+// deliveries never enter this builds endpoint, so timeout means investigate
+// the App Store Connect delivery/email, not automatically upload another build.
 const deadline = Date.now() + 60 * 60 * 1000;
 while (pending.size && Date.now() < deadline) {
   const query = new URLSearchParams({ 'filter[app]': env.ASC_APP_ID, 'filter[version]': env.RELEASE_BUILD, include: 'preReleaseVersion', limit: '20' });

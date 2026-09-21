@@ -504,7 +504,9 @@ final class ArchiveBoxUITests: XCTestCase {
         openScreen("Connection Settings", app: app)
         XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20), app.debugDescription)
         openScreen("Snapshots", app: app)
-        let field = app.webViews.textFields.firstMatch
+        // Setup dialogs can also contain text fields. Scope this to the
+        // search landmark so setup cannot masquerade as a loaded archive.
+        let field = app.webViews.otherElements["Search Snapshots, search"].textFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 20), app.debugDescription)
         let initialValue = field.value as? String
         field.tap()
@@ -523,6 +525,7 @@ final class ArchiveBoxUITests: XCTestCase {
         openScreen("Add URLs", app: app)
         openScreen("Snapshots", app: app)
         XCTAssertEqual(field.value as? String, "after-reset")
+        attach("Authenticated snapshots preserve navigation state", app: app)
     }
 
     func testWebviewsAuthenticateAfterRelaunch() throws {

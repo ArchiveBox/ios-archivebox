@@ -35,6 +35,12 @@ import ArchiveBoxCore
                 }
             }
         ]
+        // Present the document as soon as WebKit starts rendering it. Archived
+        // subframes may keep loading long after the main page is usable.
+        routing.didCommit = { [weak self] page in
+            guard page.url?.scheme != "about" else { return }
+            self?.isLoading = false
+        }
         routing.didFail = { [weak self] error in
             self?.isLoading = false
             self?.errorMessage = error.localizedDescription

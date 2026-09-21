@@ -8,7 +8,7 @@ permissions:
   contents: read
 env:
   # Pin the real server so app captures are reproducible and record both revisions.
-  BACKEND_REVISION: 9f6535006ab4df9849e0a7dab0a99eea9d745ebd
+  BACKEND_REVISION: dev
 jobs:
   build-macos:
     concurrency:
@@ -110,7 +110,9 @@ jobs:
           python-version: '3.13'
       - name: Install the real ArchiveBox server
         if: matrix.platform != 'server'
-        run: uv sync --frozen --project backend
+        run: |
+          echo "BACKEND_REVISION=$(git -C backend rev-parse HEAD)" >> "$GITHUB_ENV"
+          uv sync --frozen --project backend
       - name: Populate and start a disposable archive
         if: matrix.platform != 'server'
         run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"

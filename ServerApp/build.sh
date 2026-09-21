@@ -64,7 +64,6 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>ArchiveBoxServer</string>
 <key>CFBundleIconFile</key><string>ArchiveBox.icns</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>SUFeedURL</key><string>https://github.com/ArchiveBox/ios-archivebox/releases/download/server-updates/appcast.xml</string>
 <key>SUEnableAutomaticChecks</key><false/>

@@ -33,13 +33,15 @@ if (process.argv[2] === 'prepare') {
   if(git('rev-parse','origin/main') !== source) { output({ready:false, reason:'Superseded by a newer main push'}); process.exit(0); }
   // Ignore documentation and tests alone, but include build scripts, assets and pinned payloads.
   const changed=git('diff-tree','--no-commit-id','--name-only','-r',...(previous ? [previous,source] : ['--root',source])).split('\n');
-  const significant=changed.some(p => /^(App\/|MacApp\/|MacLocalUI\/|ShareExtension\/|Widgets\/|MacShareExtension\/|SafariWebExtension\/|Sources\/|ServerApp\/(Sources\/|Package\.|build\.sh|prepare\.sh|bundle-metadata\.py)|scripts\/|\.github\/workflows\/(release|build|testflight)\.ya?ml$|ArchiveBox\.xcodeproj\/|project\.yml$|Package\.)/.test(p));
+  const significant=changed.some(p => /^(release\.json$|App\/|MacApp\/|MacLocalUI\/|ShareExtension\/|Widgets\/|MacShareExtension\/|SafariWebExtension\/|Sources\/|ServerApp\/(Sources\/|Package\.|build\.sh|prepare\.sh|bundle-metadata\.py)|scripts\/|\.github\/workflows\/(release|build|testflight)\.ya?ml$|ArchiveBox\.xcodeproj\/|project\.yml$|Package\.)/.test(p));
   if(!significant) { output({ready:false,reason:'No app or packaging changes'}); process.exit(0); }
   const state=JSON.parse(readFileSync('release.json'));
   const occupied=tags.filter(t=>versionPattern.test(t)).map(t=>t.slice(1).split('.'));
   let numbers=state.version.split('.');
   for(const v of occupied) if(compare(v,numbers)>0) numbers=v;
-  const version=`${numbers[0]}.${numbers[1]}.${Number(numbers[2])+1}`;
+  // An explicit, unreserved baseline is used exactly once before patch bumps resume.
+  const freshBaseline=!state.source && occupied.every(v=>compare(state.version.split('.'),v)>0);
+  const version=freshBaseline ? state.version : `${numbers[0]}.${numbers[1]}.${Number(numbers[2])+1}`;
   const next={version,build:state.build+1,source};
   if(process.argv.includes('--dry-run')) { output({ready:true,...next}); process.exit(0); }
   writeFileSync('release.json',JSON.stringify(next,null,2)+'\n');

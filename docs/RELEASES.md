@@ -11,8 +11,10 @@ GitHub's built-in token, so they do not recursively trigger releases.
 App sources, assets, project/package files, pinned runtime downloads, and packaging
 scripts/workflows count as significant changes. Documentation or tests alone do
 not. Changes are compared against the last published app release, so skipped
-commits remain in the next changelog. Bump the major/minor version in `release.json`
-when needed; CI allocates the next patch. Run the workflow manually to retry.
+commits remain in the next changelog. To start a new release line, set the exact
+version in `release.json` and remove its `source` field, retaining the build counter.
+CI uses that baseline when it is newer than every existing release tag, then resumes
+independent patch bumps. Run the workflow manually to retry.
 
 The workflow tests shared Swift code, prepares the pinned WXT Safari extension,
 downloads the pinned server payload (cached by preparation script hash), builds

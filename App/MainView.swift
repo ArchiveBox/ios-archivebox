@@ -250,7 +250,6 @@ struct MainView: View {
                             Text(settings.displayedBaseURL?.host() ?? "Choose server")
                                 .lineLimit(1).truncationMode(.middle)
                             Spacer()
-                            Image(systemName: "chevron.down").imageScale(.small)
                         }
                     }
                     .accessibilityIdentifier("sidebar.serverSwitcher")

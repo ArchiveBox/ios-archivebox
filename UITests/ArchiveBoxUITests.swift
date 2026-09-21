@@ -281,20 +281,41 @@ final class ArchiveBoxUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         skipIntroductionIfNeeded(app)
+        openScreen("Connection Settings", app: app)
+        // Start with no saved key so an earlier test cannot make persistence
+        // appear to work. Reset only this disposable simulator through its UI.
+        let reset = app.buttons["setup.reset"]
+        for _ in 0..<5 where !reset.isHittable { app.swipeUp() }
+        XCTAssertTrue(reset.isHittable, app.debugDescription)
+        reset.tap()
+        app.buttons["Reset setup"].tap()
+        XCTAssertTrue(app.buttons["setup.skip"].waitForExistence(timeout: 5))
+        app.buttons["setup.skip"].tap()
         let field = app.textFields["serverURL"]
         XCTAssertTrue(field.waitForExistence(timeout: 10))
+        XCTAssertEqual(field.value as? String, field.placeholderValue)
         replace(field, with: server)
-        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20))
+        XCTAssertEqual(field.value as? String, server)
+        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20), app.debugDescription)
         replace(app.secureTextFields["apiKey"], with: token)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         // Never tap Save: verification itself must durably store the key.
         app.terminate()
         app.launch()
         skipIntroductionIfNeeded(app)
+        // Saved connections launch into the collection/sidebar. Inspect the key
+        // through normal navigation instead of assuming Settings is still open.
+        openScreen("Connection Settings", app: app)
         XCTAssertTrue(app.secureTextFields["apiKey"].waitForExistence(timeout: 10))
         let restored = app.secureTextFields["apiKey"].value as? String ?? ""
         XCTAssertFalse(restored.isEmpty || restored == "••••••••••••••••")
-        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
+        // Remembered/discovered servers expand the form above the key. Reveal
+        // its status row so SwiftUI's lazy Form creates the element we assert.
+        let verified = app.staticTexts["API key verified."]
+        for _ in 0..<8 where !verified.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(verified.waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertTrue(verified.isHittable, app.debugDescription)
+        attach("Verified connection after relaunch", app: app)
     }
 
     func testAutomaticConnectionAndScreens() throws {

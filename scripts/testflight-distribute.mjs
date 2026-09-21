@@ -36,6 +36,7 @@ const pending = new Set(env.RELEASE_PLATFORM === 'both' ? ['IOS', 'MAC_OS'] : [e
 // iOS acceptance must never conceal a rejected Mac delivery. Some rejected
 // deliveries never enter this builds endpoint, so timeout means investigate
 // the App Store Connect delivery/email, not automatically upload another build.
+const publicErrors = [];
 const deadline = Date.now() + 60 * 60 * 1000;
 while (pending.size && Date.now() < deadline) {
   const query = new URLSearchParams({ 'filter[app]': env.ASC_APP_ID, 'filter[version]': env.RELEASE_BUILD, include: 'preReleaseVersion', limit: '20' });
@@ -65,22 +66,32 @@ while (pending.size && Date.now() < deadline) {
     console.log(message);
     if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `${message}\n\n`);
     if (publicGroup) {
-      const localizations = (await api(`builds/${build.id}/betaBuildLocalizations`)).data;
-      if (!localizations.some(item => item.attributes.locale === 'en-US')) {
-        await api('betaBuildLocalizations', 'POST', { data: { type: 'betaBuildLocalizations', attributes: { locale: 'en-US', whatsNew: `ArchiveBox ${env.RELEASE_VERSION}: test server configuration, embedded archive browsing, share-sheet URL saving and Safari extension integration. Report issues at https://github.com/ArchiveBox/ios-archivebox/issues` }, relationships: { build: { data: { type: 'builds', id: build.id } } } } });
+      // External review quotas must not prevent the other platform from reaching
+      // VALID + verified internal assignment. Still fail after checking both so
+      // an incomplete public release can never appear successful.
+      try {
+        const localizations = (await api(`builds/${build.id}/betaBuildLocalizations`)).data;
+        if (!localizations.some(item => item.attributes.locale === 'en-US')) {
+          await api('betaBuildLocalizations', 'POST', { data: { type: 'betaBuildLocalizations', attributes: { locale: 'en-US', whatsNew: `ArchiveBox ${env.RELEASE_VERSION}: test server configuration, embedded archive browsing, share-sheet URL saving and Safari extension integration. Report issues at https://github.com/ArchiveBox/ios-archivebox/issues` }, relationships: { build: { data: { type: 'builds', id: build.id } } } } });
+        }
+        await api(`betaGroups/${publicGroup.id}/relationships/builds`, 'POST', { data: [{ type: 'builds', id: build.id }] });
+        const detail = (await api(`builds/${build.id}/buildBetaDetail`)).data;
+        await api(`buildBetaDetails/${detail.id}`, 'PATCH', { data: { type: 'buildBetaDetails', id: detail.id, attributes: { autoNotifyEnabled: true } } });
+        if (detail.attributes.externalBuildState === 'READY_FOR_BETA_SUBMISSION') {
+          await api('betaAppReviewSubmissions', 'POST', { data: { type: 'betaAppReviewSubmissions', relationships: { build: { data: { type: 'builds', id: build.id } } } } });
+        } else if (!['WAITING_FOR_BETA_REVIEW', 'IN_BETA_REVIEW', 'IN_BETA_TESTING', 'BETA_APPROVED'].includes(detail.attributes.externalBuildState)) {
+          throw new Error(`External beta testing requires attention: ${detail.attributes.externalBuildState}`);
+        }
+        const state = (await api(`builds/${build.id}/buildBetaDetail`)).data.attributes.externalBuildState;
+        const external = `${version.platform} external TestFlight: ${state}. Invitation: ${publicGroup.attributes.publicLink}`;
+        console.log(external);
+        if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `${external}\n\n`);
+      } catch (error) {
+        const message = `${version.platform} external TestFlight: ${error.message}`;
+        console.error(message);
+        publicErrors.push(new Error(message, { cause: error }));
+        if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `${message}\n\n`);
       }
-      await api(`betaGroups/${publicGroup.id}/relationships/builds`, 'POST', { data: [{ type: 'builds', id: build.id }] });
-      const detail = (await api(`builds/${build.id}/buildBetaDetail`)).data;
-      await api(`buildBetaDetails/${detail.id}`, 'PATCH', { data: { type: 'buildBetaDetails', id: detail.id, attributes: { autoNotifyEnabled: true } } });
-      if (detail.attributes.externalBuildState === 'READY_FOR_BETA_SUBMISSION') {
-        await api('betaAppReviewSubmissions', 'POST', { data: { type: 'betaAppReviewSubmissions', relationships: { build: { data: { type: 'builds', id: build.id } } } } });
-      } else if (!['WAITING_FOR_BETA_REVIEW', 'IN_BETA_REVIEW', 'IN_BETA_TESTING', 'BETA_APPROVED'].includes(detail.attributes.externalBuildState)) {
-        throw new Error(`External beta testing requires attention: ${detail.attributes.externalBuildState}`);
-      }
-      const state = (await api(`builds/${build.id}/buildBetaDetail`)).data.attributes.externalBuildState;
-      const external = `${version.platform} external TestFlight: ${state}. Invitation: ${publicGroup.attributes.publicLink}`;
-      console.log(external);
-      if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `${external}\n\n`);
     }
     pending.delete(version.platform);
   }
@@ -90,3 +101,5 @@ while (pending.size && Date.now() < deadline) {
   }
 }
 if (pending.size) throw new Error(`Apple processing did not finish within one hour: ${[...pending].join(', ')}. Check App Store Connect before uploading again.`);
+
+if (publicErrors.length) throw new AggregateError(publicErrors, "Internal assignment completed; external TestFlight distribution requires attention. Reuse these uploaded builds.");

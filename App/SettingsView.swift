@@ -49,7 +49,7 @@ final class SettingsModel {
             for saved in forgotten {
                 UserDefaults.standard.removeObject(forKey: "share.recentTags." + saved.id)
             }
-            rememberedServers = Array(registry.servers.prefix(3))
+            rememberedServers = registry.servers
             if current { serverChanged(); serverText = "" }
             ArchiveSystemIndex.connectionChanged()
         } catch { errorMessage = error.localizedDescription }
@@ -237,7 +237,7 @@ final class SettingsModel {
         didLoad = true
         do {
             let registry = try AppEnvironment.store.load()
-            rememberedServers = Array(registry.servers.prefix(3))
+            rememberedServers = registry.servers
             let config = registry.active_server
             #if os(macOS)
             if let config {
@@ -376,14 +376,12 @@ final class SettingsModel {
         registry.upsert(configuration)
         registry.servers.removeAll { $0.id == configuration.id }
         registry.servers.insert(configuration, at: 0)
-        // The recent-server menu displays three entries; it must not evict
-        // configured destinations or change defaults during credential edits.
         if selects_destination {
             registry.active_server_id = configuration.id
             registry.default_server_ids = [configuration.id]
         }
         try AppEnvironment.store.save(registry)
-        rememberedServers = Array(registry.servers.prefix(3))
+        rememberedServers = registry.servers
         server_id = configuration.id
         ArchiveSystemIndex.connectionChanged()
     }

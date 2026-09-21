@@ -7,7 +7,7 @@ trap 'rm -rf "$stage_dir"' EXIT
 
 # Stage an explicit public asset list: building from the repository root would
 # copy native builds, signing artifacts, and the multi-GB server payload to Pages.
-cp "$site_dir/CNAME" "$site_dir/_config.yml" "$site_dir/index.html" "$stage_dir/"
+cp "$site_dir/CNAME" "$site_dir/_config.yml" "$site_dir/index.html" "$site_dir/robots.txt" "$site_dir/sitemap.xml" "$stage_dir/"
 if [ -f "$site_dir/language.js" ]; then
     cp "$site_dir/language.js" "$stage_dir/language.js"
 fi

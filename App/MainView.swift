@@ -473,6 +473,7 @@ private struct SidebarSearchField: View {
     @State private var text = ""
     @State private var mode = ""
     @FocusState private var focused: Bool
+    @State private var focusRequest: UUID?
 
     var body: some View {
         HStack(spacing: 6) {
@@ -490,6 +491,12 @@ private struct SidebarSearchField: View {
             .menuStyle(.borderlessButton).fixedSize()
             .accessibilityLabel("Search mode")
             .accessibilityIdentifier("sidebar.searchMode")
+            #if os(macOS)
+            SidebarSearchInput(text: $text, focusRequest: focusRequest) {
+                submit(text.trimmingCharacters(in: .whitespacesAndNewlines), mode)
+            }
+            .accessibilityIdentifier("sidebar.searchField")
+            #else
             TextField("Search archive", text: $text)
                 .textFieldStyle(.plain)
                 .focused($focused)
@@ -499,10 +506,12 @@ private struct SidebarSearchField: View {
                     submit(text.trimmingCharacters(in: .whitespacesAndNewlines), mode)
                 }
                 .accessibilityIdentifier("sidebar.searchField")
+            #endif
             if !text.isEmpty {
                 Button {
                     text = ""
                     focused = true
+                    focusRequest = UUID()
                 } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
@@ -514,3 +523,55 @@ private struct SidebarSearchField: View {
         .onChange(of: query, initial: true) { _, value in text = value }
     }
 }
+
+#if os(macOS)
+// A native field avoids List treating SwiftUI's submit action as a row click.
+private final class SearchTextField: NSTextField {
+    override func accessibilityPerformPress() -> Bool {
+        window?.makeFirstResponder(self) ?? false
+    }
+}
+
+private struct SidebarSearchInput: NSViewRepresentable {
+    @Binding var text: String
+    let focusRequest: UUID?
+    let submit: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeNSView(context: Context) -> NSTextField {
+        let field = SearchTextField()
+        field.placeholderString = "Search archive"
+        field.isBordered = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.font = .preferredFont(forTextStyle: .body)
+        field.delegate = context.coordinator
+        field.setAccessibilityIdentifier("sidebar.searchField")
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return field
+    }
+    func updateNSView(_ field: NSTextField, context: Context) {
+        context.coordinator.parent = self
+        if field.stringValue != text { field.stringValue = text }
+        if context.coordinator.focusRequest != focusRequest {
+            context.coordinator.focusRequest = focusRequest
+            field.window?.makeFirstResponder(field)
+        }
+    }
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: SidebarSearchInput
+        var focusRequest: UUID?
+        init(_ parent: SidebarSearchInput) { self.parent = parent }
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field = notification.object as? NSTextField else { return }
+            parent.text = field.stringValue
+        }
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy command: Selector) -> Bool {
+            guard command == #selector(NSResponder.insertNewline(_:)) else { return false }
+            parent.text = textView.string
+            parent.submit()
+            return true
+        }
+    }
+}
+#endif

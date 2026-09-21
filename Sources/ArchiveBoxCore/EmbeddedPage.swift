@@ -111,6 +111,15 @@ import WebKit
                 `;
                 document.head.append(style);
             }
+            if (document.querySelector('.header-title-line')) {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .header-title-line .header-title-text { min-width:0; flex:1 1 0; }
+                    .header-title-line .favicon { flex-shrink:0; }
+                    .header-archivebox { white-space:nowrap; }
+                `;
+                document.head.append(style);
+            }
             // Keep all embedded-page presentation overrides in this main-frame script.
             // Activity has its own standalone layout above.
             const agent = document.querySelector('body.opencode-agent #content-main');

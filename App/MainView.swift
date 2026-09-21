@@ -328,8 +328,7 @@ struct MainView: View {
                                 server: settings.verifiedServer, token: settings.verifiedToken)
                             ServerWebView(url: url, title: screen.info.title, session: session,
                                           reloadID: screen == .admin ? settings.adminNavigationID : reloadIDs[screen])
-                                .id("\(screen.rawValue)-\(url)")
-                                .onAppear {
+                                .onChange(of: ObjectIdentifier(session), initial: true) {
                                     session.routing.openSnapshot = screen == .search ? { openSnapshot($0) } : nil
                                 }
                                 .task(id: session.isLoading) {

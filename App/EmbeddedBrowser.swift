@@ -60,6 +60,16 @@ import ArchiveBoxCore
         }
     }
 
+    func refresh() {
+        guard let current = page.url, ["http", "https"].contains(current.scheme) else {
+            reconnect()
+            return
+        }
+        destination = current
+        errorMessage = nil
+        page.reload()
+    }
+
     func reconnect() {
         if let destination { load(destination, requestID: requestID, force: true) }
     }
@@ -183,10 +193,19 @@ struct ServerWebView: View {
     let title: String
     let session: PageSession
     var reloadID: UUID? = nil
+    @State private var displayedSession: PageSession?
+
+    private struct LoadRequest: Equatable {
+        let session: ObjectIdentifier
+        let url: URL
+        let reloadID: UUID?
+    }
+
     var body: some View {
-        EmbeddedWebView(page: session.page)
+        EmbeddedWebView(page: (displayedSession ?? session).page)
+            .allowsHitTesting(displayedSession == nil || displayedSession === session)
             .overlay {
-                if session.isLoading && session.errorMessage == nil {
+                if displayedSession == nil && session.isLoading && session.errorMessage == nil {
                     ProgressView("Connecting…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(.background)
@@ -200,7 +219,7 @@ struct ServerWebView: View {
                     }.background(.background)
                 }
             }
-            .overlay(alignment: .bottom) {
+            .overlay(alignment: .top) {
                 if (session.isLoading || session.navigationLoading) && session.errorMessage == nil {
                     GeometryReader { geometry in
                         Color.red
@@ -217,7 +236,15 @@ struct ServerWebView: View {
             .ignoresSafeArea(.container, edges: .bottom)
             .navigationTitle(title)
             #endif
-            .task(id: reloadID) { session.load(url, requestID: reloadID) }
+            #if os(macOS)
+            .focusedSceneValue(\.visibleWebPage, displayedSession ?? session)
+            #endif
+            .onChange(of: session.isLoading ? nil : ObjectIdentifier(session), initial: true) {
+                if !session.isLoading && session.errorMessage == nil { displayedSession = session }
+            }
+            .task(id: LoadRequest(session: ObjectIdentifier(session), url: url, reloadID: reloadID)) {
+                session.load(url, requestID: reloadID)
+            }
     }
 
 }
@@ -226,13 +253,38 @@ struct ServerWebView: View {
 #if os(macOS)
 private struct EmbeddedWebView: NSViewRepresentable {
     let page: WKWebView
-    func makeNSView(context: Context) -> WKWebView { page }
-    func updateNSView(_ view: WKWebView, context: Context) {}
+    func makeNSView(context: Context) -> NSView { NSView() }
+    func updateNSView(_ view: NSView, context: Context) {
+        guard view.subviews.first !== page else { return }
+        view.subviews.forEach { $0.removeFromSuperview() }
+        page.frame = view.bounds
+        page.autoresizingMask = [.width, .height]
+        view.addSubview(page)
+    }
 }
 #else
 private struct EmbeddedWebView: UIViewRepresentable {
     let page: WKWebView
-    func makeUIView(context: Context) -> WKWebView { page }
-    func updateUIView(_ view: WKWebView, context: Context) {}
+    func makeUIView(context: Context) -> UIView { UIView() }
+    func updateUIView(_ view: UIView, context: Context) {
+        guard view.subviews.first !== page else { return }
+        view.subviews.forEach { $0.removeFromSuperview() }
+        page.frame = view.bounds
+        page.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(page)
+    }
+}
+#endif
+
+#if os(macOS)
+private struct VisibleWebPageKey: FocusedValueKey {
+    typealias Value = PageSession
+}
+
+extension FocusedValues {
+    var visibleWebPage: PageSession? {
+        get { self[VisibleWebPageKey.self] }
+        set { self[VisibleWebPageKey.self] = newValue }
+    }
 }
 #endif

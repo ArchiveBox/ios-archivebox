@@ -26,6 +26,9 @@ struct ArchiveBoxApp: App {
             CommandGroup(after: .textEditing) {
                 OpenArchiveSearch()
             }
+            CommandGroup(after: .toolbar) {
+                RefreshVisibleWebPage()
+            }
             CommandGroup(replacing: .appInfo) {
                 Button("About ArchiveBox") { AppInformation.showAbout() }
             }
@@ -47,6 +50,16 @@ struct ArchiveBoxApp: App {
 }
 
 #if os(macOS)
+private struct RefreshVisibleWebPage: View {
+    @FocusedValue(\.visibleWebPage) private var page
+
+    var body: some View {
+        Button("Reload Page") { page?.refresh() }
+            .keyboardShortcut("r", modifiers: .command)
+            .disabled(page == nil)
+    }
+}
+
 private struct OpenArchiveSearch: View {
     @Environment(\.openWindow) private var openWindow
 

@@ -8,6 +8,8 @@ import UIKit
 /// One boundary for the SwiftUI client and the companion's WKWebViews.
 @MainActor public final class BrowserNavigation: NSObject, WKNavigationDelegate, WKUIDelegate {
     public var baseURL: URL?
+    /// Exact admin origin returned by the authenticated session endpoint.
+    public var authenticatedOrigin: URL?
     public var didFinish: ((WKWebView) -> Void)?
     public var didFail: ((Error) -> Void)?
 
@@ -32,6 +34,8 @@ import UIKit
         guard isLink || targetIsMainFrame != false else { return false }
         guard !["about", "blob", "data", "javascript"].contains(url.scheme?.lowercased() ?? ""),
               !Self.belongsToServer(url, baseURL: baseURL) else { return false }
+        if let origin = authenticatedOrigin, url.scheme == origin.scheme,
+           url.host == origin.host, url.port == origin.port { return false }
         #if os(macOS)
         NSWorkspace.shared.open(url)
         #else

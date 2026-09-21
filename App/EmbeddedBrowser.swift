@@ -35,7 +35,8 @@ import ArchiveBoxCore
                 do {
                     try await self.owner.authenticate(force: true)
                     try Task.checkCancellation()
-                    page.load(URLRequest(url: destination))
+                    routing.authenticatedOrigin = owner.authentication.adminURL
+                    page.load(URLRequest(url: owner.authentication.authenticatedPageURL(destination)))
                 } catch { if !Task.isCancelled { self.isLoading = false; self.errorMessage = error.localizedDescription } }
             }
         }
@@ -72,7 +73,8 @@ import ArchiveBoxCore
                 // A superseded load may still finish awaiting the shared login.
                 // Stop it before it can cancel the newer navigation on this page.
                 try Task.checkCancellation()
-                page.load(URLRequest(url: url))
+                routing.authenticatedOrigin = owner.authentication.adminURL
+                page.load(URLRequest(url: owner.authentication.authenticatedPageURL(url)))
             }
             catch { if !Task.isCancelled { isLoading = false; errorMessage = error.localizedDescription } }
         }
@@ -165,7 +167,11 @@ struct ServerWebView: View {
     var body: some View {
         EmbeddedWebView(page: session.page)
             .overlay {
-                if let errorMessage = session.errorMessage {
+                if session.isLoading && session.errorMessage == nil {
+                    ProgressView("Connecting…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(.background)
+                } else if let errorMessage = session.errorMessage {
                     ContentUnavailableView {
                         Label("Couldn’t open \(title)", systemImage: "wifi.exclamationmark")
                     } description: {

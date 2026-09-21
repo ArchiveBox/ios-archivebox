@@ -5,6 +5,10 @@ import WebKit
 @MainActor @Observable
 final class SettingsModel {
     var rememberedServers: [ServerConfiguration] = []
+    var quickSwitchServers: [ServerConfiguration] {
+        rememberedServers.filter { !$0.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+    var switchingServer = false
 
     func useRememberedServer(_ configuration: ServerConfiguration) {
         do {
@@ -23,7 +27,14 @@ final class SettingsModel {
             persona = saved.persona ?? ""
             dismissSetupGuide()
             ArchiveSystemIndex.connectionChanged()
-            scheduleValidation()
+            switchingServer = true
+            busy = true
+            validation = Task {
+                defer { if !Task.isCancelled { switchingServer = false } }
+                await testServer()
+                guard !Task.isCancelled, verifiedServer != nil, !tokenText.isEmpty else { return }
+                await testToken()
+            }
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -250,6 +261,7 @@ final class SettingsModel {
     }
 
     func serverChanged() {
+        switchingServer = false
         serverReachable = false
         sidebarStatus = nil
         validation?.cancel(); busy = false; serverError = nil; tokenError = nil
@@ -364,12 +376,13 @@ final class SettingsModel {
         registry.upsert(configuration)
         registry.servers.removeAll { $0.id == configuration.id }
         registry.servers.insert(configuration, at: 0)
-        let expired = Array(registry.servers.dropFirst(3))
-        for saved in expired { registry.remove(saved.id) }
-        registry.active_server_id = configuration.id
-        if selects_destination { registry.default_server_ids = [configuration.id] }
+        // The recent-server menu displays three entries; it must not evict
+        // configured destinations or change defaults during credential edits.
+        if selects_destination {
+            registry.active_server_id = configuration.id
+            registry.default_server_ids = [configuration.id]
+        }
         try AppEnvironment.store.save(registry)
-        for saved in expired { UserDefaults.standard.removeObject(forKey: "share.recentTags." + saved.id) }
         rememberedServers = Array(registry.servers.prefix(3))
         server_id = configuration.id
         ArchiveSystemIndex.connectionChanged()
@@ -587,11 +600,18 @@ struct SettingsView: View {
                         focusedField = nil
                         model.useRememberedServer(saved)
                     } label: {
-                        Label {
-                            Text(saved.server.absoluteString)
-                                .font(.subheadline.monospaced()).lineLimit(2)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        } icon: { Image(systemName: "clock.arrow.circlepath") }
+                        HStack {
+                            Label {
+                                Text(saved.server.absoluteString)
+                                    .font(.subheadline.monospaced()).lineLimit(2)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } icon: { Image(systemName: "clock.arrow.circlepath") }
+                            if !saved.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.title3).foregroundStyle(.green)
+                                    .accessibilityLabel("Saved API key; ready to switch")
+                            }
+                        }
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("history.server.\(saved.id)")

@@ -13,6 +13,16 @@ import WebKit
     private var generation = UUID()
 
     public init() {}
+    public var adminURL: URL? { session?.admin_url }
+
+    public func authenticatedPageURL(_ url: URL) -> URL {
+        guard let server = credentials?.server, let admin = session?.admin_url,
+              url.scheme == server.scheme, url.host == server.host, url.port == server.port,
+              url.path == "/add" || url.path == "/admin" || url.path.hasPrefix("/admin/"),
+              var result = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        result.scheme = admin.scheme; result.host = admin.host; result.port = admin.port
+        return result.url ?? url
+    }
 
     /// Only the configured control origin (or its exact admin sibling) may hand
     /// credentials to the app. The broader replay/navigation boundary is not enough.

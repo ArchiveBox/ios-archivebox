@@ -226,13 +226,35 @@ struct MainView: View {
         }
         .onChange(of: settings.verifiedServer) { old, new in
             if old != nil && old != new { openedPage = nil; searchQuery = "" }
-            if settings.verifiedServer == nil, let selection, !selection.isHelp, selection != .add { self.selection = .settings }
         }
     }
 
     private func mainNavigation(visibility: Binding<NavigationSplitViewVisibility>) -> some View {
         NavigationSplitView(columnVisibility: visibility, preferredCompactColumn: $compactColumn) {
             List {
+                if settings.quickSwitchServers.count > 1 {
+                    Menu {
+                        ForEach(settings.quickSwitchServers) { server in
+                            Button {
+                                guard server.id != settings.server_id else { return }
+                                settings.useRememberedServer(server)
+                            } label: {
+                                Label(server.server.absoluteString,
+                                      systemImage: server.id == settings.server_id ? "checkmark.circle.fill" : "server.rack")
+                            }
+                            .accessibilityIdentifier("sidebar.switchServer.\(server.id)")
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "server.rack")
+                            Text(settings.displayedBaseURL?.host() ?? "Choose server")
+                                .lineLimit(1).truncationMode(.middle)
+                            Spacer()
+                            Image(systemName: "chevron.down").imageScale(.small)
+                        }
+                    }
+                    .accessibilityIdentifier("sidebar.serverSwitcher")
+                }
                 rows([.add, .agent])
                 Section("Collection") { rows([.search, .snapshots, .crawls, .schedules, .results, .tags]) }
                 Section {
@@ -290,6 +312,23 @@ struct MainView: View {
             let screen = selection ?? .settings
             Group {
                 if screen == .settings { SettingsView(model: settings) }
+                else if !screen.isHelp && (settings.switchingServer || (settings.busy && !settings.tokenText.isEmpty && settings.verifiedToken == nil)) {
+                    ProgressView("Connecting to server…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityIdentifier("server.switching")
+                }
+                else if !screen.isHelp && !settings.tokenText.isEmpty && settings.verifiedToken == nil {
+                    ContentUnavailableView {
+                        Label("Couldn’t connect", systemImage: "network")
+                    } description: {
+                        Text(settings.tokenError ?? settings.serverError ?? "Checking your saved connection…")
+                    } actions: {
+                        if let saved = settings.rememberedServers.first(where: { $0.id == settings.server_id }) {
+                            Button("Reconnect") { settings.useRememberedServer(saved) }
+                                .disabled(settings.busy)
+                        }
+                    }
+                }
                 else if screen == .search {
                     ArchiveSearchView(settings: settings, initialQuery: searchQuery) { page in
                         if let route = ArchiveRoute(url: page.appURL) { archiveNavigation.open(route) }

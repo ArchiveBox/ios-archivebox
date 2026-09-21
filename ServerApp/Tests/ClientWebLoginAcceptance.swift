@@ -104,14 +104,31 @@ import WebKit
         // Exercise four real reachable origins, including key rejection, through
         // the same actions used by Connection Settings. No seeded history rows.
         let origins = [details.api, details.base, URL(string: "http://127.0.0.1:5797")!, URL(string: "http://localhost:5797")!]
+        var idsByOrigin: [URL: String] = [:]
         for origin in origins {
             settings.useConnectionLink(origin, apiKey: token)
             try await wait { !settings.busy && settings.verifiedToken == token && settings.verifiedServer == origin }
+            guard let saved = try AppEnvironment.store.load().servers.first(where: { $0.server == origin }) else {
+                throw ArchiveBoxError.message("A configured destination was not persisted: \(origin.absoluteString)")
+            }
+            idsByOrigin[origin] = saved.id
         }
         let recent = settings.rememberedServers
+        guard settings.quickSwitchServers == recent else { throw ArchiveBoxError.message("Verified connections missing from quick switching.") }
+        let registryAfterOrigins = try AppEnvironment.store.load()
+        let expectedOrigins = Set(original.servers.map(\.server)).union(origins)
+        let firstOrigin = registryAfterOrigins.servers.first { $0.server == origins[0] }
+        guard let latestOrigin = registryAfterOrigins.servers.first(where: { $0.server == origins[3] }) else {
+            throw ArchiveBoxError.message("The latest configured destination was not retained.")
+        }
         guard recent.map(\.server) == Array(origins.reversed().prefix(3)),
-              try AppEnvironment.store.load().servers.count == 3 else {
-            throw ArchiveBoxError.message("History did not persist the three most recent connections in order.")
+              registryAfterOrigins.servers.count == expectedOrigins.count,
+              Set(registryAfterOrigins.servers.map(\.server)) == expectedOrigins,
+              firstOrigin?.id == idsByOrigin[origins[0]],
+              firstOrigin?.token == token, firstOrigin?.persona == nil,
+              registryAfterOrigins.default_server_ids == [latestOrigin.id],
+              registryAfterOrigins.default_server_ids.allSatisfy({ id in registryAfterOrigins.servers.contains { $0.id == id } }) else {
+            throw ArchiveBoxError.message("History did not retain all configured destinations, preserve the older profile, and keep valid defaults while showing only three recent connections.")
         }
         settings.tokenChanged()
         settings.tokenText = "invalid-acceptance-key"
@@ -123,7 +140,44 @@ import WebKit
         restored.load()
         guard restored.rememberedServers == recent else { throw ArchiveBoxError.message("History did not survive a new settings model.") }
         restored.useRememberedServer(recent[2])
+        guard restored.switchingServer else { throw ArchiveBoxError.message("Switch did not enter its loading state.") }
         try await wait { !restored.busy && restored.verifiedServer == recent[2].server && restored.verifiedToken == token }
+        // Saved-key switching must load a real authenticated page. Expire the
+        // server-side session to exercise the normal login-redirect renewal too.
+        let browserPages = WebPages()
+        for saved in [recent[2], recent[1], recent[2]] {
+            print("Checking authenticated switch to \(saved.server.absoluteString)")
+            restored.useRememberedServer(saved)
+            try await wait { !restored.switchingServer && restored.verifiedToken == token }
+            let browser = browserPages.page(for: "crawls", baseURL: restored.displayedBaseURL,
+                                           server: restored.verifiedServer, token: restored.verifiedToken)
+            browser.load(saved.server.appending(path: "admin/crawls/crawl/"), requestID: UUID())
+            do { try await wait {
+                if let error = browser.errorMessage { throw ArchiveBoxError.message(error) }
+                guard !browser.isLoading else { return false }
+                return (try? await browser.page.evaluateJavaScript("document.querySelector('body.model-crawl.change-list') !== null && document.querySelector('input[name=password]') === null")) as? Bool == true
+            } } catch {
+                let body = (try? await browser.page.evaluateJavaScript("document.body.className")) as? String ?? "unavailable"
+                throw ArchiveBoxError.message("Switch failed at \(browser.page.url?.absoluteString ?? "no URL"), loading=\(browser.isLoading), body=\(body): \(error.localizedDescription)")
+            }
+        }
+        let expire = """
+        from django.contrib.sessions.models import Session
+        for session in Session.objects.all():
+            if session.get_decoded().get('_auth_user_id') == '\(userID)': session.delete()
+        """
+        _ = try runtime.command(["exec", runtime.name, "/app/bin/docker_entrypoint.sh", "archivebox", "manage", "shell", "-c", expire], logOutput: false)
+        let renewed = browserPages.page(for: "crawls", baseURL: restored.displayedBaseURL,
+                                       server: restored.verifiedServer, token: restored.verifiedToken)
+        renewed.load(recent[2].server.appending(path: "admin/crawls/crawl/"), requestID: UUID())
+        print("Checking expired-session renewal")
+        try await wait {
+            if let error = renewed.errorMessage { throw ArchiveBoxError.message(error) }
+            guard !renewed.isLoading else { return false }
+            return (try? await renewed.page.evaluateJavaScript("document.querySelector('body.model-crawl.change-list') !== null && document.querySelector('input[name=password]') === null")) as? Bool == true
+        }
+        await browserPages.authentication.clear()
+        print("PASS: saved-key switches render authenticated pages and expired server sessions renew without manual login")
         guard restored.serverText == recent[2].server.absoluteString, restored.tokenText == token,
               try AppEnvironment.store.load().active_server_id == recent[2].id else {
             throw ArchiveBoxError.message("Choosing history did not switch the active connection and fields.")
@@ -144,6 +198,12 @@ import WebKit
         restored.forgetServer(recent[0])
         guard restored.verifiedServer == recent[1].server, restored.verifiedToken == token else {
             throw ArchiveBoxError.message("Forgetting another server disconnected the current server.")
+        }
+        restored.useDiscoveredServer(recent[0].server)
+        try await wait { restored.verifiedServer == recent[0].server && !restored.busy }
+        guard restored.rememberedServers.contains(where: { $0.server == recent[0].server && $0.token.isEmpty }),
+              !restored.quickSwitchServers.contains(where: { $0.server == recent[0].server }) else {
+            throw ArchiveBoxError.message("Guest connection was offered for quick switching.")
         }
         restored.serverChanged()
         print("PASS: real history connections, three-entry limit, last valid key retention, reload, selection, and active/inactive forgetting")

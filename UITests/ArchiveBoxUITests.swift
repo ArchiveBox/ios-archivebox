@@ -368,10 +368,18 @@ final class ArchiveBoxUITests: XCTestCase {
         replace(key, with: token)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         app.buttons["saveConnection"].tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Ready to share.")).firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         openScreen("Add URLs", app: app)
         let picker = app.buttons["defaultPersona"]
-        app.swipeUp()
         XCTAssertTrue(picker.waitForExistence(timeout: 10), app.debugDescription)
+        // Start below the embedded form so the gesture scrolls the native
+        // share settings rather than the web page's independent viewport.
+        let content = app.scrollViews["add.content"]
+        for _ in 0..<10 where !picker.isHittable {
+            content.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.93)).press(forDuration: 0.05,
+                thenDragTo: content.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.3)))
+        }
+        XCTAssertTrue(picker.isHittable, app.debugDescription)
         picker.tap()
         app.buttons["AppleAcceptance"].tap()
         openScreen("Connection Settings", app: app)

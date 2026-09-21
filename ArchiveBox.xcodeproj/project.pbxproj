@@ -66,7 +66,6 @@
 		93551632034456AC4111E3A8 /* AddURLsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6FFAFC4E7B7DE68C6E3AA4D /* AddURLsView.swift */; };
 		9793CF1A2839EF57B726B829 /* ArchiveBoxMacWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E1143C29B7AABCCEF5C17C7 /* ArchiveBoxMacWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A08F56ECEDF3A9537E7E9FC4 /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC5B1EA1ECF83B6CA12949F /* ArchiveBoxCore */; };
-		A08F877BCAFF23B238664212 /* ArchiveSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5411488DB2DDEFDFC082776 /* ArchiveSearchView.swift */; };
 		A9471D3223421DB739C368C0 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481FA3FA69FE3C31387568BE /* AppEnvironment.swift */; };
 		AA1B3ACDCD90A253489C25B2 /* ArchiveBoxWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35B6669ED7428417CD5C1A1D /* ArchiveBoxWidgets.swift */; };
 		AAE22A7EE288D2B043F555A8 /* ArchiveBoxScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A981F29054642482740FEB /* ArchiveBoxScreenshotTests.swift */; };
@@ -79,7 +78,6 @@
 		C30245C01B779BBBD663B6AC /* chunks in Resources */ = {isa = PBXBuildFile; fileRef = 700EC0793913808E6B0A775D /* chunks */; };
 		C3F764B5593F2E050F022735 /* ArchiveBoxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D29C759A2A9C2D4EA55954D /* ArchiveBoxCore */; };
 		C762FEE56C423D2748B3D520 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = C3256103DC5A80A8AD540B97 /* assets */; };
-		C78077E47A6C80DBE58DEFFF /* ArchiveSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5411488DB2DDEFDFC082776 /* ArchiveSearchView.swift */; };
 		C841D6E66939503125206051 /* ArchiveNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6184D496D19E27837AB44683 /* ArchiveNavigation.swift */; };
 		CD23055FB0FEE64BC2236B6D /* EmbeddedBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */; };
 		CDBF48D4069574C7510D6A7B /* ArchiveBoxUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E9C25C037A0F204B0BDCF38 /* ArchiveBoxUITests.swift */; };
@@ -247,7 +245,6 @@
 		EE1005DDD66FE2FA58E7DCCE /* ArchiveBoxWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ArchiveBoxWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F17AFF5065DB2022281D7DA8 /* content-scripts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "content-scripts"; path = "SafariWebExtension/Resources/content-scripts"; sourceTree = SOURCE_ROOT; };
 		F39708A8B2046BAB1F3590B1 /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
-		F5411488DB2DDEFDFC082776 /* ArchiveSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveSearchView.swift; sourceTree = "<group>"; };
 		F6FFAFC4E7B7DE68C6E3AA4D /* AddURLsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddURLsView.swift; sourceTree = "<group>"; };
 		F8D4293A9356D86C9E8027ED /* UPSTREAM-LICENSE */ = {isa = PBXFileReference; path = "UPSTREAM-LICENSE"; sourceTree = "<group>"; };
 		FBB84723CF899A5CEA0BD4D7 /* ArchiveBoxUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ArchiveBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -421,7 +418,6 @@
 				45E3F6E6DF446194D62ABE87 /* ArchiveBoxApp.swift */,
 				C3574F105C81E815047CBE62 /* ArchiveBoxIntents.swift */,
 				6184D496D19E27837AB44683 /* ArchiveNavigation.swift */,
-				F5411488DB2DDEFDFC082776 /* ArchiveSearchView.swift */,
 				3058BE944FBEFB4C4CC17177 /* ArchiveSystemIntegration.swift */,
 				06F8051E8FD4E6F293429D02 /* Assets.xcassets */,
 				06E493F92EE01155DFC3CF82 /* EmbeddedBrowser.swift */,
@@ -914,7 +910,6 @@
 				B0FE976378BA828B33A4D0FA /* ArchiveBoxApp.swift in Sources */,
 				507DCB8A94438C772C795C58 /* ArchiveBoxIntents.swift in Sources */,
 				893820045E1778536B816E86 /* ArchiveNavigation.swift in Sources */,
-				A08F877BCAFF23B238664212 /* ArchiveSearchView.swift in Sources */,
 				6CFCDE158DE186B2184F952B /* ArchiveSystemIntegration.swift in Sources */,
 				CD23055FB0FEE64BC2236B6D /* EmbeddedBrowser.swift in Sources */,
 				70BE6D3D37E544D5520E512B /* MainView.swift in Sources */,
@@ -968,7 +963,6 @@
 				88DC73A38B41EB557E9C4BDC /* ArchiveBoxApp.swift in Sources */,
 				7326139F42B73B35EE9E0EDB /* ArchiveBoxIntents.swift in Sources */,
 				09C14DE092CD062FE0E5D567 /* ArchiveNavigation.swift in Sources */,
-				C78077E47A6C80DBE58DEFFF /* ArchiveSearchView.swift in Sources */,
 				709FBB0A0644ACD628A6EA7B /* ArchiveSystemIntegration.swift in Sources */,
 				EF3FB9C1948F2E787434F622 /* EmbeddedBrowser.swift in Sources */,
 				0E3C58B58371085727B8502F /* LocalServer.swift in Sources */,

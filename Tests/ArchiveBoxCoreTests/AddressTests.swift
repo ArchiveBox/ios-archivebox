@@ -127,3 +127,14 @@ import Testing
         #expect(try String(contentsOf: existing, encoding: .utf8) == "original")
     }
 }
+
+@Test func snapshotLinksRouteWithoutInterceptingSearchOrAssets() {
+    let id = "12345678-1234-1234-1234-123456789abc"
+    for path in ["/admin/core/snapshot/06a3926f0d9f7ded80009491decec155/change/", "/admin/core/snapshot/\(id)/change/", "/archive/1700000000/", "/alice/20260920/example.com/\(id)/", "/archive/1700000000/index.html", "/alice/20260920/example.com/\(id)/index.html"] {
+        #expect(BrowserNavigation.isSnapshotDetail(URL(string: "https://archive.example\(path)")!))
+    }
+    #expect(BrowserNavigation.isSnapshotDetail(URL(string: "https://snap-57c0933d353e.archive.example/")!))
+    for path in ["/admin/core/snapshot/?q=example", "/admin/core/snapshot/grid/", "/admin/core/snapshot/search-stream/", "/admin/core/snapshot/\(id)/delete/", "/archive/1700000000/favicon.ico", "/index.html"] {
+        #expect(!BrowserNavigation.isSnapshotDetail(URL(string: "https://archive.example\(path)")!))
+    }
+}

@@ -10,6 +10,7 @@ import UIKit
     public var baseURL: URL?
     /// Exact admin origin returned by the authenticated session endpoint.
     public var authenticatedOrigin: URL?
+    public var openSnapshot: ((URL) -> Void)?
     public var didFinish: ((WKWebView) -> Void)?
     public var didFail: ((Error) -> Void)?
 
@@ -51,7 +52,33 @@ import UIKit
                                   targetIsMainFrame: action.targetFrame?.isMainFrame) {
             decisionHandler(.cancel); return
         }
+        if action.navigationType == .linkActivated, action.targetFrame?.isMainFrame != false,
+           !action.shouldPerformDownload, let openSnapshot,
+           Self.isSnapshotDetail(url) {
+            openSnapshot(url)
+            decisionHandler(.cancel); return
+        }
         decisionHandler(action.shouldPerformDownload ? .download : .allow)
+    }
+
+    public nonisolated static func isSnapshotDetail(_ url: URL) -> Bool {
+        func isSnapshotID(_ value: Substring) -> Bool {
+            UUID(uuidString: String(value)) != nil ||
+                (value.count == 32 && value.allSatisfy { $0.isASCII && $0.isHexDigit })
+        }
+        let parts = url.path.split(separator: "/")
+        if parts.count == 5, parts.prefix(3) == ["admin", "core", "snapshot"],
+           parts.last == "change", isSnapshotID(parts[3]) { return true }
+        if parts.isEmpty, let host = url.host?.split(separator: ".").first,
+           host.hasPrefix("snap-"), host.dropFirst(5).allSatisfy({ $0.isASCII && $0.isHexDigit }),
+           host.count > 5 { return true }
+        if parts.count == 4, parts[1].count == 8, parts[1].allSatisfy(\.isNumber),
+           isSnapshotID(parts[3]) { return true }
+        if parts.count == 2, parts.first == "archive", Double(parts[1]) != nil { return true }
+        // Snapshot previews link to the normal archived detail page. Keep the
+        // server's URL intact, including username/date/domain archive paths.
+        return parts.last == "index.html" &&
+            (parts.first == "archive" || parts.contains(where: isSnapshotID))
     }
 
     public func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse,

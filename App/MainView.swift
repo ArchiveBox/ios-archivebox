@@ -23,16 +23,10 @@ struct MainView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     @State private var archiveNavigation = ArchiveNavigation.shared
     @State private var searchQuery = ""
-    @State private var openedPage: OpenedPage?
+    @State private var submittedSearchMode = ""
+    @State private var searchModes = ["meta", "contents", "deep"]
+    @State private var snapshotDestination: URL?
     @State private var routeError: String?
-
-    // Keep the sheet and its authenticated session in one presentation value.
-    // Separate @State captured only inside a sheet can retain its initial nil.
-    private struct OpenedPage: Identifiable {
-        let page: ArchiveBoxSearchResult
-        let configuration: ServerConfiguration
-        var id: String { page.id }
-    }
 
     private enum Screen: String, CaseIterable {
         case add, search, agent, activity, crawls, schedules, snapshots, results, tags, admin, users, personas, keys, webhooks
@@ -41,7 +35,7 @@ struct MainView: View {
         var info: (title: String, icon: String, path: String) {
             switch self {
             case .add: ("Add URLs", "plus", "add/")
-            case .search: ("Search Archive", "magnifyingglass", "")
+            case .search: ("Search Archive", "magnifyingglass", "admin/core/snapshot/")
             case .agent: ("AI Agent", "sparkles", "admin/agent/")
             case .activity: ("Activity", "arrow.down.circle", "admin/")
             case .crawls: ("Crawls", "point.3.connected.trianglepath.dotted", "admin/crawls/crawl/")
@@ -188,7 +182,7 @@ struct MainView: View {
                     try Task.checkCancellation()
                     guard try AppEnvironment.store.load().active_server == configuration else { return }
                     let page = ArchiveBoxSearchResult(snapshot: snapshot, server: server)
-                    openedPage = OpenedPage(page: page, configuration: configuration)
+                    openSnapshot(page.archiveURL)
                     if #available(iOS 27.0, macOS 27.0, *) {
                         let intent = OpenArchivedPageWithSiriIntent()
                         intent.target = page
@@ -199,18 +193,6 @@ struct MainView: View {
                     catch { NSLog("ArchiveBox Spotlight indexing failed: %@", error.localizedDescription) }
                 } catch { if !Task.isCancelled { routeError = error.localizedDescription } }
             }
-        }
-        .sheet(item: $openedPage) { opened in
-            let page = opened.page
-            let configuration = opened.configuration
-            NavigationStack {
-                ArchivedPageView(page: page, session: pages.page(for: page.id, baseURL: settings.displayedBaseURL,
-                    server: configuration.server, token: configuration.token))
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openedPage = nil } } }
-            }
-            #if os(macOS)
-            .frame(minWidth: 720, minHeight: 600)
-            #endif
         }
         .alert("Couldn’t open archived page", isPresented: Binding(get: { routeError != nil }, set: { if !$0 { routeError = nil } })) {
             Button("OK") { routeError = nil }
@@ -225,7 +207,10 @@ struct MainView: View {
             compactColumn = .detail
         }
         .onChange(of: settings.verifiedServer) { old, new in
-            if old != nil && old != new { openedPage = nil; searchQuery = "" }
+            if old != nil && old != new {
+                snapshotDestination = nil; searchQuery = ""
+                submittedSearchMode = ""; searchModes = ["meta", "contents", "deep"]
+            }
         }
     }
 
@@ -254,8 +239,15 @@ struct MainView: View {
                     }
                     .accessibilityIdentifier("sidebar.serverSwitcher")
                 }
+                SidebarSearchField(query: searchQuery, modes: searchModes) { query, mode in
+                    searchQuery = query
+                    submittedSearchMode = mode
+                    activate(.search)
+                }
+                .id(settings.server_id)
+                .disabled(settings.verifiedServer == nil)
                 rows([.add, .agent])
-                Section("Collection") { rows([.search, .snapshots, .crawls, .schedules, .results, .tags]) }
+                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags]) }
                 Section {
                     rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
                 } header: {
@@ -328,19 +320,28 @@ struct MainView: View {
                         }
                     }
                 }
-                else if screen == .search {
-                    ArchiveSearchView(settings: settings, initialQuery: searchQuery) { page in
-                        if let route = ArchiveRoute(url: page.appURL) { archiveNavigation.open(route) }
-                    }
-                }
                 else {
                     Group {
                         if screen == .add { AddURLsView(model: settings, pages: pages, reloadID: reloadIDs[.add]) }
                         else if let url = destination(screen) {
-                            ServerWebView(url: url, title: screen.info.title, session: pages.page(for: "\(screen.rawValue)-\(url)", baseURL: settings.displayedBaseURL,
-                                server: settings.verifiedServer, token: settings.verifiedToken),
+                            let session = pages.page(for: "\(screen.rawValue)-\(url)", baseURL: settings.displayedBaseURL,
+                                server: settings.verifiedServer, token: settings.verifiedToken)
+                            ServerWebView(url: url, title: screen.info.title, session: session,
                                           reloadID: screen == .admin ? settings.adminNavigationID : reloadIDs[screen])
                                 .id("\(screen.rawValue)-\(url)")
+                                .onAppear {
+                                    session.routing.openSnapshot = screen == .search ? { openSnapshot($0) } : nil
+                                }
+                                .task(id: session.isLoading) {
+                                    guard screen == .search, !session.isLoading else { return }
+                                    // Read the server's actual providers instead of assuming
+                                    // every collection has the same search engines installed.
+                                    if let modes = try? await session.page.evaluateJavaScript(
+                                        "Array.from(document.querySelectorAll('select[name=search_mode] option'), option => option.value)"
+                                    ) as? [String], !modes.isEmpty {
+                                        searchModes = modes
+                                    }
+                                }
                         } else {
                             ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Choose Connection Settings to get started."))
                         }
@@ -361,9 +362,9 @@ struct MainView: View {
             #if os(iOS)
             .navigationTitle(screen.info.title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(screen == .settings || screen == .search ? .visible : .hidden, for: .navigationBar)
+            .toolbar(screen == .settings ? .visible : .hidden, for: .navigationBar)
             .background {
-                if screen != .settings && screen != .search {
+                if screen != .settings {
                     Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)
                         .ignoresSafeArea(.container, edges: .top)
                 }
@@ -384,7 +385,7 @@ struct MainView: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                if screen != .settings && screen != .search && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
+                if screen != .settings && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
                     Button {
                         withAnimation {
                             compactColumn = .sidebar
@@ -435,15 +436,81 @@ struct MainView: View {
         // retains the cached page, including its current URL and form contents.
         if selection == screen {
             if screen == .admin { settings.openAdmin(settings.adminURL) }
-            else { reloadIDs[screen] = UUID() }
+            else {
+                if screen == .snapshots { snapshotDestination = nil }
+                reloadIDs[screen] = UUID()
+            }
         }
         selection = screen
         compactColumn = .detail
     }
 
+    private func openSnapshot(_ url: URL) {
+        snapshotDestination = url
+        reloadIDs[.snapshots] = UUID()
+        selection = .snapshots
+        compactColumn = .detail
+    }
+
     private func destination(_ screen: Screen) -> URL? {
+        if screen == .snapshots, let snapshotDestination { return snapshotDestination }
+        if screen == .search, let server = settings.verifiedServer {
+            var items = searchQuery.isEmpty ? [] : [URLQueryItem(name: "q", value: searchQuery)]
+            if !submittedSearchMode.isEmpty { items.append(URLQueryItem(name: "search_mode", value: submittedSearchMode)) }
+            return server.appending(path: screen.info.path).appending(queryItems: items)
+        }
         if screen.isHelp { return nil }
         if screen == .admin, let target = settings.adminDestination { return target }
         return settings.verifiedServer?.appending(path: screen.info.path)
+    }
+}
+
+// Keep draft edits local: typing must not rebuild navigation and the active web page.
+private struct SidebarSearchField: View {
+    let query: String
+    let modes: [String]
+    let submit: (String, String) -> Void
+    @State private var text = ""
+    @State private var mode = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Menu {
+                Picker("Search mode", selection: $mode) {
+                    Text("Server default").tag("")
+                    ForEach(modes, id: \.self) { value in
+                        Text(value == "meta" ? "Metadata" : value == "contents" ? "Full text" : value).tag(value)
+                    }
+                }
+                .pickerStyle(.inline)
+            } label: {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            }
+            .menuStyle(.borderlessButton).fixedSize()
+            .accessibilityLabel("Search mode")
+            .accessibilityIdentifier("sidebar.searchMode")
+            TextField("Search archive", text: $text)
+                .textFieldStyle(.plain)
+                .focused($focused)
+                .submitLabel(.search)
+                .onSubmit {
+                    focused = false
+                    submit(text.trimmingCharacters(in: .whitespacesAndNewlines), mode)
+                }
+                .accessibilityIdentifier("sidebar.searchField")
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                    focused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain).accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 8).padding(.vertical, 6)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+        .onChange(of: query, initial: true) { _, value in text = value }
     }
 }

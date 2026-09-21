@@ -35,9 +35,18 @@ struct SetupGuide: View {
                 .id(page) // Each guide opens at the top, including after Back.
                 .accessibilityIdentifier("setup.content")
                 Divider()
-                VStack(spacing: 8) {
+                VStack(alignment: .center, spacing: 12) {
                     if page == .welcome {
-                        Button("Choose where to keep my archive") { page = .choices }
+                        Button("Search for nearby servers", systemImage: "wifi") { discovery = true }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("setup.discover")
+                    }
+                    if page == .welcome || page == .choices {
+                        Button("Connect to existing server") { connect() }
+                            .accessibilityIdentifier("setup.skip")
+                    }
+                    if page == .welcome {
+                        Button("Set up a new server") { page = .choices }
                             .buttonStyle(.borderedProminent)
                             .accessibilityIdentifier("setup.choose")
                     } else if page != .choices {
@@ -45,14 +54,8 @@ struct SetupGuide: View {
                             .buttonStyle(.borderedProminent)
                             .accessibilityIdentifier("setup.connect")
                     }
-                    if page == .welcome || page == .choices {
-                        Button("I already have a server") { connect() }
-                            .accessibilityIdentifier("setup.skip")
-                    }
-                    Text("Skip the guide · You can reopen it in Connection Settings.")
-                        .font(.caption).foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
                 }
+                .multilineTextAlignment(.center)
                 .controlSize(.large)
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -89,8 +92,6 @@ struct SetupGuide: View {
                     "ArchiveBox saves copies of web pages so you can revisit them after the originals change or disappear.")
             Text("Your archive needs a home. A **server** is the computer that saves and stores your pages. It can be your Mac, another computer you manage, or a paid hosting service.")
             archiveDiagram
-            Button("Find my family’s archive", systemImage: "network") { discovery = true }
-                .buttonStyle(.bordered).accessibilityIdentifier("setup.discover")
             Text("This app connects to your server to save links and browse your archive from your devices. You choose where the files live and who can access them.")
                 .foregroundStyle(.secondary)
         }
@@ -114,7 +115,7 @@ struct SetupGuide: View {
                    icon: "shippingbox", page: .docker, id: "docker")
             choice("Python / uv / pip", subtitle: "For terminal users who want to manage the installation and dependencies.",
                    icon: "terminal", page: .python, id: "python")
-            Text("Someone setting this up for you? Ask them for your ArchiveBox server address and an API key, then choose “I already have a server”.")
+            Text("Someone setting this up for you? Ask them for your ArchiveBox server address and an API key, then choose “Connect to existing server”.")
                 .foregroundStyle(.secondary)
         }
     }

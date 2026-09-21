@@ -35,6 +35,8 @@ background, rounded clipping, or another shadow around these PNGs.
 
 The **App website** workflow builds pull requests without deploying and deploys
 commits to `main` through GitHub Actions to <https://app.archivebox.io/>.
+Localized pages are independent files in `es/`, `fr/`, `zh/`, `ru/`, and `ar/`.
+Delete those folders and the `language.js` include to remove localization.
 The separate **Capture native app screenshots** workflow drives the shipping apps
 with XCTest on disposable Macs: 14 screens each for iPhone and Mac, and 15 screens
 for ArchiveBox Server.app. It reuses the real ArchiveBox bootstrap and the signed

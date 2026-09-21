@@ -8,6 +8,9 @@ trap 'rm -rf "$stage_dir"' EXIT
 # Stage an explicit public asset list: building from the repository root would
 # copy native builds, signing artifacts, and the multi-GB server payload to Pages.
 cp "$site_dir/CNAME" "$site_dir/_config.yml" "$site_dir/index.html" "$stage_dir/"
+if [ -f "$site_dir/language.js" ]; then
+    cp "$site_dir/language.js" "$stage_dir/language.js"
+fi
 cp -R "$site_dir/_layouts" "$site_dir/assets" "$stage_dir/"
 mkdir -p "$stage_dir/_includes" "$stage_dir/docs/screenshots" "$stage_dir/App/AppIcon.icon/Assets" "$stage_dir/App/Assets.xcassets/ShareSheetGuide.imageset"
 cp "$repo_dir/README.md" "$stage_dir/_includes/README.md"
@@ -62,3 +65,12 @@ for site_argument in "$@"; do
     site_previous="$site_argument"
 done
 uv run --no-project python "$repo_dir/.github/pages/site.py" render "$site_dir/_site" --baseurl "$site_baseurl"
+
+# Localized pages are deliberately standalone files. Copy only the folders that
+# exist so removing a translation (or this entire feature) stays trivial.
+for locale in es fr zh ru ar; do
+    if [ -f "$site_dir/$locale/index.html" ]; then
+        mkdir -p "$site_dir/_site/$locale"
+        cp "$site_dir/$locale/index.html" "$site_dir/_site/$locale/index.html"
+    fi
+done

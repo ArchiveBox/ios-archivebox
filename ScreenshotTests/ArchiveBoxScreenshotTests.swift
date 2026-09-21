@@ -98,9 +98,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         capture("activity", app: app)
         openScreen("settings", app: app)
         #if os(macOS)
-        // The real local server appears asynchronously and expands the settings
-        // form. Wait for that result before measuring where to scroll.
-        XCTAssertTrue(app.buttons["discovery.inline.result"].firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        // Saving the connection moves this real server into remembered history.
+        // Wait for that row to expand the form before measuring where to scroll.
+        let remembered = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.server.")).firstMatch
+        XCTAssertTrue(remembered.waitForExistence(timeout: 20), app.debugDescription)
         #endif
         let guide = app.buttons["network.guide"]
         scrollTo(guide, app: app)
@@ -382,7 +383,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         scrollTo(field, app: application)
         press(field)
         field.typeKey("a", modifierFlags: .command)
-        field.typeText(XCUIKeyboardKey.delete.rawValue)
+        field.typeKey(XCUIKeyboardKey.delete.rawValue, modifierFlags: [])
         field.typeText(value)
     }
 

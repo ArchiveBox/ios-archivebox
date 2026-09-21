@@ -9,6 +9,9 @@ import ArchiveBoxCore
     let routing: BrowserNavigation
     var errorMessage: String?
     var isLoading = true
+    var navigationLoading = false
+    var loadingProgress = 0.0
+    @ObservationIgnored private var loadingObservations: [NSKeyValueObservation] = []
     private var started = false
     private var requestID: UUID?
     private var navigation: Task<Void, Never>?
@@ -17,6 +20,21 @@ import ArchiveBoxCore
     private var renewedLogin: URL?
     init(_ page: WKWebView, routing: BrowserNavigation, owner: WebPages) {
         self.page = page; self.routing = routing; self.owner = owner
+        // Observe WebKit itself so links, back/forward, and redirects count too.
+        loadingObservations = [
+            page.observe(\.isLoading, options: [.initial, .new]) { [weak self] _, _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    navigationLoading = self.page.isLoading
+                }
+            },
+            page.observe(\.estimatedProgress, options: [.initial, .new]) { [weak self] _, _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    loadingProgress = self.page.estimatedProgress
+                }
+            }
+        ]
         routing.didFail = { [weak self] error in
             self?.isLoading = false
             self?.errorMessage = error.localizedDescription
@@ -60,6 +78,7 @@ import ArchiveBoxCore
     func load(_ url: URL, requestID: UUID?, force: Bool = false) {
         guard force || !started || self.requestID != requestID else { return }
         destination = url
+        loadingProgress = 0
         started = true
         self.requestID = requestID
         navigation?.cancel()
@@ -179,6 +198,19 @@ struct ServerWebView: View {
                     } actions: {
                         Button("Try again") { session.load(url, requestID: reloadID, force: true) }.buttonStyle(.glass)
                     }.background(.background)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if (session.isLoading || session.navigationLoading) && session.errorMessage == nil {
+                    GeometryReader { geometry in
+                        Color.red
+                            .frame(width: geometry.size.width * max(0.04, session.loadingProgress))
+                            .animation(.easeOut(duration: 0.15), value: session.loadingProgress)
+                    }
+                    .frame(height: 3)
+                    .allowsHitTesting(false)
+                    .accessibilityLabel("Loading page")
+                    .accessibilityIdentifier("webview.loadingProgress")
                 }
             }
             #if os(iOS)

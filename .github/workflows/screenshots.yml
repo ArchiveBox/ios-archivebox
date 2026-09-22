@@ -55,15 +55,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [iphone, macos, server]
-    runs-on: ${{ matrix.platform == 'server' && vars.SERVER_SCREENSHOT_RUNNER || matrix.platform == 'macos' && 'macos-26' || 'xcode-27' }}
+        # Server companion screenshots are captured locally with capture-app-screenshots.sh.
+        platform: [iphone, macos]
+    runs-on: ${{ matrix.platform == 'macos' && 'macos-26' || 'xcode-27' }}
     environment: testflight
     timeout-minutes: 45
     steps:
-      - name: Verify the companion runner can start real containers
-        if: matrix.platform == 'server'
-        run: |
-          swift -e 'import Virtualization; guard VZVirtualMachine.isSupported else { fatalError("Apple Container requires virtualization. Set SERVER_SCREENSHOT_RUNNER to a disposable macOS runner with virtualization enabled.") }'
       - uses: actions/checkout@v4
       - name: Set the disposable Mac desktop size
         if: matrix.platform != 'iphone'
@@ -99,7 +96,6 @@ jobs:
           ditto -x -k build/screenshots/macos-app/ArchiveBox.app.zip build/screenshots/macos-app
           echo "ARCHIVEBOX_MAC_APP=$GITHUB_WORKSPACE/build/screenshots/macos-app/ArchiveBox.app" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
-        if: matrix.platform != 'server'
         with:
           repository: ArchiveBox/ArchiveBox
           ref: ${{ env.BACKEND_REVISION }}
@@ -109,35 +105,15 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install the real ArchiveBox server
-        if: matrix.platform != 'server'
         run: |
           echo "BACKEND_REVISION=$(git -C backend rev-parse HEAD)" >> "$GITHUB_ENV"
           uv sync --frozen --project backend
       - name: Populate and start a disposable archive
-        if: matrix.platform != 'server'
         run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"
-      - name: Resolve the companion's real server image
-        if: matrix.platform == 'server'
-        id: server-image
-        run: uv run --no-project python ServerApp/server-image.py resolve --published
-      - uses: actions/cache@v4
-        if: matrix.platform == 'server'
-        id: payload
-        with:
-          path: |
-            ServerApp/vendor
-            ServerApp/payload/images.tar
-            ServerApp/payload/vmlinux
-          key: server-payload-arm64-${{ steps.server-image.outputs.digest }}-${{ hashFiles('ServerApp/prepare.sh', 'ServerApp/server-image.py') }}
-      - name: Prepare the shipping companion payload
-        if: matrix.platform == 'server' && steps.payload.outputs.cache-hit != 'true'
-        env:
-          ARCHIVEBOX_SERVER_IMAGE: ${{ steps.server-image.outputs.image }}
-        run: bash ServerApp/prepare.sh
       - name: Record capture provenance
         env:
           CAPTURE_PLATFORM: ${{ matrix.platform }}
-          CAPTURE_BACKEND: ${{ steps.server-image.outputs.revision || env.BACKEND_REVISION }}
+          CAPTURE_BACKEND: ${{ env.BACKEND_REVISION }}
         run: |
           uv run --no-project python - <<'PY'
           import json, os
@@ -153,15 +129,10 @@ jobs:
           }) + '\n')
           PY
       - name: Capture every native app screen with XCTest
-        env:
-          ARCHIVEBOX_SERVER_IMAGE: ${{ steps.server-image.outputs.image }}
-          DEVELOPER_ID_PROFILES: ${{ matrix.platform == 'server' && secrets.DEVELOPER_ID_PROFILES || '' }}
-          DEVELOPER_ID_P12: ${{ matrix.platform == 'server' && secrets.DEVELOPER_ID_P12 || '' }}
-          DEVELOPER_ID_PASSWORD: ${{ matrix.platform == 'server' && secrets.DEVELOPER_ID_PASSWORD || '' }}
         run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}' 'build/screenshots/${{ matrix.platform }}' gallery
       - name: Validate this complete capture group
         env:
-          CAPTURE_BACKEND: ${{ steps.server-image.outputs.revision || env.BACKEND_REVISION }}
+          CAPTURE_BACKEND: ${{ env.BACKEND_REVISION }}
         run: uv run --no-project python scripts/build-screenshot-gallery.py --platform '${{ matrix.platform }}' --revision "$GITHUB_SHA" --backend-revision "$CAPTURE_BACKEND"
       - uses: actions/upload-artifact@v4
         with:

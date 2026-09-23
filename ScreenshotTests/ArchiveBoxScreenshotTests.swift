@@ -405,6 +405,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     private func openScreen(_ id: String, app: XCUIApplication) {
         showSidebar(app)
         let item = app.buttons["sidebar." + id]
+        if id == "openActivity" {
+            // The activity summary is a fixed footer outside the scrollable list.
+            press(item)
+            return
+        }
         #if os(macOS)
         let list = app.outlines.firstMatch
         for _ in 0..<6 {

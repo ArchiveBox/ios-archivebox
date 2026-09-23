@@ -425,8 +425,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let visibleTop = app.staticTexts["ArchiveBox"].frame.maxY
         let visibleBottom = app.buttons["sidebar.openActivity"].frame.minY
         let visible = {
+            guard item.exists, item.isHittable else { return false }
             let frame = item.frame
-            return item.isHittable && frame.minY >= visibleTop && frame.maxY <= visibleBottom
+            return frame.minY >= visibleTop && frame.maxY <= visibleBottom
         }
         // Scroll the actual sidebar surface in both compact and regular split views.
         for _ in 0..<6 {

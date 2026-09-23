@@ -51,8 +51,15 @@ written only under the runner's temporary directory and removed on exit; they
 are never attached to releases or cached with the server payload.
 
 The app version and engine image version are separate: the companion continues to
-show the actual packaged engine version/digest. Updating the engine is a pinned
-`ServerApp/prepare.sh` change, not an unverified pull of a mutable image tag.
+show the actual packaged engine version/digest. Once the core release has published
+and verified its Docker images, the monorepo coordinator dispatches this workflow
+with `archivebox_version`. The workflow resolves the immutable image tag in both
+registries, checks its version and source revision against the core release tag,
+and commits the resulting digest to `ServerApp/core-image.json`. That source commit
+enters the normal app version reservation and signed release. Repeated dispatches
+for the same image reuse the existing candidate or skip an already published release.
+Core image updates rebuild the Mac downloads and Sparkle feed without resubmitting
+the unchanged iOS/macOS client to TestFlight.
 
 Developer ID export uses the imported identity and explicit profiles, not cloud
 Developer ID signing. Renew the certificate and all three profiles together.

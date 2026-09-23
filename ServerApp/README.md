@@ -195,8 +195,9 @@ Pinned components:
 - Kernel `vmlinux-6.18.35-197-debug`, recommended by that Container release,
   from Kata Containers 3.32.0. Linux is GPL-2.0; matching sources/configuration:
   <https://github.com/kata-containers/kata-containers/tree/3.32.0/tools/packaging/kernel>.
-- ArchiveBox is resolved from the latest published `dev` image at build time.
-  Docker Hub and GHCR must agree, and both architectures must match `origin/dev`.
+- ArchiveBox is resolved from the core release image recorded in
+  `core-image.json`. Docker Hub and GHCR must agree, and both architectures
+  must match the release tag and its published version.
   The resolved digest keys the release payload cache; the packaged ARM64 config
   digest is checked before signing. Builds stop if image publication is behind.
   The shipped version, source revision, and digest are recorded in `Info.plist`.

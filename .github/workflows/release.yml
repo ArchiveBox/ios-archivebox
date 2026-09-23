@@ -4,6 +4,11 @@ on:
     branches: [main]
     paths-ignore: ['.github/pages/**', 'README.md', 'docs/site/**', '.github/workflows/pages.yml']
   workflow_dispatch:
+    inputs:
+      archivebox_version:
+        description: Immutable ArchiveBox release version from the release coordinator
+        required: false
+        type: string
 permissions:
   contents: write
 # Reserve versions and publish in order. New pushes can supersede queued candidates.
@@ -19,6 +24,7 @@ jobs:
       ready: ${{ steps.version.outputs.ready }}
       version: ${{ steps.version.outputs.version }}
       sha: ${{ steps.version.outputs.sha }}
+      image_version: ${{ steps.image.outputs.version }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -28,6 +34,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: astral-sh/setup-uv@v7
+        if: inputs.archivebox_version != ''
+      - name: Resolve dispatched ArchiveBox image
+        if: inputs.archivebox_version != ''
+        env:
+          ARCHIVEBOX_VERSION: ${{ inputs.archivebox_version }}
+        run: uv run --no-project python ServerApp/server-image.py resolve
+      - name: Record the verified image as app source
+        if: inputs.archivebox_version != ''
+        env:
+          ARCHIVEBOX_VERSION: ${{ inputs.archivebox_version }}
+        run: node scripts/sync-server-image.mjs
+      - name: Select pinned ArchiveBox image version
+        id: image
+        run: |
+          if test -f ServerApp/core-image.json; then
+            echo "version=$(node -p 'require("./ServerApp/core-image.json").version')" >> "$GITHUB_OUTPUT"
+          fi
       - name: Reserve version for this main commit
         id: version
         run: node scripts/release.mjs prepare
@@ -55,9 +79,15 @@ jobs:
         run: node scripts/prepare-safari.mjs
       - name: Test shared code
         run: swift test
-      - name: Resolve current ArchiveBox dev image from both registries
+      - name: Resolve pinned ArchiveBox image from both registries
         id: server-image
+        env:
+          ARCHIVEBOX_VERSION: ${{ needs.prepare.outputs.image_version }}
         run: uv run --no-project python ServerApp/server-image.py resolve
+      - name: Verify immutable image lock
+        if: needs.prepare.outputs.image_version != ''
+        run: |
+          node -e 'const fs=require("fs"); const a=require("./ServerApp/core-image.json"); const b=JSON.parse(fs.readFileSync("ServerApp/payload/resolved-image.json")); for(const key of ["version","digest","revision"]) if(a[key]!==b[key]) throw Error(`Bundled image ${key} differs from the release lock`)'
       - uses: actions/cache/restore@v4
         id: payload
         with:
@@ -98,7 +128,7 @@ jobs:
         run: node scripts/release.mjs publish
   testflight:
     needs: prepare
-    if: needs.prepare.outputs.ready == 'true'
+    if: needs.prepare.outputs.ready == 'true' && inputs.archivebox_version == ''
     uses: ./.github/workflows/testflight.yml
     secrets: inherit
     with:

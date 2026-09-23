@@ -1,4 +1,4 @@
-"""Resolve the published dev image and verify the actual bundled ARM64 payload."""
+"""Resolve a published ArchiveBox image and verify the bundled ARM64 payload."""
 import json
 import os
 from pathlib import Path
@@ -16,10 +16,18 @@ def get(url, token=None):
         return json.load(response), response.headers
 
 
-def resolve(require_tip=True):
-    revision = subprocess.check_output(
-        ["git", "ls-remote", "https://github.com/ArchiveBox/ArchiveBox.git", "refs/heads/dev"], text=True
-    ).split()[0] if require_tip else None
+def resolve(version=None, require_tip=True):
+    ref = f"refs/tags/v{version}^{{}}" if version else "refs/heads/dev"
+    revision_output = subprocess.check_output(
+        ["git", "ls-remote", "https://github.com/ArchiveBox/ArchiveBox.git", ref], text=True
+    ).split() if require_tip else []
+    revision = revision_output[0] if revision_output else None
+    if version and not revision:
+        revision = subprocess.check_output(
+            ["git", "ls-remote", "https://github.com/ArchiveBox/ArchiveBox.git", f"refs/tags/v{version}"], text=True
+        ).split()[0]
+    if version and not revision:
+        raise SystemExit(f"ArchiveBox v{version} tag is missing")
     registries = [
         ("registry-1.docker.io", "https://auth.docker.io/token?service=registry.docker.io&scope=repository:archivebox/archivebox:pull"),
         ("ghcr.io", "https://ghcr.io/token?service=ghcr.io&scope=repository:archivebox/archivebox:pull"),
@@ -30,22 +38,27 @@ def resolve(require_tip=True):
         credentials, _ = get(auth)
         token = credentials.get("token") or credentials["access_token"]
         base = f"https://{host}/v2/archivebox/archivebox"
-        index, headers = get(base + "/manifests/dev", token)
+        index, headers = get(base + "/manifests/" + (version or "dev"), token)
         digests.append(headers["Docker-Content-Digest"])
         for architecture in ("arm64", "amd64"):
             descriptor = next(item for item in index["manifests"] if item.get("platform", {}).get("architecture") == architecture)
             manifest, _ = get(base + "/manifests/" + descriptor["digest"], token)
             config, _ = get(base + "/blobs/" + manifest["config"]["digest"], token)
-            actual = config["config"]["Labels"]["org.opencontainers.image.revision"]
+            labels = config["config"]["Labels"]
+            actual = labels["org.opencontainers.image.revision"]
+            if version and labels.get("org.opencontainers.image.version") != version:
+                raise SystemExit(f"{host}:{version} ({architecture}) has the wrong ArchiveBox version")
             if revision is None:
                 revision = actual
             if actual != revision:
-                raise SystemExit(f"{host}:dev ({architecture}) is at {actual}, but origin/dev is {revision}. Wait for the ArchiveBox image release to finish before building the app.")
+                raise SystemExit(f"{host}:{version or 'dev'} ({architecture}) is at {actual}, but the source ref is {revision}. Wait for the ArchiveBox image release to finish before building the app.")
             if architecture == "arm64":
                 arm_config = manifest["config"]["digest"]
     if len(set(digests)) != 1:
         raise SystemExit("Docker Hub and GHCR dev digests do not match; image publication is incomplete.")
     result = {"image": "archivebox/archivebox@" + digests[0], "digest": digests[0], "config": arm_config, "revision": revision}
+    if version:
+        result["version"] = version
     Path("payload").mkdir(exist_ok=True)
     Path("payload/resolved-image.json").write_text(json.dumps(result, indent=2) + "\n")
     if output := os.environ.get("GITHUB_OUTPUT"):
@@ -69,13 +82,15 @@ def verify(path):
             raise SystemExit("Bundled image is stale: run ServerApp/prepare.sh to refresh it.")
         config = blob(manifest["config"]["digest"])
         if config["config"]["Labels"]["org.opencontainers.image.revision"] != expected["revision"]:
-            raise SystemExit("Bundled source revision does not match origin/dev.")
+            raise SystemExit("Bundled source revision does not match the resolved image.")
     print("Verified bundled ARM64 image:", expected["revision"])
 
 
 os.chdir(Path(__file__).resolve().parent)
 if sys.argv[1:] == ["resolve"]:
-    resolve()
+    resolve(version=os.environ.get("ARCHIVEBOX_VERSION"))
+elif len(sys.argv) == 3 and sys.argv[1] == "resolve":
+    resolve(version=sys.argv[2])
 elif sys.argv[1:] == ["resolve", "--published"]:
     resolve(require_tip=False)
 elif len(sys.argv) == 3 and sys.argv[1] == "verify":

@@ -17,7 +17,7 @@ const releases = JSON.parse(gh('api', '--paginate', '--slurp', `repos/${repo}/re
 const previous = releases[0]?.tag_name;
 if (process.argv[2] === 'prepare') {
   git('fetch', 'origin', 'main', '--tags');
-  let source = process.env.GITHUB_SHA || git('rev-parse','HEAD');
+  let source = process.env.RELEASE_SOURCE_SHA || process.env.GITHUB_SHA || git('rev-parse','HEAD');
   const reserved=JSON.parse(readFileSync('release.json'));
   // A manual retry can start at the bot's version commit rather than its source commit.
   if(reserved.source && git('tag','--points-at',source).split('\n').includes(`release-candidate/${reserved.source}`)) source=reserved.source;
@@ -33,7 +33,7 @@ if (process.argv[2] === 'prepare') {
   if(git('rev-parse','origin/main') !== source) { output({ready:false, reason:'Superseded by a newer main push'}); process.exit(0); }
   // Ignore documentation and tests alone, but include build scripts, assets and pinned payloads.
   const changed=git('diff-tree','--no-commit-id','--name-only','-r',...(previous ? [previous,source] : ['--root',source])).split('\n');
-  const significant=changed.some(p => /^(release\.json$|App\/|MacApp\/|MacLocalUI\/|ShareExtension\/|Widgets\/|MacShareExtension\/|SafariWebExtension\/|Sources\/|ServerApp\/(Sources\/|Package\.|build\.sh|prepare\.sh|bundle-metadata\.py)|scripts\/|\.github\/workflows\/(release|build|testflight)\.ya?ml$|ArchiveBox\.xcodeproj\/|project\.yml$|Package\.)/.test(p));
+  const significant=changed.some(p => /^(release\.json$|App\/|MacApp\/|MacLocalUI\/|ShareExtension\/|Widgets\/|MacShareExtension\/|SafariWebExtension\/|Sources\/|ServerApp\/(Sources\/|Package\.|build\.sh|prepare\.sh|bundle-metadata\.py|core-image\.json)|scripts\/|\.github\/workflows\/(release|build|testflight)\.ya?ml$|ArchiveBox\.xcodeproj\/|project\.yml$|Package\.)/.test(p));
   if(!significant) { output({ready:false,reason:'No app or packaging changes'}); process.exit(0); }
   const state=JSON.parse(readFileSync('release.json'));
   const occupied=tags.filter(t=>versionPattern.test(t)).map(t=>t.slice(1).split('.'));

@@ -74,9 +74,10 @@ jobs:
       matrix:
         # Server companion screenshots are captured locally with capture-app-screenshots.sh.
         platform: [iphone, macos]
-    # A screenshot request stalled on the 7 GB arm64 runner with active swap.
-    # The stable Intel runner has 14 GB and builds its own matching XCTest harness.
-    runs-on: ${{ matrix.platform == 'iphone' && 'macos-26-intel' || 'macos-26' }}
+    # Match the SDK27 iPhone app with its native Simulator; the Intel iOS26.5
+    # runner remained overloaded during capture after wallpaper quiescence.
+    # Keep Mac WebKit capture on stable macOS26 (macOS27 fails IOSurface creation).
+    runs-on: ${{ matrix.platform == 'iphone' && 'xcode-27' || 'macos-26' }}
     environment: testflight
     timeout-minutes: 45
     steps:
@@ -156,7 +157,7 @@ jobs:
       - name: Stop excess Simulator poster processes on the disposable iPhone runner
         if: matrix.platform == 'iphone'
         run: |
-          # Xcode 26 virtual runners can spend their CPU on simulator wallpaper
+          # Simulator runners can spend their CPU on wallpaper
           # extensions. yeetd SIGSTOPs only named processes inside simruntime.
           # https://github.com/actions/runner-images/issues/13540
           tool="$RUNNER_TEMP/yeetd"

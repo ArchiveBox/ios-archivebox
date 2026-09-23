@@ -44,6 +44,24 @@ jobs:
           path: build/screenshots/macos-build/ArchiveBox.app.zip
           if-no-files-found: error
           retention-days: 7
+      - name: Generate iPhone screenshot test scheme
+        run: xcodegen generate
+      - name: Build iPhone XCTest products with SDK27
+        run: |
+          xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxScreenshots \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/screenshots/iphone-build/DerivedData \
+            -parallel-testing-enabled NO \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= build-for-testing
+          products=build/screenshots/iphone-build/DerivedData/Build/Products
+          test "$(find "$products" -maxdepth 1 -name '*.xctestrun' | wc -l | tr -d ' ')" -eq 1
+          ditto -c -k --sequesterRsrc --keepParent "$products" build/screenshots/iphone-build/Products.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iphone-capture-products
+          path: build/screenshots/iphone-build/Products.zip
+          if-no-files-found: error
+          retention-days: 7
   capture:
     needs: build-macos
     concurrency:
@@ -57,7 +75,7 @@ jobs:
       matrix:
         # Server companion screenshots are captured locally with capture-app-screenshots.sh.
         platform: [iphone, macos]
-    runs-on: ${{ matrix.platform == 'macos' && 'macos-26' || 'xcode-27' }}
+    runs-on: macos-26
     environment: testflight
     timeout-minutes: 45
     steps:
@@ -77,14 +95,21 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: '10.33.2'
-      - name: Prepare pinned Safari extension
-        if: matrix.platform != 'macos'
-        run: node scripts/prepare-safari.mjs
       - name: Install XcodeGen
+        if: matrix.platform == 'macos'
         run: brew install xcodegen
-      - name: Generate screenshot test schemes
-        if: matrix.platform != 'macos'
-        run: xcodegen generate
+      - uses: actions/download-artifact@v4
+        if: matrix.platform == 'iphone'
+        with:
+          name: iphone-capture-products
+          path: build/screenshots/iphone-products
+      - name: Extract the SDK27 iPhone test products for stable iOS capture
+        if: matrix.platform == 'iphone'
+        run: |
+          ditto -x -k build/screenshots/iphone-products/Products.zip build/screenshots/iphone-products
+          products="$GITHUB_WORKSPACE/build/screenshots/iphone-products/Products"
+          test "$(find "$products" -maxdepth 1 -name '*.xctestrun' | wc -l | tr -d ' ')" -eq 1
+          echo "ARCHIVEBOX_IPHONE_XCTESTRUN=$(find "$products" -maxdepth 1 -name '*.xctestrun' -print -quit)" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
         if: matrix.platform == 'macos'
         with:

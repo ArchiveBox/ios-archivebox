@@ -117,10 +117,12 @@ YAML
         const runtimes=Object.entries(JSON.parse(input).devices)
           .filter(([runtime]) => Number(runtime.match(/iOS-(\d+)/)?.[1]) >= 26)
           .sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true }));
-        const device=runtimes.flatMap(([, devices])=>devices).find(device=>device.name.startsWith(process.env.DEVICE_PREFIX));
+        const device=runtimes.flatMap(([runtime, devices])=>devices.map(device=>({...device, runtime})))
+          .find(device=>device.name.startsWith(process.env.DEVICE_PREFIX));
         if (!device) throw new Error(`No iOS 26+ ${process.env.DEVICE_PREFIX} simulator available`);
-        process.stdout.write(device.udid);
+        process.stdout.write(`${device.udid} ${device.runtime}`);
       });')
+    read -r device_id runtime_id <<< "$device_id"
     destination="platform=iOS Simulator,id=$device_id"
     # Wait for first-boot setup/data migration, not just the simulator's Booted state.
     xcrun simctl bootstatus "$device_id" -b
@@ -136,16 +138,39 @@ if [[ "$mode" == build ]]; then
   ditto -c -k --sequesterRsrc --keepParent "$app" "$output/ArchiveBox.app.zip"
   exit 0
 fi
-xcodebuild -project "$project" -scheme "$scheme" \
-  -destination "$destination" -derivedDataPath "$output/DerivedData" \
-  -resultBundlePath "$output/Capture.xcresult" \
-  -parallel-testing-enabled NO \
-  -only-testing:"$scheme/$class/$method" \
-  "${signing[@]}" \
-  ARCHIVEBOX_MAC_APP="${ARCHIVEBOX_MAC_APP:-}" \
-  ARCHIVEBOX_SERVER_APP="${ARCHIVEBOX_SERVER_APP:-}" \
-  ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}" \
-  ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}" test || {
+test_args=(-destination "$destination" -resultBundlePath "$output/Capture.xcresult"
+  -parallel-testing-enabled NO -only-testing:"$scheme/$class/$method")
+if [[ "$platform" == iphone && -n "${ARCHIVEBOX_IPHONE_XCTESTRUN:-}" ]]; then
+  test -f "$ARCHIVEBOX_IPHONE_XCTESTRUN"
+  runtime_root=$(xcrun simctl list runtimes -j | RUNTIME_ID="$runtime_id" node -e '
+    let input=""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => {
+      const runtime=JSON.parse(input).runtimes.find(runtime=>runtime.identifier===process.env.RUNTIME_ID);
+      if (!runtime?.runtimeRoot) throw new Error(`Missing runtime root for ${process.env.RUNTIME_ID}`);
+      process.stdout.write(runtime.runtimeRoot);
+    });')
+  checker="$runtime_root/usr/lib/libMainThreadChecker.dylib"
+  if [[ ! -f "$checker" ]]; then
+    checker="$(xcode-select -p)/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libMainThreadChecker.dylib"
+  fi
+  test -f "$checker"
+  plutil -replace ArchiveBoxScreenshots.TestingEnvironmentVariables.DYLD_INSERT_LIBRARIES \
+    -string "$checker" "$ARCHIVEBOX_IPHONE_XCTESTRUN"
+  plutil -replace ArchiveBoxScreenshots.EnvironmentVariables.ARCHIVEBOX_TEST_SERVER \
+    -string "${ARCHIVEBOX_TEST_SERVER:-}" "$ARCHIVEBOX_IPHONE_XCTESTRUN"
+  plutil -replace ArchiveBoxScreenshots.EnvironmentVariables.ARCHIVEBOX_TEST_TOKEN \
+    -string "${ARCHIVEBOX_TEST_TOKEN:-}" "$ARCHIVEBOX_IPHONE_XCTESTRUN"
+  test_args=(-xctestrun "$ARCHIVEBOX_IPHONE_XCTESTRUN" "${test_args[@]}")
+  test_action=test-without-building
+else
+  test_args=(-project "$project" -scheme "$scheme" -derivedDataPath "$output/DerivedData"
+    "${test_args[@]}" "${signing[@]}"
+    ARCHIVEBOX_MAC_APP="${ARCHIVEBOX_MAC_APP:-}"
+    ARCHIVEBOX_SERVER_APP="${ARCHIVEBOX_SERVER_APP:-}"
+    ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}"
+    ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}")
+  test_action=test
+fi
+xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     # Distinguish an app assertion from a stopped server or an exhausted runner.
     uptime

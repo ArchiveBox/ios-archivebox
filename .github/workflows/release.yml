@@ -25,6 +25,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       sha: ${{ steps.version.outputs.sha }}
       image_version: ${{ steps.image.outputs.version }}
+      client_changed: ${{ steps.scope.outputs.client_changed }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -51,6 +52,29 @@ jobs:
         run: |
           if test -f ServerApp/core-image.json; then
             echo "version=$(node -p 'require("./ServerApp/core-image.json").version')" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Select client distribution scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          SOURCE_SHA: ${{ github.sha }}
+          ARCHIVEBOX_VERSION: ${{ inputs.archivebox_version }}
+        run: |
+          if test "$EVENT_NAME" = workflow_dispatch; then
+            if test -n "$ARCHIVEBOX_VERSION"; then
+              echo 'client_changed=false' >> "$GITHUB_OUTPUT"
+            else
+              echo 'client_changed=true' >> "$GITHUB_OUTPUT"
+            fi
+          else
+            base="$BEFORE_SHA"
+            if [[ ! "$base" =~ ^[0-9a-f]{40}$ || "$base" =~ ^0+$ ]]; then base="$(git rev-parse HEAD^)"; fi
+            if git diff --name-only "$base" "$SOURCE_SHA" | rg -q '^(App/|MacApp/|MacLocalUI/|ShareExtension/|Widgets/|MacShareExtension/|SafariWebExtension/|Sources/|Package\.(swift|resolved)$|project\.yml$|scripts/(prepare-safari\.mjs|testflight[^/]*|verify-signing\.py)$|\.github/workflows/testflight\.yml$)'; then
+              echo 'client_changed=true' >> "$GITHUB_OUTPUT"
+            else
+              echo 'client_changed=false' >> "$GITHUB_OUTPUT"
+            fi
           fi
       - name: Reserve version for this main commit
         id: version
@@ -128,7 +152,7 @@ jobs:
         run: node scripts/release.mjs publish
   testflight:
     needs: prepare
-    if: needs.prepare.outputs.ready == 'true' && inputs.archivebox_version == ''
+    if: needs.prepare.outputs.ready == 'true' && needs.prepare.outputs.client_changed == 'true'
     uses: ./.github/workflows/testflight.yml
     secrets: inherit
     with:

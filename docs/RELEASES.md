@@ -59,7 +59,9 @@ and commits the resulting digest to `ServerApp/core-image.json`. That source com
 enters the normal app version reservation and signed release. Repeated dispatches
 for the same image reuse the existing candidate or skip an already published release.
 Core image updates rebuild the Mac downloads and Sparkle feed without resubmitting
-the unchanged iOS/macOS client to TestFlight.
+the unchanged iOS/macOS client to TestFlight. Main pushes select TestFlight only
+when client or shared source, assets, project configuration, or TestFlight packaging
+changed; every Mac download still goes through the normal signing and notarization.
 
 Developer ID export uses the imported identity and explicit profiles, not cloud
 Developer ID signing. Renew the certificate and all three profiles together.

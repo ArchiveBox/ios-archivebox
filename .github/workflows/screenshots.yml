@@ -207,6 +207,7 @@ jobs:
           name: app-screenshot-diagnostics-${{ matrix.platform }}
           path: |
             build/screenshots/${{ matrix.platform }}/Capture.xcresult/
+            build/screenshots/${{ matrix.platform }}/resource-samples.log
             ${{ runner.temp }}/screenshot-server/server.log
           retention-days: 7
       - name: Stop the disposable Simulator helper

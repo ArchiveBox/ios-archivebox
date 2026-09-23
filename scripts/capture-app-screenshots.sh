@@ -16,6 +16,26 @@ class=ArchiveBoxScreenshotTests
 mkdir -p "$output"
 output=$(cd "$output" && pwd)
 signing=(CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=)
+if [[ "$platform" == iphone ]]; then
+  # Keep a low-overhead record of simulator load while it boots and XCTest runs.
+  # A post-failure process snapshot can be dominated by crash diagnostics.
+  (
+    sleep_pid=
+    trap 'exit 0' TERM INT
+    trap '[[ -z "$sleep_pid" ]] || kill "$sleep_pid" 2>/dev/null || true' EXIT
+    while :; do
+      date -u '+%Y-%m-%dT%H:%M:%SZ'
+      uptime
+      ps -A -o pid=,ppid=,state=,%cpu=,%mem=,comm= | sort -k4,4nr | sed -n '1,20p'
+      sleep 15 &
+      sleep_pid=$!
+      wait "$sleep_pid" || exit 0
+      sleep_pid=
+    done
+  ) > "$output/resource-samples.log" 2>&1 &
+  sampler_pid=$!
+  trap 'kill "$sampler_pid" 2>/dev/null || true; wait "$sampler_pid" 2>/dev/null || true' EXIT
+fi
 case "$platform" in
 
   macos|server)

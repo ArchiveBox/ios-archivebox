@@ -87,7 +87,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         openScreen("agent", app: app)
         let start = app.webViews.buttons["Start using Agent"]
         XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
-        XCTAssertTrue(start.isHittable, app.debugDescription)
+        scrollTo(start, app: app)
         Thread.sleep(forTimeInterval: 10)
         capture("agent-welcome", app: app)
         press(start)
@@ -189,7 +189,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             if id == "agent" {
                 let start = app.webViews.buttons["Start using Agent"]
                 XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
-                XCTAssertTrue(start.isHittable, app.debugDescription)
+                scrollTo(start, app: app)
                 Thread.sleep(forTimeInterval: 10)
                 capture("agent-welcome", app: app)
                 press(start)

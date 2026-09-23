@@ -89,13 +89,17 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         capture("connection-connected", app: app)
         #if os(iOS)
         let snapshotMarkerType = XCUIElement.ElementType.link
+        let pageTextType = XCUIElement.ElementType.staticText
+        let crawlsMarker = "1 Crawl"
         #else
         // macOS WebKit exposes the card title through its text value, not a Link.
         let snapshotMarkerType = XCUIElement.ElementType.any
+        let pageTextType = XCUIElement.ElementType.any
+        let crawlsMarker = "Crawls"
         #endif
-        for (id, marker, type) in [("add", "Create a new Crawl", XCUIElement.ElementType.any),
+        for (id, marker, type) in [("add", "Create a new Crawl", pageTextType),
                                    ("snapshots", "Example Domain", snapshotMarkerType),
-                                   ("crawls", "Crawls", .any)] {
+                                   ("crawls", crawlsMarker, pageTextType)] {
             openScreen(id, app: app)
             assertPage(marker, app: app, type: type)
             capture(id, app: app)
@@ -107,10 +111,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         Thread.sleep(forTimeInterval: 10)
         capture("agent-welcome", app: app)
         press(start)
-        assertPage("New session", app: app)
+        assertPage("New session", app: app, type: pageTextType)
         capture("agent", app: app)
         openScreen("openActivity", app: app)
-        assertPage("Downloads", app: app)
+        assertPage("Downloads", app: app, type: pageTextType)
         capture("activity", app: app)
         openScreen("settings", app: app)
         XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 20), app.debugDescription)
@@ -485,8 +489,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(tapTarget)
         // The Passwords sheet can arrive while XCTest synthesizes this tap. If it
         // intercepted navigation, dismiss it and finish the same user action.
-        if app.staticTexts["Save Password?"].exists {
-            declinePasswordPrompt(in: app)
+        let passwordService = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
+        if passwordService.state != .notRunning && passwordService.staticTexts["Save Password?"].exists {
+            declinePasswordPrompt()
             if surface.isHittable {
                 XCTAssertTrue(visible(), "Password sheet interrupted sidebar navigation: \(item.debugDescription)")
                 press(tapTarget)
@@ -525,13 +530,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let content = app.webViews.descendants(matching: type).matching(predicate)
         let deadline = ProcessInfo.processInfo.systemUptime + 30
         #if os(iOS)
-        let passwordPrompt = app.staticTexts["Save Password?"]
+        let passwordService = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
+        let passwordPrompt = passwordService.staticTexts["Save Password?"]
         #endif
         let rendered = NSPredicate { _, _ in
             #if os(iOS)
             // Observe the system prompt here; XCTest UI actions must run outside
             // the expectation's predicate evaluation.
-            return passwordPrompt.exists || content.firstMatch.exists
+            return content.firstMatch.exists || (passwordService.state != .notRunning && passwordPrompt.exists)
             #else
             return content.firstMatch.exists
             #endif
@@ -539,8 +545,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         expectation(for: rendered, evaluatedWith: app)
         waitForExpectations(timeout: 30)
         #if os(iOS)
-        if passwordPrompt.exists {
-            declinePasswordPrompt(in: app, dismissalTimeout: min(5, max(0, deadline - ProcessInfo.processInfo.systemUptime)))
+        if passwordService.state != .notRunning && passwordPrompt.exists {
+            declinePasswordPrompt(dismissalTimeout: min(5, max(0, deadline - ProcessInfo.processInfo.systemUptime)))
         }
         #endif
         if !content.firstMatch.exists {
@@ -549,7 +555,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         }
         XCTAssertTrue(content.firstMatch.exists, "Expected rendered page: \(marker)\n\(app.debugDescription)")
         #if os(iOS)
-        declinePasswordPrompt(in: app)
+        declinePasswordPrompt()
         #endif
         expectation(for: NSPredicate { _, _ in
             content.allElementsBoundByIndex.contains { $0.isHittable }
@@ -561,21 +567,18 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     #if os(iOS)
-    private func declinePasswordPrompt(in target: XCUIApplication? = nil, dismissalTimeout: TimeInterval = 5) {
-        let app = target ?? application
-        let prompt = app.staticTexts["Save Password?"]
-        if prompt.exists {
-            // The sheet appears in ArchiveBox's accessibility tree, but its
-            // controls belong to SafariViewService. Tap the owning process.
-            let service = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
-            let servicePrompt = service.staticTexts["Save Password?"]
-            XCTAssertTrue(servicePrompt.exists, "The Passwords sheet must be owned by SafariViewService")
+    private func declinePasswordPrompt(dismissalTimeout: TimeInterval = 5) {
+        // The sheet appears in ArchiveBox's tree, but SafariViewService owns
+        // its controls. Query that process while the WebView is navigating.
+        let service = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
+        let servicePrompt = service.staticTexts["Save Password?"]
+        if service.state != .notRunning && servicePrompt.exists {
             let notNow = service.buttons["Not Now"]
             XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
             notNow.tap()
             XCTAssertTrue(servicePrompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
         }
-        XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")
+        XCTAssertTrue(service.state == .notRunning || !servicePrompt.exists, "The disposable API key must not be saved to Passwords")
     }
     #endif
 

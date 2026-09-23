@@ -87,8 +87,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         press(app.buttons["saveConnection"])
         capture("connection-connected", app: app)
+        #if os(iOS)
+        let snapshotMarkerType = XCUIElement.ElementType.link
+        #else
+        // macOS WebKit exposes the card title through its text value, not a Link.
+        let snapshotMarkerType = XCUIElement.ElementType.any
+        #endif
         for (id, marker, type) in [("add", "Create a new Crawl", XCUIElement.ElementType.any),
-                                   ("snapshots", "Example Domain", .link),
+                                   ("snapshots", "Example Domain", snapshotMarkerType),
                                    ("crawls", "Crawls", .any)] {
             openScreen(id, app: app)
             assertPage(marker, app: app, type: type)

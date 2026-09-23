@@ -77,8 +77,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         capture("connection-disconnected", app: app)
         replace(field, with: server)
         #if os(iOS)
-        // Dismiss the URL keyboard and let the form settle before locating the key field.
-        app.swipeUp()
+        // Drag the form content down to dismiss the URL keyboard before locating the key field.
+        let formStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.42))
+        let formEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.61))
+        formStart.press(forDuration: 0.05, thenDragTo: formEnd)
         #endif
         waitForConnectionReady(app)
         replace(app.secureTextFields["apiKey"], with: token)
@@ -170,7 +172,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         capture("connection-disconnected", app: app)
         replace(field, with: server)
         #if os(iOS)
-        app.swipeUp()
+        let formStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.42))
+        let formEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.61))
+        formStart.press(forDuration: 0.05, thenDragTo: formEnd)
         #endif
         waitForConnectionReady(app)
         replace(app.secureTextFields["apiKey"], with: token)
@@ -511,19 +515,34 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         // visible matching element, not an offscreen accessibility group.
         let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR CAST(value, 'NSString') CONTAINS[c] %@", marker, marker)
         let content = app.webViews.descendants(matching: .any).matching(predicate)
+        let deadline = ProcessInfo.processInfo.systemUptime + 30
+        #if os(iOS)
+        let passwordPrompt = app.staticTexts["Save Password?"]
+        #endif
         let rendered = NSPredicate { _, _ in
             guard Thread.isMainThread else {
                 XCTFail("XCTest must evaluate UI expectations on the main thread")
                 return false
             }
             #if os(iOS)
-            // Passwords can offer to save the disposable key after navigation starts.
-            self.declinePasswordPrompt(in: app)
-            #endif
+            // Observe the system prompt here; XCTest UI actions must run outside
+            // the expectation's predicate evaluation.
+            return passwordPrompt.exists || content.firstMatch.exists
+            #else
             return content.firstMatch.exists
+            #endif
         }
         expectation(for: rendered, evaluatedWith: app)
         waitForExpectations(timeout: 30)
+        #if os(iOS)
+        if passwordPrompt.exists {
+            declinePasswordPrompt(in: app, dismissalTimeout: min(5, max(0, deadline - ProcessInfo.processInfo.systemUptime)))
+        }
+        #endif
+        if !content.firstMatch.exists {
+            expectation(for: NSPredicate { _, _ in content.firstMatch.exists }, evaluatedWith: app)
+            waitForExpectations(timeout: max(0, deadline - ProcessInfo.processInfo.systemUptime))
+        }
         XCTAssertTrue(content.firstMatch.exists, "Expected rendered page: \(marker)\n\(app.debugDescription)")
         #if os(iOS)
         declinePasswordPrompt(in: app)
@@ -538,13 +557,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     #if os(iOS)
-    private func declinePasswordPrompt(in target: XCUIApplication? = nil) {
+    private func declinePasswordPrompt(in target: XCUIApplication? = nil, dismissalTimeout: TimeInterval = 5) {
         let app = target ?? application
         let prompt = app.staticTexts["Save Password?"]
         if prompt.exists {
             let notNow = app.buttons["Not Now"]
             XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
             notNow.tap()
+            XCTAssertTrue(prompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
         }
         XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")
     }

@@ -58,21 +58,24 @@ if (process.argv[2] === 'prepare') {
   if(git('rev-parse',`release-candidate/${state.source}`)!==sha) throw Error('Not the reserved candidate');
   if(previous) git('merge-base','--is-ancestor',previous,sha);
   const body={tag_name:tag,target_commitish:sha,...(previous?{previous_tag_name:previous}:{})};
-  // GitHub also builds a Contributors avatar section from @mentions in generated notes.
-  const generated=JSON.parse(execFileSync('gh',['api',`repos/${repo}/releases/generate-notes`,'--input','-'],{input:JSON.stringify(body),encoding:'utf8'})).body.replace(/^## (?:New )?Contributors\n[\s\S]*?(?=^## |^\*\*Full Changelog|$(?![\s\S]))/gm, '').replace(/(^|\s)@([\w-]+)/g, '$1$2');
+  const generated=JSON.parse(execFileSync('gh',['api',`repos/${repo}/releases/generate-notes`,'--input','-'],{input:JSON.stringify(body),encoding:'utf8'})).body;
+  const contributorBlock=generated.match(/^## (?:New )?Contributors\n[\s\S]*?(?=^## |^\*\*Full Changelog|$(?![\s\S]))/m)?.[0]||'';
+  const contributorLines=contributorBlock.split('\n').filter(line=>!/@pirate\b|Nick Sweeting/i.test(line));
+  const contributors=contributorLines.slice(1).some(line=>line.trim())?contributorLines.join('\n').trim():'';
   const range=previous?`${previous}..${sha}`:sha;
-  const commits=git('log','--reverse','--format=%H%x09%s%x09%aN',range).split('\n').filter(Boolean)
-    .map(line=>{const [id,title,author]=line.split('\t');return `- [${id.slice(0,7)}](https://github.com/${repo}/commit/${id}) ${title} — ${author}`;}).join('\n');
+  const commits=git('log','--reverse','--format=%H%x09%s',range).split('\n').filter(Boolean)
+    .map(line=>{const [id,title]=line.split('\t');return `- [${id.slice(0,7)}](https://github.com/${repo}/commit/${id}) ${title}`;}).join('\n');
   const link=process.env.TESTFLIGHT_PUBLIC_URL;
   if(!/^https:\/\/testflight\.apple\.com\/join\/[A-Za-z0-9]+$/.test(link||'')) throw Error('Configure the real public TestFlight invitation URL');
-  const notes=`macOS 26+ on Apple Silicon. Download either signed, notarized app below. The Server ZIP includes the Linux runtime and ArchiveBox image; the client ZIP does not.\n\n**iPhone / iPad / Mac beta:** [Join ArchiveBox on TestFlight](${link}). New builds become available there after Apple approves external beta testing.\n\n${generated}\n\n## All commits\n${commits}\n\nSource: ${sha}\n`;
+  const changelog=previous?`[\`${previous}...${tag}\`](https://github.com/${repo}/compare/${previous}...${tag})`:`[\`${tag}\`](https://github.com/${repo}/commits/${tag})`;
+  const notes=`## Install\n\n- 🍏 **macOS:** Download \`ArchiveBox.app.zip\` from the Assets section below. Unzip and drag it to your \`/Applications\` folder, then open it. You may need to \`Right Click > Open\` to launch it the first time.\n- 🖥️ **Mac server:** Download \`ArchiveBox.Server.app.zip\` to run a local ArchiveBox server.\n- 📱 **iPhone / iPad:** Install ArchiveBox.app through [TestFlight](${link}).\n- **Other platforms:** See [archivebox.io](https://archivebox.io/) for server installation options.\n\n[💻 Screenshots](https://app.archivebox.io/screenshots/) · [📖 Documentation](https://docs.archivebox.io/) · [💬 \`@ArchiveBoxApp\`](https://x.com/ArchiveBoxApp) · [🐞 Report a bug](https://github.com/${repo}/issues?q=sort%3Aupdated-desc+is%3Aissue+state%3Aopen)\n\n**Full Changelog:** ${changelog}\n\n## All changes\n\n${commits}\n\nSource: [\`${sha.slice(0,7)}\`](https://github.com/${repo}/commit/${sha})${contributors?`\n\n${contributors}`:''}\n`;
   writeFileSync('dist/release-notes.md',notes);
   const existing=JSON.parse(gh('api','--paginate','--slurp',`repos/${repo}/releases?per_page=100`)).flat().find(r=>r.tag_name===tag);
   if(existing && !existing.draft) throw Error('Public release is immutable');
   // The Releases API creates the tag at the verified candidate SHA. GitHub's
   // workflow token can publish releases, but a git tag push containing a changed
   // workflow file is rejected without a separate workflows permission.
-  if(!existing) gh('release','create',tag,'--repo',repo,'--target',sha,'--draft','--title',`ArchiveBox ${state.version}`,'--notes-file','dist/release-notes.md');
+  if(!existing) gh('release','create',tag,'--repo',repo,'--target',sha,'--draft','--title',tag,'--notes-file','dist/release-notes.md');
   const assets=['ArchiveBox.app.zip','ArchiveBox.Server.app.zip'];
   gh('release','upload',tag,'--repo',repo,'--clobber',...assets.map(a=>`dist/${a}#${a.replace('ArchiveBox.Server', 'ArchiveBox Server')}`));
   // Drafts are omitted by GitHub's tag lookup; the authenticated list includes them.
@@ -82,7 +85,7 @@ if (process.argv[2] === 'prepare') {
     const hash=run('/usr/bin/shasum',['-a','256',`dist/${name}`]).split(' ')[0];
     if(!release.assets.some(a=>a.name===name && a.state==='uploaded' && a.digest===`sha256:${hash}`)) throw Error(`Uploaded asset digest mismatch: ${name}`);
   }
-  gh('release','edit',tag,'--repo',repo,'--draft=false','--latest','--notes-file','dist/release-notes.md');
+  gh('release','edit',tag,'--repo',repo,'--draft=false','--latest','--title',tag,'--notes-file','dist/release-notes.md');
   const tagSha=git('ls-remote','origin',`refs/tags/${tag}`).split('\t')[0];
   if(tagSha!==sha) throw Error('Published release tag points elsewhere');
   // Keep the existing Sparkle feed URL; never replace the immutable versioned ZIPs.

@@ -87,9 +87,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         press(app.buttons["saveConnection"])
         capture("connection-connected", app: app)
-        for (id, marker) in [("add", "Create a new Crawl"), ("snapshots", "Example Domain"), ("crawls", "Crawls")] {
+        for (id, marker, type) in [("add", "Create a new Crawl", XCUIElement.ElementType.any),
+                                   ("snapshots", "Example Domain", .link),
+                                   ("crawls", "Crawls", .any)] {
             openScreen(id, app: app)
-            assertPage(marker, app: app)
+            assertPage(marker, app: app, type: type)
             capture(id, app: app)
         }
         openScreen("agent", app: app)
@@ -509,21 +511,17 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(element.isHittable, app.debugDescription)
     }
 
-    private func assertPage(_ marker: String, app: XCUIApplication) {
+    private func assertPage(_ marker: String, app: XCUIApplication, type: XCUIElement.ElementType = .any) {
         resolveSystemPermissions()
         // Buttons expose labels while macOS text exposes AXValue. Select a
         // visible matching element, not an offscreen accessibility group.
         let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR CAST(value, 'NSString') CONTAINS[c] %@", marker, marker)
-        let content = app.webViews.descendants(matching: .any).matching(predicate)
+        let content = app.webViews.descendants(matching: type).matching(predicate)
         let deadline = ProcessInfo.processInfo.systemUptime + 30
         #if os(iOS)
         let passwordPrompt = app.staticTexts["Save Password?"]
         #endif
         let rendered = NSPredicate { _, _ in
-            guard Thread.isMainThread else {
-                XCTFail("XCTest must evaluate UI expectations on the main thread")
-                return false
-            }
             #if os(iOS)
             // Observe the system prompt here; XCTest UI actions must run outside
             // the expectation's predicate evaluation.
@@ -561,10 +559,15 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let app = target ?? application
         let prompt = app.staticTexts["Save Password?"]
         if prompt.exists {
-            let notNow = app.buttons["Not Now"]
+            // The sheet appears in ArchiveBox's accessibility tree, but its
+            // controls belong to SafariViewService. Tap the owning process.
+            let service = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
+            let servicePrompt = service.staticTexts["Save Password?"]
+            XCTAssertTrue(servicePrompt.exists, "The Passwords sheet must be owned by SafariViewService")
+            let notNow = service.buttons["Not Now"]
             XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
             notNow.tap()
-            XCTAssertTrue(prompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
+            XCTAssertTrue(servicePrompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
         }
         XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")
     }

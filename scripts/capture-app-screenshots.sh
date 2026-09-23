@@ -193,12 +193,12 @@ xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     if [[ "$platform" == iphone ]]; then
       xcrun simctl spawn "$device_id" log show --last 5m --style compact --info \
-        --predicate 'process == "ArchiveBox" AND eventMessage CONTAINS "ArchiveBox agent navigation:"' \
-        > "$output/agent-navigation.log" 2>&1 || true
-      if ! grep -q 'ArchiveBox agent navigation:' "$output/agent-navigation.log"; then
-        echo "No Agent navigation phase markers were found in the Simulator log." >&2
+        --predicate 'process == "ArchiveBox" AND eventMessage CONTAINS "ArchiveBox page navigation "' \
+        > "$output/page-navigation.log" 2>&1 || true
+      if ! grep -q 'ArchiveBox page navigation ' "$output/page-navigation.log"; then
+        echo "No page navigation phase markers were found in the Simulator log." >&2
       fi
-      cat "$output/agent-navigation.log"
+      cat "$output/page-navigation.log"
     fi
     # Distinguish an app assertion from a stopped server or an exhausted runner.
     uptime

@@ -18,6 +18,7 @@ import ArchiveBoxCore
     private unowned let owner: WebPages
     private var destination: URL?
     private var renewedLogin: URL?
+    private let diagnosticID = String(UUID().uuidString.prefix(8))
     init(_ page: WKWebView, routing: BrowserNavigation, owner: WebPages) {
         self.page = page; self.routing = routing; self.owner = owner
         // Observe WebKit itself so links, back/forward, and redirects count too.
@@ -38,14 +39,15 @@ import ArchiveBoxCore
         // Present the document as soon as WebKit starts rendering it. Archived
         // subframes may keep loading long after the main page is usable.
         routing.didCommit = { [weak self] page in
-            guard page.url?.scheme != "about" else { return }
-            if self?.destination?.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: committed") }
-            self?.isLoading = false
+            guard let self, page.url?.scheme != "about" else { return }
+            NSLog("ArchiveBox page navigation %@: committed", diagnosticID)
+            isLoading = false
         }
         routing.didFail = { [weak self] error in
-            if self?.destination?.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: failed") }
-            self?.isLoading = false
-            self?.errorMessage = error.localizedDescription
+            guard let self else { return }
+            NSLog("ArchiveBox page navigation %@: failed", diagnosticID)
+            isLoading = false
+            errorMessage = error.localizedDescription
         }
         routing.didFinish = { [weak self] page in
             guard let self, page.url?.scheme != "about" else { return }
@@ -95,7 +97,7 @@ import ArchiveBoxCore
 
     func load(_ url: URL, requestID: UUID?, force: Bool = false) {
         guard force || !started || self.requestID != requestID else { return }
-        if url.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: requested") }
+        NSLog("ArchiveBox page navigation %@: requested", diagnosticID)
         destination = url
         loadingProgress = 0
         started = true
@@ -108,20 +110,18 @@ import ArchiveBoxCore
         navigation = Task {
             do {
                 try await owner.authenticate()
-                if url.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: authenticated") }
+                NSLog("ArchiveBox page navigation %@: authenticated", diagnosticID)
                 // A superseded load may still finish awaiting the shared login.
                 // Stop it before it can cancel the newer navigation on this page.
                 try Task.checkCancellation()
                 routing.authenticatedOrigin = owner.authentication.adminURL
-                if url.path == "/admin/agent/" {
-                    NSLog("ArchiveBox agent navigation: invoking WebKit mounted=%d width=%.0f height=%.0f",
-                          page.window == nil ? 0 : 1, Double(page.frame.width), Double(page.frame.height))
-                }
+                NSLog("ArchiveBox page navigation %@: invoking WebKit mounted=%d width=%.0f height=%.0f",
+                      diagnosticID, page.window == nil ? 0 : 1, Double(page.frame.width), Double(page.frame.height))
                 page.load(URLRequest(url: owner.authentication.authenticatedPageURL(url)))
-                if url.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: WebKit returned") }
+                NSLog("ArchiveBox page navigation %@: WebKit returned", diagnosticID)
             }
             catch {
-                if url.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: preparation failed") }
+                NSLog("ArchiveBox page navigation %@: preparation failed", diagnosticID)
                 if !Task.isCancelled { isLoading = false; errorMessage = error.localizedDescription }
             }
         }

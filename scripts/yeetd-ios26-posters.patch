@@ -1,0 +1,12 @@
+--- main.swift
++++ main.swift
+@@ -23,4 +23,8 @@
+         "AvatarPosterExtension",
+         "GradientPosterExtension",
+-        "MonogramPosterExtension"
++        "MonogramPosterExtension",
++        "UnityPoster",
++        "PridePosterExtension",
++        "MercuryPosterExtension",
++        "RhizomePoster"
+     ]

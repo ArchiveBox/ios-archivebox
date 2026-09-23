@@ -169,6 +169,9 @@ jobs:
           done
           test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = d7eb383bb2e15f4280430323b15d6bf45f3501e1563fd37c737b2b1f05d80128
           test "$(openssl dgst -sha256 -r "$tool/Logger.swift" | awk '{print $1}')" = 110fd7b95c7f4ca7d2f0e6200a25fdd927da8d7c488f3eb9238e1526f02c6e32
+          # iOS 26.5 launches these additional poster extensions on the runner.
+          patch -d "$tool" -p0 -F 0 < scripts/yeetd-ios26-posters.patch
+          test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = 7807c6d7597843bda5c5be64903d4a8cf4b2cbf6cdfef503392fd0cce223fc58
           xcrun swiftc -swift-version 5 "$tool/main.swift" "$tool/Logger.swift" -o "$tool/yeetd"
           # Preserve push-notification behavior even if the runner has a preference.
           defaults write dev.biscuit.yeetd killapsd -bool false

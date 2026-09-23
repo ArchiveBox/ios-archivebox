@@ -70,7 +70,8 @@ jobs:
           else
             base="$BEFORE_SHA"
             if [[ ! "$base" =~ ^[0-9a-f]{40}$ || "$base" =~ ^0+$ ]]; then base="$(git rev-parse HEAD^)"; fi
-            if git diff --name-only "$base" "$SOURCE_SHA" | rg -q '^(App/|MacApp/|MacLocalUI/|ShareExtension/|Widgets/|MacShareExtension/|SafariWebExtension/|Sources/|Package\.(swift|resolved)$|project\.yml$|scripts/(prepare-safari\.mjs|testflight[^/]*|verify-signing\.py)$|\.github/workflows/testflight\.yml$)'; then
+            changed_paths="$(git diff --name-only "$base" "$SOURCE_SHA")"
+            if grep -Eq '^(App/|MacApp/|MacLocalUI/|ShareExtension/|Widgets/|MacShareExtension/|SafariWebExtension/|Sources/|Package\.(swift|resolved)$|project\.yml$|scripts/(prepare-safari\.mjs|testflight[^/]*|verify-signing\.py)$|\.github/workflows/(testflight|release)\.yml$)' <<< "$changed_paths"; then
               echo 'client_changed=true' >> "$GITHUB_OUTPUT"
             else
               echo 'client_changed=false' >> "$GITHUB_OUTPUT"

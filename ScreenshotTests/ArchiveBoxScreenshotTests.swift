@@ -76,7 +76,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         capture("connection-disconnected", app: app)
         replace(field, with: server)
-        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20), app.debugDescription)
+        #if os(iOS)
+        // Dismiss the URL keyboard and let the form settle before locating the key field.
+        app.swipeUp()
+        #endif
+        waitForConnectionReady(app)
         replace(app.secureTextFields["apiKey"], with: token)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         press(app.buttons["saveConnection"])
@@ -165,7 +169,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Server not connected"].exists, "Capture requires a fresh disposable simulator/runner")
         capture("connection-disconnected", app: app)
         replace(field, with: server)
-        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20), app.debugDescription)
+        #if os(iOS)
+        app.swipeUp()
+        #endif
+        waitForConnectionReady(app)
         replace(app.secureTextFields["apiKey"], with: token)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         let save = app.buttons["saveConnection"]
@@ -392,6 +399,17 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             field.typeKey(XCUIKeyboardKey.delete.rawValue, modifierFlags: [])
         }
         field.typeText(value)
+    }
+
+    private func waitForConnectionReady(_ app: XCUIApplication) {
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (app.staticTexts["Server connected"].exists
+                || app.staticTexts["Connected to ArchiveBox."].exists
+                || app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Connected. Using ")).firstMatch.exists)
+                && !app.staticTexts["Testing connection…"].exists
+                && !app.keyboards.firstMatch.exists
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 20), .completed, app.debugDescription)
     }
 
     private func showSidebar(_ app: XCUIApplication) {

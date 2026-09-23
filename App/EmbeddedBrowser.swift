@@ -39,9 +39,11 @@ import ArchiveBoxCore
         // subframes may keep loading long after the main page is usable.
         routing.didCommit = { [weak self] page in
             guard page.url?.scheme != "about" else { return }
+            if self?.destination?.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: committed") }
             self?.isLoading = false
         }
         routing.didFail = { [weak self] error in
+            if self?.destination?.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: failed") }
             self?.isLoading = false
             self?.errorMessage = error.localizedDescription
         }
@@ -93,6 +95,7 @@ import ArchiveBoxCore
 
     func load(_ url: URL, requestID: UUID?, force: Bool = false) {
         guard force || !started || self.requestID != requestID else { return }
+        if url.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: requested") }
         destination = url
         loadingProgress = 0
         started = true
@@ -105,13 +108,22 @@ import ArchiveBoxCore
         navigation = Task {
             do {
                 try await owner.authenticate()
+                if url.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: authenticated") }
                 // A superseded load may still finish awaiting the shared login.
                 // Stop it before it can cancel the newer navigation on this page.
                 try Task.checkCancellation()
                 routing.authenticatedOrigin = owner.authentication.adminURL
+                if url.path == "/admin/agent/" {
+                    NSLog("ArchiveBox agent navigation: invoking WebKit mounted=%d width=%.0f height=%.0f",
+                          page.window == nil ? 0 : 1, Double(page.frame.width), Double(page.frame.height))
+                }
                 page.load(URLRequest(url: owner.authentication.authenticatedPageURL(url)))
+                if url.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: WebKit returned") }
             }
-            catch { if !Task.isCancelled { isLoading = false; errorMessage = error.localizedDescription } }
+            catch {
+                if url.path == "/admin/agent/" { NSLog("ArchiveBox agent navigation: preparation failed") }
+                if !Task.isCancelled { isLoading = false; errorMessage = error.localizedDescription }
+            }
         }
     }
 }

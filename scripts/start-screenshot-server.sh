@@ -138,6 +138,38 @@ snapshots = response["items"]
 assert len(snapshots) == 2, f"Expected two API snapshots, got {len(snapshots)}"
 assert all(snapshot["title"] for snapshot in snapshots), "Missing API snapshot titles"
 PY
+# Render the authenticated Add page before Simulator boot. Its first request
+# compiles the server's large form/template on the same process used by capture.
+uv run --no-sync --project "$backend" python - <<'PY'
+import json
+import os
+from pathlib import Path
+from time import monotonic
+from urllib.request import Request, urlopen
+
+base = os.environ["BASE_URL"].rstrip("/")
+token = Path(os.environ["SCREENSHOT_API_KEY_FILE"]).read_text().strip()
+login = Request(
+    f"{base}/api/v1/auth/browser_session",
+    data=b"{}",
+    headers={"X-ArchiveBox-API-Key": token, "Content-Type": "application/json"},
+)
+with urlopen(login, timeout=15) as response:
+    assert response.status == 200 and response.url == login.full_url
+    session = json.load(response)
+assert session["admin_url"].rstrip("/") == f"{base}/admin", "Unexpected browser-session origin"
+cookie = session["cookie"]
+page = Request(f"{base}/add/", headers={"Cookie": f'{cookie["name"]}={cookie["value"]}'})
+start = monotonic()
+with urlopen(page, timeout=15) as response:
+    assert response.status == 200 and response.url == page.full_url, "Add page redirected"
+    assert response.headers.get_content_type() == "text/html", "Add page is not HTML"
+    html = response.read().decode("utf-8")
+assert "Create a new Crawl" in html, "Add form is missing"
+assert "Log out" in html and os.environ["SCREENSHOT_USERNAME"] in html, "Add page is not authenticated"
+assert "FIRST-TIME SERVER SETUP" not in html, "Server setup is incomplete"
+print(f"Authenticated Add page rendered in {monotonic() - start:.2f}s.")
+PY
 for variable in ARCHIVEBOX_TEST_SERVER ARCHIVEBOX_TEST_TOKEN; do
     printf '%s=%s\n' "$variable" "${!variable}" >> "$data/connection.env"
     if [[ -n "${GITHUB_ENV:-}" ]]; then

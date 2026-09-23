@@ -143,15 +143,23 @@ YAML
         process.stdout.write(device.udid);
       });')
     destination="platform=iOS Simulator,id=$device_id"
-    # Wait for first-boot setup/data migration, not just the simulator's Booted state.
-    xcrun simctl bootstatus "$device_id" -b
     if [[ "$platform" == iphone && -n "${ARCHIVEBOX_IPHONE_APP:-}" ]]; then
       test -d "$ARCHIVEBOX_IPHONE_APP"
-      xcrun simctl install "$device_id" "$ARCHIVEBOX_IPHONE_APP"
       cp ScreenshotTests/project.yml ScreenshotTests/ArchiveBoxScreenshotTests.swift "$output/"
       xcodegen generate --spec "$output/project.yml"
       project="$output/ArchiveBoxScreenshots.xcodeproj"
       scheme=ArchiveBoxIPhoneScreenshots
+      # Compile XCTest before first-boot Simulator services compete for CPU.
+      xcodebuild -project "$project" -scheme "$scheme" \
+        -destination 'generic/platform=iOS Simulator' -derivedDataPath "$output/DerivedData" \
+        "${signing[@]}" \
+        ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}" \
+        ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}" build-for-testing
+    fi
+    # Wait for first-boot setup/data migration, not just the simulator's Booted state.
+    xcrun simctl bootstatus "$device_id" -b
+    if [[ "$platform" == iphone && -n "${ARCHIVEBOX_IPHONE_APP:-}" ]]; then
+      xcrun simctl install "$device_id" "$ARCHIVEBOX_IPHONE_APP"
     fi
     ;;
   *) echo "Unknown platform: $platform" >&2; exit 2 ;;
@@ -173,7 +181,12 @@ test_args=(-project "$project" -scheme "$scheme" -derivedDataPath "$output/Deriv
   ARCHIVEBOX_SERVER_APP="${ARCHIVEBOX_SERVER_APP:-}"
   ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}"
   ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}")
-xcodebuild "${test_args[@]}" test || {
+if [[ "$platform" == iphone && -n "${ARCHIVEBOX_IPHONE_APP:-}" ]]; then
+  test_action=test-without-building
+else
+  test_action=test
+fi
+xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     # Distinguish an app assertion from a stopped server or an exhausted runner.
     uptime

@@ -182,6 +182,9 @@ test_args=(-project "$project" -scheme "$scheme" -derivedDataPath "$output/Deriv
   ARCHIVEBOX_TEST_SERVER="${ARCHIVEBOX_TEST_SERVER:-}"
   ARCHIVEBOX_TEST_TOKEN="${ARCHIVEBOX_TEST_TOKEN:-}")
 if [[ "$platform" == iphone && -n "${ARCHIVEBOX_IPHONE_APP:-}" ]]; then
+  # Keep the xcresult and screenshot attachments, but avoid a ten-minute
+  # simulator sysdiagnose after a failed UI assertion on CI.
+  test_args+=(-collect-test-diagnostics never)
   test_action=test-without-building
 else
   test_action=test

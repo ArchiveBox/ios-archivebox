@@ -1,0 +1,33 @@
+--- main.swift
++++ main.swift
+@@ -50,6 +50,21 @@
+ // This is used to ensure we only kill Simulator processes and not host OS processes
+ let simulatorPathSearchKey = "simruntime/Contents/Resources/RuntimeRoot"
+ 
++// Only simulator OS wallpaper extensions, never host or installed app processes.
++func isSimulatorPosterExtension(_ path: String) -> Bool {
++    guard let root = path.range(of: simulatorPathSearchKey + "/") else { return false }
++    let parts = path[root.upperBound...].split(separator: "/")
++    let systemExtension = parts.count == 6 && parts[0] == "System" && parts[1] == "Library"
++        && parts[2] == "ExtensionKit" && parts[3] == "Extensions"
++    let bundledExtension = parts.count == 5 && parts[0] == "Applications"
++        && parts[1].hasSuffix(".app") && parts[2] == "Extensions"
++    guard systemExtension || bundledExtension else { return false }
++    let bundle = parts[parts.count - 2]
++    let executable = parts[parts.count - 1]
++    guard bundle.hasSuffix(".appex") else { return false }
++    return bundle.dropLast(".appex".count) == executable && executable.contains("Poster")
++}
++
+ // How long to sleep between checks
+ let sleepDelay: UInt32 = 5
+ 
+@@ -87,7 +102,7 @@
+         let name = String(cString: nameBuffer)
+         let path = String(cString: pathBuffer)
+ 
+-        if ProcessConfig.processes.contains(where: { $0 == name }) {
++        if ProcessConfig.processes.contains(name) || isSimulatorPosterExtension(path) {
+             // TODO: determine if a process is sleeping and be efficient
+             // We need either:
+             // 1) get-task-allow entitlement (no SIP)

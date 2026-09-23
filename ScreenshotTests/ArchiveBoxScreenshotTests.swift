@@ -449,8 +449,17 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(item.isEnabled, app.debugDescription)
         #if os(iOS)
         // The section header's accessibility frame spans the row; its clickable label does not.
-        if id == "admin" { press(item.staticTexts["Admin"]) }
-        else { press(item) }
+        let tapTarget = id == "admin" ? item.staticTexts["Admin"] : item
+        press(tapTarget)
+        // The Passwords sheet can arrive while XCTest synthesizes this tap. If it
+        // intercepted navigation, dismiss it and finish the same user action.
+        if app.staticTexts["Save Password?"].exists {
+            declinePasswordPrompt(in: app)
+            if surface.isHittable {
+                XCTAssertTrue(visible(), "Password sheet interrupted sidebar navigation: \(item.debugDescription)")
+                press(tapTarget)
+            }
+        }
         #else
         press(item)
         #endif

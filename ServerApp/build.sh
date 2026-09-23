@@ -28,7 +28,7 @@ cp ../LICENSE "$app/Contents/Resources/LICENSE"
 bash prepare-network.sh
 cp vendor/caddy/caddy "$app/Contents/Resources/caddy"
 cp vendor/caddy/LICENSE "$app/Contents/Resources/CADDY-LICENSE"
-codesign --force --options runtime --sign "$signing_identity" "$app/Contents/Resources/caddy"
+codesign --force --options runtime --timestamp --sign "$signing_identity" "$app/Contents/Resources/caddy"
 ditto "$assets/vendor/package/Payload" "$app/Contents/Resources/runtime"
 cp "$assets/payload/images.tar" "$assets/payload/vmlinux" "$app/Contents/Resources/"
 cp "$assets/vendor/container/LICENSE" "$app/Contents/Resources/APPLE-CONTAINER-LICENSE"
@@ -41,9 +41,9 @@ mkdir -p "$app/Contents/Frameworks"
 ditto "$sparkle" "$app/Contents/Frameworks/Sparkle.framework"
 # Sign Sparkle's nested executable bundles from the inside out with our identity.
 for component in XPCServices/Downloader.xpc XPCServices/Installer.xpc Autoupdate Updater.app; do
-    codesign --force --options runtime --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework/Versions/B/$component"
+    codesign --force --options runtime --timestamp --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework/Versions/B/$component"
 done
-codesign --force --options runtime --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework"
+codesign --force --options runtime --timestamp --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework"
 # Share the client's browser logos and branding with the companion's Clients section.
 xcrun actool "$PWD/../App/Assets.xcassets" --compile "$app/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --output-format human-readable-text
 test -s "$app/Contents/Resources/Assets.car"
@@ -86,6 +86,6 @@ PLIST
 uv run --no-project python bundle-metadata.py "$app"
 # Preserve Apple's nested signatures; only sign our executable/bundle.
 # Public downloads require Developer ID signing, notarization, and stapling.
-codesign --force --options runtime --sign "${signing_identity}" "$app"
+codesign --force --options runtime --timestamp --sign "${signing_identity}" "$app"
 codesign --verify --deep --strict "$app"
 printf '%s\n' "$app"

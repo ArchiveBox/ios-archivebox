@@ -89,10 +89,10 @@ def verify(path):
 os.chdir(Path(__file__).resolve().parent)
 if sys.argv[1:] == ["resolve"]:
     resolve(version=os.environ.get("ARCHIVEBOX_VERSION"))
-elif len(sys.argv) == 3 and sys.argv[1] == "resolve":
-    resolve(version=sys.argv[2])
 elif sys.argv[1:] == ["resolve", "--published"]:
     resolve(require_tip=False)
+elif len(sys.argv) == 3 and sys.argv[1] == "resolve":
+    resolve(version=sys.argv[2])
 elif len(sys.argv) == 3 and sys.argv[1] == "verify":
     verify(sys.argv[2])
 else:

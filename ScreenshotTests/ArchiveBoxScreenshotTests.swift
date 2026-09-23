@@ -417,17 +417,24 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         }
         #else
         let surface = app.collectionViews["sidebar"]
+        let visibleTop = app.staticTexts["ArchiveBox"].frame.maxY
+        let visibleBottom = app.buttons["sidebar.openActivity"].frame.minY
+        let visible = {
+            let frame = item.frame
+            return item.isHittable && frame.minY >= visibleTop && frame.maxY <= visibleBottom
+        }
         // Scroll the actual sidebar surface in both compact and regular split views.
         for _ in 0..<6 {
-            if item.isHittable { break }
+            if visible() { break }
             surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).press(forDuration: 0.05,
                 thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)))
         }
         for _ in 0..<10 {
-            if item.isHittable { break }
+            if visible() { break }
             surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)).press(forDuration: 0.05,
                 thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
         }
+        XCTAssertTrue(visible(), "Sidebar item is outside the visible list: \(item.debugDescription)")
         #endif
         XCTAssertTrue(item.isEnabled, app.debugDescription)
         #if os(iOS)

@@ -69,9 +69,12 @@ if (process.argv[2] === 'prepare') {
   writeFileSync('dist/release-notes.md',notes);
   const existing=JSON.parse(gh('api','--paginate','--slurp',`repos/${repo}/releases?per_page=100`)).flat().find(r=>r.tag_name===tag);
   if(existing && !existing.draft) throw Error('Public release is immutable');
-  if(!git('tag','--list',tag)) {git('tag',tag);git('push','origin',`refs/tags/${tag}`);}
-  if(git('rev-parse',`${tag}^{commit}`)!==sha) throw Error('Release tag points elsewhere');
-  if(!existing) gh('release','create',tag,'--repo',repo,'--verify-tag','--draft','--title',`ArchiveBox ${state.version}`,'--notes-file','dist/release-notes.md');
+  // The Releases API creates the tag at the verified candidate SHA. GitHub's
+  // workflow token can publish releases, but a git tag push containing a changed
+  // workflow file is rejected without a separate workflows permission.
+  if(!existing) gh('release','create',tag,'--repo',repo,'--target',sha,'--draft','--title',`ArchiveBox ${state.version}`,'--notes-file','dist/release-notes.md');
+  const tagSha=git('ls-remote','origin',`refs/tags/${tag}`).split('\t')[0];
+  if(tagSha!==sha) throw Error('Release tag points elsewhere');
   const assets=['ArchiveBox.app.zip','ArchiveBox.Server.app.zip'];
   gh('release','upload',tag,'--repo',repo,'--clobber',...assets.map(a=>`dist/${a}#${a.replace('ArchiveBox.Server', 'ArchiveBox Server')}`));
   // Drafts are omitted by GitHub's tag lookup; the authenticated list includes them.

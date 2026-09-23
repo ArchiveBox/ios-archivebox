@@ -174,7 +174,9 @@ xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     # Distinguish an app assertion from a stopped server or an exhausted runner.
     uptime
+    sysctl hw.memsize hw.ncpu
     sysctl vm.swapusage
+    memory_pressure -Q || true
     ps -A -o pid,ppid,%cpu,%mem,comm | sort -nr -k3 | head -20 || true
     if [[ -n "${ARCHIVEBOX_TEST_SERVER:-}" ]]; then
       curl --fail --silent --show-error --max-time 15 \

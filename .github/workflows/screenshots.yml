@@ -75,7 +75,9 @@ jobs:
       matrix:
         # Server companion screenshots are captured locally with capture-app-screenshots.sh.
         platform: [iphone, macos]
-    runs-on: macos-26
+    # A screenshot request stalled on the 7 GB arm64 runner with active swap.
+    # The standard Intel runner has 14 GB; SDK27 XCTest products include x86_64.
+    runs-on: ${{ matrix.platform == 'iphone' && 'macos-26-intel' || 'macos-26' }}
     environment: testflight
     timeout-minutes: 45
     steps:

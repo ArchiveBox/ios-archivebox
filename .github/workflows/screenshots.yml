@@ -153,6 +153,29 @@ jobs:
               'run_id': os.environ['GITHUB_RUN_ID'],
           }) + '\n')
           PY
+      - name: Stop excess Simulator poster processes on the disposable iPhone runner
+        if: matrix.platform == 'iphone'
+        run: |
+          # Xcode 26 virtual runners can spend their CPU on simulator wallpaper
+          # extensions. yeetd SIGSTOPs only named processes inside simruntime.
+          # https://github.com/actions/runner-images/issues/13540
+          tool="$RUNNER_TEMP/yeetd"
+          mkdir -p "$tool"
+          revision=4c6ffe408c0a06f3d5df15f075ef369061d8c47e
+          for source in main Logger; do
+            curl --fail --silent --show-error --location \
+              "https://raw.githubusercontent.com/biscuitehh/yeetd/$revision/yeetd/$source.swift" \
+              -o "$tool/$source.swift"
+          done
+          test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = d7eb383bb2e15f4280430323b15d6bf45f3501e1563fd37c737b2b1f05d80128
+          test "$(openssl dgst -sha256 -r "$tool/Logger.swift" | awk '{print $1}')" = 110fd7b95c7f4ca7d2f0e6200a25fdd927da8d7c488f3eb9238e1526f02c6e32
+          xcrun swiftc -swift-version 5 "$tool/main.swift" "$tool/Logger.swift" -o "$tool/yeetd"
+          # Preserve push-notification behavior even if the runner has a preference.
+          defaults write dev.biscuit.yeetd killapsd -bool false
+          nohup "$tool/yeetd" > "$tool/yeetd.log" 2>&1 < /dev/null &
+          echo "$!" > "$tool/yeetd.pid"
+          sleep 1
+          kill -0 "$(cat "$tool/yeetd.pid")"
       - name: Capture every native app screen with XCTest
         run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}' 'build/screenshots/${{ matrix.platform }}' gallery
       - name: Validate this complete capture group
@@ -186,3 +209,12 @@ jobs:
             build/screenshots/${{ matrix.platform }}/Capture.xcresult/
             ${{ runner.temp }}/screenshot-server/server.log
           retention-days: 7
+      - name: Stop the disposable Simulator helper
+        if: always() && matrix.platform == 'iphone'
+        run: |
+          tool="$RUNNER_TEMP/yeetd"
+          if [[ -f "$tool/yeetd.pid" ]]; then
+            log show --last 40m --style compact --info \
+              --predicate 'subsystem == "dev.biscuit.yeetd"' 2>/dev/null | tail -30 || true
+            kill "$(cat "$tool/yeetd.pid")" 2>/dev/null || true
+          fi

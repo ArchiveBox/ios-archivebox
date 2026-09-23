@@ -44,22 +44,21 @@ jobs:
           path: build/screenshots/macos-build/ArchiveBox.app.zip
           if-no-files-found: error
           retention-days: 7
-      - name: Generate iPhone screenshot test scheme
+      - name: Restore the standard app project
         run: xcodegen generate
-      - name: Build iPhone XCTest products with SDK27
+      - name: Build the iPhone app with SDK27
         run: |
-          xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBoxScreenshots \
+          xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/screenshots/iphone-build/DerivedData \
-            -parallel-testing-enabled NO \
-            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= build-for-testing
-          products=build/screenshots/iphone-build/DerivedData/Build/Products
-          test "$(find "$products" -maxdepth 1 -name '*.xctestrun' | wc -l | tr -d ' ')" -eq 1
-          ditto -c -k --sequesterRsrc --keepParent "$products" build/screenshots/iphone-build/Products.zip
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= build
+          app=build/screenshots/iphone-build/DerivedData/Build/Products/Debug-iphonesimulator/ArchiveBox.app
+          test -d "$app"
+          ditto -c -k --sequesterRsrc --keepParent "$app" build/screenshots/iphone-build/ArchiveBox.app.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: iphone-capture-products
-          path: build/screenshots/iphone-build/Products.zip
+          name: iphone-capture-app
+          path: build/screenshots/iphone-build/ArchiveBox.app.zip
           if-no-files-found: error
           retention-days: 7
   capture:
@@ -76,7 +75,7 @@ jobs:
         # Server companion screenshots are captured locally with capture-app-screenshots.sh.
         platform: [iphone, macos]
     # A screenshot request stalled on the 7 GB arm64 runner with active swap.
-    # The standard Intel runner has 14 GB; SDK27 XCTest products include x86_64.
+    # The stable Intel runner has 14 GB and builds its own matching XCTest harness.
     runs-on: ${{ matrix.platform == 'iphone' && 'macos-26-intel' || 'macos-26' }}
     environment: testflight
     timeout-minutes: 45
@@ -98,20 +97,19 @@ jobs:
         with:
           version: '10.33.2'
       - name: Install XcodeGen
-        if: matrix.platform == 'macos'
         run: brew install xcodegen
       - uses: actions/download-artifact@v4
         if: matrix.platform == 'iphone'
         with:
-          name: iphone-capture-products
-          path: build/screenshots/iphone-products
-      - name: Extract the SDK27 iPhone test products for stable iOS capture
+          name: iphone-capture-app
+          path: build/screenshots/iphone-app
+      - name: Extract the SDK27 iPhone app for stable iOS capture
         if: matrix.platform == 'iphone'
         run: |
-          ditto -x -k build/screenshots/iphone-products/Products.zip build/screenshots/iphone-products
-          products="$GITHUB_WORKSPACE/build/screenshots/iphone-products/Products"
-          test "$(find "$products" -maxdepth 1 -name '*.xctestrun' | wc -l | tr -d ' ')" -eq 1
-          echo "ARCHIVEBOX_IPHONE_XCTESTRUN=$(find "$products" -maxdepth 1 -name '*.xctestrun' -print -quit)" >> "$GITHUB_ENV"
+          ditto -x -k build/screenshots/iphone-app/ArchiveBox.app.zip build/screenshots/iphone-app
+          app="$GITHUB_WORKSPACE/build/screenshots/iphone-app/ArchiveBox.app"
+          test -d "$app"
+          echo "ARCHIVEBOX_IPHONE_APP=$app" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
         if: matrix.platform == 'macos'
         with:

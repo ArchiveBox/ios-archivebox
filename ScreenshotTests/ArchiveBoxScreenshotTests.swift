@@ -11,8 +11,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         if let path = ProcessInfo.processInfo.environment["ARCHIVEBOX_MAC_APP"] {
             return XCUIApplication(url: URL(fileURLWithPath: path))
         }
-        #endif
         return XCUIApplication()
+        #else
+        return XCUIApplication(bundleIdentifier: "io.archivebox.ArchiveBox")
+        #endif
     }
 
     func testLaunchScreenshot() throws {

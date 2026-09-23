@@ -73,18 +73,18 @@ if (process.argv[2] === 'prepare') {
   // workflow token can publish releases, but a git tag push containing a changed
   // workflow file is rejected without a separate workflows permission.
   if(!existing) gh('release','create',tag,'--repo',repo,'--target',sha,'--draft','--title',`ArchiveBox ${state.version}`,'--notes-file','dist/release-notes.md');
-  const tagSha=git('ls-remote','origin',`refs/tags/${tag}`).split('\t')[0];
-  if(tagSha!==sha) throw Error('Release tag points elsewhere');
   const assets=['ArchiveBox.app.zip','ArchiveBox.Server.app.zip'];
   gh('release','upload',tag,'--repo',repo,'--clobber',...assets.map(a=>`dist/${a}#${a.replace('ArchiveBox.Server', 'ArchiveBox Server')}`));
   // Drafts are omitted by GitHub's tag lookup; the authenticated list includes them.
   const release=JSON.parse(gh('api','--paginate','--slurp',`repos/${repo}/releases?per_page=100`)).flat().find(r=>r.tag_name===tag);
-  if(!release) throw Error('Draft release is missing');
+  if(!release || release.target_commitish!==sha) throw Error('Draft release target differs from the tested candidate');
   for(const name of assets) {
     const hash=run('/usr/bin/shasum',['-a','256',`dist/${name}`]).split(' ')[0];
     if(!release.assets.some(a=>a.name===name && a.state==='uploaded' && a.digest===`sha256:${hash}`)) throw Error(`Uploaded asset digest mismatch: ${name}`);
   }
   gh('release','edit',tag,'--repo',repo,'--draft=false','--latest','--notes-file','dist/release-notes.md');
+  const tagSha=git('ls-remote','origin',`refs/tags/${tag}`).split('\t')[0];
+  if(tagSha!==sha) throw Error('Published release tag points elsewhere');
   // Keep the existing Sparkle feed URL; never replace the immutable versioned ZIPs.
   const feed=JSON.parse(gh('api','--paginate','--slurp',`repos/${repo}/releases?per_page=100`)).flat().find(r=>r.tag_name==='server-updates');
   if(!feed) gh('release','create','server-updates','--repo',repo,'--target',sha,'--prerelease','--latest=false','--title','ArchiveBox Server update feed','--notes','Stable Sparkle feed. Download apps from the versioned releases.');

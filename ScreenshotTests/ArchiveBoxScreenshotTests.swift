@@ -97,6 +97,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         assertPage("Downloads", app: app)
         capture("activity", app: app)
         openScreen("settings", app: app)
+        XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 20), app.debugDescription)
         #if os(macOS)
         // Saving the connection moves this real server into remembered history.
         // Wait for that row to expand the form before measuring where to scroll.

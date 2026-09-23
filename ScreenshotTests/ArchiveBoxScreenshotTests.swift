@@ -478,7 +478,23 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         // visible matching element, not an offscreen accessibility group.
         let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR CAST(value, 'NSString') CONTAINS[c] %@", marker, marker)
         let content = app.webViews.descendants(matching: .any).matching(predicate)
-        XCTAssertTrue(content.firstMatch.waitForExistence(timeout: 30), "Expected rendered page: \(marker)\n\(app.debugDescription)")
+        let rendered = NSPredicate { _, _ in
+            guard Thread.isMainThread else {
+                XCTFail("XCTest must evaluate UI expectations on the main thread")
+                return false
+            }
+            #if os(iOS)
+            // Passwords can offer to save the disposable key after navigation starts.
+            self.declinePasswordPrompt(in: app)
+            #endif
+            return content.firstMatch.exists
+        }
+        expectation(for: rendered, evaluatedWith: app)
+        waitForExpectations(timeout: 30)
+        XCTAssertTrue(content.firstMatch.exists, "Expected rendered page: \(marker)\n\(app.debugDescription)")
+        #if os(iOS)
+        declinePasswordPrompt(in: app)
+        #endif
         expectation(for: NSPredicate { _, _ in
             content.allElementsBoundByIndex.contains { $0.isHittable }
         }, evaluatedWith: app)
@@ -489,15 +505,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     #if os(iOS)
-    private func declinePasswordPrompt() {
-        let app = application
+    private func declinePasswordPrompt(in target: XCUIApplication? = nil) {
+        let app = target ?? application
         let prompt = app.staticTexts["Save Password?"]
         if prompt.exists {
             let notNow = app.buttons["Not Now"]
             XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
             notNow.tap()
-            expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: prompt)
-            waitForExpectations(timeout: 5)
         }
         XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")
     }

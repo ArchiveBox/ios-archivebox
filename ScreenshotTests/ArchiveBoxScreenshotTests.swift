@@ -382,9 +382,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     private func replace(_ field: XCUIElement, with value: String) {
         scrollTo(field, app: application)
+        let current = field.value as? String
+        let isEmpty = current == "" || (field.placeholderValue != nil && current == field.placeholderValue)
         press(field)
-        field.typeKey("a", modifierFlags: .command)
-        field.typeKey(XCUIKeyboardKey.delete.rawValue, modifierFlags: [])
+        if !isEmpty {
+            field.typeKey("a", modifierFlags: .command)
+            field.typeKey(XCUIKeyboardKey.delete.rawValue, modifierFlags: [])
+        }
         field.typeText(value)
     }
 

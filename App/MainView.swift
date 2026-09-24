@@ -401,7 +401,9 @@ struct MainView: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel("Back to menu")
                     .accessibilityIdentifier("navigation.sidebar")
-                    .padding(8)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
+                    .offset(y: -5)
                 }
             }
             #endif

@@ -189,7 +189,7 @@ jobs:
           test "$(openssl dgst -sha256 -r "$tool/Logger.swift" | awk '{print $1}')" = 110fd7b95c7f4ca7d2f0e6200a25fdd927da8d7c488f3eb9238e1526f02c6e32
           # Match OS wallpaper extension bundles in both observed Simulator layouts.
           patch -d "$tool" -p0 -F 0 < scripts/yeetd-simulator-posters.patch
-          test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = 487291612dd7e96935d2e941a46fdc854de0a8a19b25155854e935722794d855
+          test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = ff79175f1642ec264d786d8611bb8588083053cae8b08b8ebcfebfe784dfd993
           xcrun swiftc -swift-version 5 "$tool/main.swift" "$tool/Logger.swift" -o "$tool/yeetd"
           # Preserve push-notification behavior even if the runner has a preference.
           defaults write dev.biscuit.yeetd killapsd -bool false

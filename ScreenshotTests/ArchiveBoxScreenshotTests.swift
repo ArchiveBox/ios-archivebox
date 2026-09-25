@@ -592,7 +592,17 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         if service.state != .notRunning && servicePrompt.exists {
             let notNow = service.buttons["Not Now"]
             XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
-            notNow.tap()
+            // XCTest activates SafariViewService before tapping its AX button;
+            // that activation can invalidate the hit point even while the
+            // system sheet remains on screen. Tap its visible screen position.
+            let button = notNow.frame
+            let screen = application.frame
+            let center = CGPoint(x: button.midX, y: button.midY)
+            XCTAssertTrue(screen.contains(center), "Not Now must be visible on the iPhone screen")
+            application.coordinate(withNormalizedOffset: CGVector(
+                dx: (center.x - screen.minX) / screen.width,
+                dy: (center.y - screen.minY) / screen.height
+            )).tap()
             XCTAssertTrue(servicePrompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
         }
         XCTAssertTrue(service.state == .notRunning || !servicePrompt.exists, "The disposable API key must not be saved to Passwords")

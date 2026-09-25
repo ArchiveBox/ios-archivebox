@@ -57,6 +57,23 @@ jobs:
           path: build/screenshots/macos-build/ArchiveBox.app.zip
           if-no-files-found: error
           retention-days: 7
+      - name: Restore the standard app project
+        run: xcodegen generate
+      - name: Build the iPhone app with SDK27
+        run: |
+          xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/screenshots/iphone-build/DerivedData \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= build
+          app=build/screenshots/iphone-build/DerivedData/Build/Products/Debug-iphonesimulator/ArchiveBox.app
+          test -d "$app"
+          ditto -c -k --sequesterRsrc --keepParent "$app" build/screenshots/iphone-build/ArchiveBox.app.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iphone-capture-app
+          path: build/screenshots/iphone-build/ArchiveBox.app.zip
+          if-no-files-found: error
+          retention-days: 7
   capture:
     needs: build-macos
     env:
@@ -72,7 +89,8 @@ jobs:
       matrix:
         # Server companion screenshots are captured locally with capture-app-screenshots.sh.
         platform: [iphone, macos]
-    # Build and capture the iPhone app on stable ARM macOS26 with iOS26.5.
+    # The SDK27 iPhone app runs against its iOS26 deployment target; build the
+    # independent XCTest harness on stable ARM macOS26 with iOS26.5.
     # Keep Mac WebKit capture on stable macOS26 (macOS27 fails IOSurface creation).
     runs-on: macos-26
     environment: testflight
@@ -98,18 +116,16 @@ jobs:
           version: '10.33.2'
       - name: Install XcodeGen
         run: brew install xcodegen
-      - name: Prepare pinned Safari extension for iPhone
+      - uses: actions/download-artifact@v4
         if: matrix.platform == 'iphone'
-        run: node scripts/prepare-safari.mjs
-      - name: Build the iPhone app on the capture runner
+        with:
+          name: iphone-capture-app
+          path: build/screenshots/iphone-app
+      - name: Extract the SDK27 iPhone app for stable iOS capture
         if: matrix.platform == 'iphone'
         run: |
-          xcodegen generate
-          xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/screenshots/iphone-build/DerivedData \
-            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= build
-          app="$GITHUB_WORKSPACE/build/screenshots/iphone-build/DerivedData/Build/Products/Debug-iphonesimulator/ArchiveBox.app"
+          ditto -x -k build/screenshots/iphone-app/ArchiveBox.app.zip build/screenshots/iphone-app
+          app="$GITHUB_WORKSPACE/build/screenshots/iphone-app/ArchiveBox.app"
           test -d "$app"
           echo "ARCHIVEBOX_IPHONE_APP=$app" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4

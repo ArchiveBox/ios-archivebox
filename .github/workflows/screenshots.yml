@@ -4,6 +4,10 @@ on:
     branches: [main]
     paths-ignore: ['.github/pages/**', 'README.md', 'docs/site/**', '.github/workflows/pages.yml', 'release.json', 'docs/TESTFLIGHT.md']
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Release apps']
+    types: [completed]
+    branches: [main]
 permissions:
   contents: read
 env:
@@ -11,6 +15,9 @@ env:
   BACKEND_REVISION: dev
 jobs:
   build-macos:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
     concurrency:
       group: macos-capture-build-${{ github.ref }}
       cancel-in-progress: false
@@ -22,6 +29,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Release apps uses GITHUB_TOKEN to update main; that push cannot trigger us.
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
+      - name: Record the checked-out source revision
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -63,6 +76,8 @@ jobs:
           retention-days: 7
   capture:
     needs: build-macos
+    env:
+      SOURCE_SHA: ${{ needs.build-macos.outputs.source_sha }}
     concurrency:
       group: app-captures-${{ matrix.platform }}-${{ github.ref }}
       cancel-in-progress: false
@@ -82,6 +97,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build-macos.outputs.source_sha }}
       - name: Set the disposable Mac desktop size
         if: matrix.platform != 'iphone'
         run: |
@@ -149,7 +166,7 @@ jobs:
           output.mkdir(parents=True, exist_ok=True)
           (output / 'metadata.json').write_text(json.dumps({
               'platform': platform,
-              'revision': os.environ['GITHUB_SHA'],
+              'revision': os.environ['SOURCE_SHA'],
               'backend_revision': os.environ['CAPTURE_BACKEND'],
               'run_id': os.environ['GITHUB_RUN_ID'],
           }) + '\n')
@@ -185,7 +202,7 @@ jobs:
       - name: Validate this complete capture group
         env:
           CAPTURE_BACKEND: ${{ env.BACKEND_REVISION }}
-        run: uv run --no-project python scripts/build-screenshot-gallery.py --platform '${{ matrix.platform }}' --revision "$GITHUB_SHA" --backend-revision "$CAPTURE_BACKEND"
+        run: uv run --no-project python scripts/build-screenshot-gallery.py --platform '${{ matrix.platform }}' --revision "$SOURCE_SHA" --backend-revision "$CAPTURE_BACKEND"
       - uses: actions/upload-artifact@v4
         with:
           name: site-screenshots-${{ matrix.platform }}

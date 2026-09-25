@@ -4,6 +4,10 @@ on:
     paths-ignore: ['.github/pages/**', 'README.md', 'docs/site/**', '.github/workflows/pages.yml']
   pull_request:
     paths-ignore: ['.github/pages/**', 'README.md', 'docs/site/**', '.github/workflows/pages.yml']
+  workflow_run:
+    workflows: ['Release apps']
+    types: [completed]
+    branches: [main]
 permissions:
   contents: read
 concurrency:
@@ -11,9 +15,14 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Release apps commits with GITHUB_TOKEN, which does not emit push workflows.
+          # Resolve the resulting main HEAD after that workflow completes.
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

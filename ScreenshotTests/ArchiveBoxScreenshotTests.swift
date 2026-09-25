@@ -143,14 +143,17 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         for _ in 0..<8 {
             if element.isHittable { break }
             #if os(macOS)
-            // HTML controls in WKWebView have no native accessibility
-            // identifier. Scroll the web view itself instead of querying a
-            // scroll pane by an empty identifier.
-            let pane = element.identifier.isEmpty
-                ? app.webViews.firstMatch
-                : app.scrollViews.containing(.any, identifier: element.identifier).firstMatch
-            XCTAssertTrue(pane.exists, "Missing scroll pane for \(element.identifier)")
-            pane.scroll(byDeltaX: 0, deltaY: -280)
+            if element.identifier.isEmpty {
+                // The Agent page has its own scroll area below the status panel.
+                // Scroll over the visible page content, not the outer WebView's
+                // midpoint (which lands in the fixed status panel).
+                app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.73))
+                    .scroll(byDeltaX: 0, deltaY: -280)
+            } else {
+                let pane = app.scrollViews.containing(.any, identifier: element.identifier).firstMatch
+                XCTAssertTrue(pane.exists, "Missing scroll pane for \(element.identifier)")
+                pane.scroll(byDeltaX: 0, deltaY: -280)
+            }
             #else
             app.swipeUp()
             #endif

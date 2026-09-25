@@ -566,6 +566,12 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(content.firstMatch.exists, "Expected rendered page: \(marker)\n\(app.debugDescription)")
         #if os(iOS)
         declinePasswordPrompt()
+        // The live progress panel can fill a phone viewport above the
+        // snapshot rows. Move the actual page until its rendered row is in view.
+        for _ in 0..<8 {
+            if content.allElementsBoundByIndex.contains(where: { $0.isHittable }) { break }
+            app.webViews.firstMatch.swipeUp()
+        }
         #else
         // The snapshot grid can sit below the live progress panel. Scroll the
         // page a user would scroll before requiring its existing row to be visible.

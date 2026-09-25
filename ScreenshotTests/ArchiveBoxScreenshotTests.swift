@@ -86,6 +86,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         replace(app.secureTextFields["apiKey"], with: token)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         press(app.buttons["saveConnection"])
+        XCTAssertTrue(app.staticTexts["Testing connection…"].waitForNonExistence(timeout: 20), app.debugDescription)
         capture("connection-connected", app: app)
         #if os(iOS)
         let snapshotMarkerType = XCUIElement.ElementType.link
@@ -205,6 +206,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: save)
         waitForExpectations(timeout: 20)
         press(save)
+        XCTAssertTrue(app.staticTexts["Testing connection…"].waitForNonExistence(timeout: 20), app.debugDescription)
         capture("connection-connected", app: app)
         showSidebar(app)
         capture("sidebar", app: app)

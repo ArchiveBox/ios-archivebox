@@ -563,6 +563,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(content.firstMatch.exists, "Expected rendered page: \(marker)\n\(app.debugDescription)")
         #if os(iOS)
         declinePasswordPrompt()
+        #else
+        // The snapshot grid can sit below the live progress panel. Scroll the
+        // page a user would scroll before requiring its existing row to be visible.
+        for _ in 0..<8 {
+            if content.allElementsBoundByIndex.contains(where: { $0.isHittable }) { break }
+            app.webViews.firstMatch.scroll(byDeltaX: 0, deltaY: -280)
+        }
         #endif
         expectation(for: NSPredicate { _, _ in
             content.allElementsBoundByIndex.contains { $0.isHittable }

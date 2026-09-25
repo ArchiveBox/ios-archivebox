@@ -90,7 +90,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         #if os(iOS)
         let snapshotMarkerType = XCUIElement.ElementType.link
         let pageTextType = XCUIElement.ElementType.staticText
-        let crawlsMarker = "1 Crawl"
+        // The real screenshot collection creates two crawls. Check its stable
+        // page heading instead of a count that changes with the collection.
+        let crawlsMarker = "Crawls"
         #else
         // macOS WebKit exposes the card title through its text value, not a Link.
         let snapshotMarkerType = XCUIElement.ElementType.any
@@ -141,7 +143,12 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         for _ in 0..<8 {
             if element.isHittable { break }
             #if os(macOS)
-            let pane = app.scrollViews.containing(.any, identifier: element.identifier).firstMatch
+            // HTML controls in WKWebView have no native accessibility
+            // identifier. Scroll the web view itself instead of querying a
+            // scroll pane by an empty identifier.
+            let pane = element.identifier.isEmpty
+                ? app.webViews.firstMatch
+                : app.scrollViews.containing(.any, identifier: element.identifier).firstMatch
             XCTAssertTrue(pane.exists, "Missing scroll pane for \(element.identifier)")
             pane.scroll(byDeltaX: 0, deltaY: -280)
             #else

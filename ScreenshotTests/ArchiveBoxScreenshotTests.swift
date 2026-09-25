@@ -598,7 +598,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertEqual(app.state, .runningForeground, "Cannot capture \(name): another app covers the target window")
         let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
         #else
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        // A full-page WKWebView can make XCUIApplication's accessibility
+        // snapshot time out even though the simulator has rendered the screen.
+        // Capture the visible device display directly for reliable gallery
+        // images, as the share-flow captures already do below.
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         #endif
         attachment.name = name
         attachment.lifetime = .keepAlways

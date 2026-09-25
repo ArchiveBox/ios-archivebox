@@ -1,34 +1,30 @@
 --- main.swift
 +++ main.swift
-@@ -50,6 +50,22 @@
+@@ -50,6 +50,18 @@
  // This is used to ensure we only kill Simulator processes and not host OS processes
  let simulatorPathSearchKey = "simruntime/Contents/Resources/RuntimeRoot"
  
-+// Only simulator OS wallpaper extensions, never host or installed app processes.
-+func isSimulatorPosterExtension(_ path: String) -> Bool {
++// Stop only bundled system extensions in a disposable Simulator runtime.
++// Installed ArchiveBox/Safari app extensions live in device data, outside this root.
++func isSimulatorSystemExtension(_ path: String) -> Bool {
 +    guard let root = path.range(of: simulatorPathSearchKey + "/") else { return false }
 +    let parts = path[root.upperBound...].split(separator: "/")
-+    let systemExtension = parts.count == 6 && parts[0] == "System" && parts[1] == "Library"
-+        && parts[2] == "ExtensionKit" && parts[3] == "Extensions"
-+    let bundledExtension = parts.count == 5 && parts[0] == "Applications"
-+        && parts[1].hasSuffix(".app") && (parts[2] == "Extensions" || parts[2] == "PlugIns")
-+    guard systemExtension || bundledExtension else { return false }
++    guard parts.count >= 3, parts[0] == "System" || parts[0] == "Applications" else { return false }
 +    let bundle = parts[parts.count - 2]
 +    let executable = parts[parts.count - 1]
 +    guard bundle.hasSuffix(".appex") else { return false }
 +    return bundle.dropLast(".appex".count) == executable
-+        && (executable.contains("Poster") || executable == "SleepWidgetExtension")
 +}
 +
  // How long to sleep between checks
  let sleepDelay: UInt32 = 5
  
-@@ -87,7 +103,7 @@
+@@ -87,7 +99,7 @@
          let name = String(cString: nameBuffer)
          let path = String(cString: pathBuffer)
  
 -        if ProcessConfig.processes.contains(where: { $0 == name }) {
-+        if ProcessConfig.processes.contains(name) || isSimulatorPosterExtension(path) {
++        if ProcessConfig.processes.contains(name) || isSimulatorSystemExtension(path) {
              // TODO: determine if a process is sleeping and be efficient
              // We need either:
              // 1) get-task-allow entitlement (no SIP)

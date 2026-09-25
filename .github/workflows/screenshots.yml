@@ -171,11 +171,12 @@ jobs:
               'run_id': os.environ['GITHUB_RUN_ID'],
           }) + '\n')
           PY
-      - name: Stop excess Simulator poster processes on the disposable iPhone runner
+      - name: Quiesce unused Simulator system extensions on the disposable iPhone runner
         if: matrix.platform == 'iphone'
         run: |
-          # Simulator runners can spend their CPU on wallpaper
-          # extensions. yeetd SIGSTOPs only selected processes inside simruntime.
+          # Simulator system extensions and apsd can starve the app/server during
+          # capture. yeetd SIGSTOPs only processes inside this disposable runtime;
+          # installed ArchiveBox/Safari app processes live under device data.
           # https://github.com/actions/runner-images/issues/13540
           tool="$RUNNER_TEMP/yeetd"
           mkdir -p "$tool"
@@ -189,10 +190,10 @@ jobs:
           test "$(openssl dgst -sha256 -r "$tool/Logger.swift" | awk '{print $1}')" = 110fd7b95c7f4ca7d2f0e6200a25fdd927da8d7c488f3eb9238e1526f02c6e32
           # Match OS wallpaper extension bundles in both observed Simulator layouts.
           patch -d "$tool" -p0 -F 0 < scripts/yeetd-simulator-posters.patch
-          test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = ff79175f1642ec264d786d8611bb8588083053cae8b08b8ebcfebfe784dfd993
+          test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = dc2cb8aad7523414d0b206bffff1dca6fb8129e27688198e2d13b4bdbe9f6018
           xcrun swiftc -swift-version 5 "$tool/main.swift" "$tool/Logger.swift" -o "$tool/yeetd"
-          # Preserve push-notification behavior even if the runner has a preference.
-          defaults write dev.biscuit.yeetd killapsd -bool false
+          # Screenshot flows do not use Simulator push notifications.
+          defaults write dev.biscuit.yeetd killapsd -bool true
           nohup "$tool/yeetd" > "$tool/yeetd.log" 2>&1 < /dev/null &
           echo "$!" > "$tool/yeetd.pid"
           sleep 1

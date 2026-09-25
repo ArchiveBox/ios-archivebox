@@ -82,7 +82,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let formEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.61))
         formStart.press(forDuration: 0.05, thenDragTo: formEnd)
         #endif
-        waitForConnectionReady(app)
+        waitForConnectionFormReady(app)
         replace(app.secureTextFields["apiKey"], with: token)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         press(app.buttons["saveConnection"])
@@ -195,7 +195,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let formEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.61))
         formStart.press(forDuration: 0.05, thenDragTo: formEnd)
         #endif
-        waitForConnectionReady(app)
+        waitForConnectionFormReady(app)
         replace(app.secureTextFields["apiKey"], with: token)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         let save = app.buttons["saveConnection"]
@@ -424,12 +424,12 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         field.typeText(value)
     }
 
-    private func waitForConnectionReady(_ app: XCUIApplication) {
+    private func waitForConnectionFormReady(_ app: XCUIApplication) {
+        // Enter the API key before waiting for an authenticated connection.
+        // Without the key, the connection screen correctly shows the server as
+        // disconnected even when its OpenAPI endpoint is reachable.
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            (app.staticTexts["Server connected"].exists
-                || app.staticTexts["Connected to ArchiveBox."].exists
-                || app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Connected. Using ")).firstMatch.exists)
-                && !app.staticTexts["Testing connection…"].exists
+            app.secureTextFields["apiKey"].exists
                 && !app.keyboards.firstMatch.exists
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 20), .completed, app.debugDescription)

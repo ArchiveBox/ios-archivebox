@@ -61,13 +61,17 @@ import WebKit
            let session, session.cookie.expires > Date().timeIntervalSince1970 + 60 { return }
         if credentials == configuration, let pending { try await pending.value; return }
         let changed = credentials != configuration
+        let hadCredentials = credentials != nil
         pending?.cancel()
         credentials = configuration
         let generation = UUID()
         self.generation = generation
         let task = Task { @MainActor in
             if changed {
-                await dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+                // The nonpersistent store is empty before the first login.
+                if hadCredentials {
+                    await dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+                }
                 session = nil
             }
             try Task.checkCancellation()

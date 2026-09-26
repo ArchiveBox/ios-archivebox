@@ -144,6 +144,7 @@ import ArchiveBoxCore
 
     func configure(server: URL?, baseURL: URL?, token: String?) {
         guard self.server != server || self.token != token || self.baseURL != baseURL else { return }
+        let hadCredentials = self.server != nil && self.token != nil
         let changedServer = self.server != server
         // A cached page belongs to the server it was created for. Changing its
         // routing boundary would send its old navigations to the external browser.
@@ -154,10 +155,14 @@ import ArchiveBoxCore
         self.baseURL = baseURL
         if changedServer || server == nil || token == nil {
             for page in pages.values { page.disconnect() }
-            let previous = clearingSession
-            clearingSession = Task {
-                await previous?.value
-                await authentication.clear()
+            // A fresh page store has no browser data to clear. Clearing WebKit
+            // here blocks the first page load until its data-store service responds.
+            if hadCredentials {
+                let previous = clearingSession
+                clearingSession = Task {
+                    await previous?.value
+                    await authentication.clear()
+                }
             }
             if server == nil || token == nil { return }
         }

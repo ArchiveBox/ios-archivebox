@@ -93,7 +93,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         formStart.press(forDuration: 0.05, thenDragTo: formEnd)
         #endif
         waitForConnectionFormReady(app)
-        replace(app.secureTextFields["apiKey"], with: token)
+        enterAPIKey(token, after: field, in: app)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         press(app.buttons["saveConnection"])
         XCTAssertTrue(app.staticTexts["Testing connection…"].waitForNonExistence(timeout: 20), app.debugDescription)
@@ -210,7 +210,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         formStart.press(forDuration: 0.05, thenDragTo: formEnd)
         #endif
         waitForConnectionFormReady(app)
-        replace(app.secureTextFields["apiKey"], with: token)
+        enterAPIKey(token, after: field, in: app)
         XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
         let save = app.buttons["saveConnection"]
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: save)
@@ -448,6 +448,18 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                 && !app.keyboards.firstMatch.exists
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 20), .completed, app.debugDescription)
+    }
+
+    private func enterAPIKey(_ token: String, after serverField: XCUIElement, in app: XCUIApplication) {
+        #if os(macOS)
+        // The URL field remains focused after editing. Navigate as a keyboard
+        // user: macOS 27 can expose the visible SecureField to AX yet report
+        // its enclosing SwiftUI ScrollView as the hit target for every point.
+        serverField.typeKey(XCUIKeyboardKey.tab.rawValue, modifierFlags: [])
+        app.typeText(token)
+        #else
+        replace(app.secureTextFields["apiKey"], with: token)
+        #endif
     }
 
     private func showSidebar(_ app: XCUIApplication) {

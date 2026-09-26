@@ -33,6 +33,47 @@ if [[ "$platform" == iphone ]]; then
     # sample records no process environment, request headers, or payloads.
     sample "$pid" 1 10 -file "$output/daphne-$phase.sample.txt" > /dev/null 2>> "$output/daphne-sample-errors.log" || true
   }
+  sample_screenshot_services() {
+    [[ "${GITHUB_ACTIONS:-}" == true ]] || return 0
+    local pid command sole_booted sampled=0
+    # A rendered page can still fail when XCTest's screenshot RPC never replies.
+    # Sample only system services for this disposable Simulator, not the app.
+    pid=$(xcrun simctl spawn "$device_id" launchctl list 2>/dev/null | awk '$3 == "com.apple.testmanagerd" && $1 ~ /^[0-9]+$/ {print $1; exit}' || true)
+    if [[ "$pid" =~ ^[0-9]+$ ]]; then
+      command=$(ps -p "$pid" -o comm= 2>/dev/null || true)
+      if [[ "$command" == */testmanagerd ]]; then
+        sample "$pid" 1 10 -file "$output/testmanagerd-failure.sample.txt" > /dev/null 2>> "$output/screenshot-service-sample-errors.log" || true
+      fi
+    fi
+    # Host render services cannot be mapped to a UDID by their argv. Only
+    # inspect them when the selected Simulator is the sole booted device.
+    sole_booted=$(xcrun simctl list devices booted -j | node -e '
+      let input=""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => {
+        const devices=Object.values(JSON.parse(input).devices).flat();
+        if (devices.length === 1) process.stdout.write(devices[0].udid);
+      });' 2>/dev/null || true)
+    [[ "$sole_booted" == "$device_id" ]] || return 0
+    while read -r pid command; do
+      case "$command" in
+        */SimRenderServer|*/SimMetalHost)
+          [[ "$pid" =~ ^[0-9]+$ ]] || continue
+          sample "$pid" 1 10 -file "$output/$(basename "$command")-$pid-failure.sample.txt" > /dev/null 2>> "$output/screenshot-service-sample-errors.log" || true
+          ((sampled+=1))
+          ((sampled < 4)) || break
+          ;;
+      esac
+    done < <(ps -A -o pid=,comm=)
+    log show --last 2m --style compact --info \
+      --predicate '(process == "SimRenderServer" OR process == "SimMetalHost") AND (eventMessage CONTAINS[c] "screenshot" OR eventMessage CONTAINS[c] "screen capture" OR eventMessage CONTAINS[c] "IOSurface")' \
+      2>> "$output/screenshot-service-log-errors.log" | awk 'NR <= 200 {print substr($0, 1, 500)}' > "$output/host-screenshot-services.log" || true
+  }
+  collect_simulator_screenshot_log() {
+    [[ "${GITHUB_ACTIONS:-}" == true ]] || return 0
+    # Keep only screenshot metadata from this Simulator's system services.
+    xcrun simctl spawn "$device_id" log show --last 2m --style compact --info \
+      --predicate '(process == "testmanagerd" OR process == "backboardd") AND (eventMessage CONTAINS[c] "screenshot" OR eventMessage CONTAINS[c] "screen capture" OR eventMessage CONTAINS[c] "IOSurface")' \
+      2>> "$output/screenshot-service-log-errors.log" | awk 'NR <= 200 {print substr($0, 1, 500)}' > "$output/simulator-screenshot-services.log" || true
+  }
   stop_iphone_diagnostics() {
     if [[ -n "$tcpdump_pidfile" && -s "$tcpdump_pidfile" ]]; then
       tcpdump_pid=$(cat "$tcpdump_pidfile")
@@ -252,6 +293,8 @@ xcodebuild "${test_args[@]}" "$test_action" || {
     if [[ "$platform" == iphone ]]; then
       sample_daphne failure
       stop_iphone_diagnostics
+      sample_screenshot_services
+      collect_simulator_screenshot_log
       # Include the connection checks that precede WebKit loading as well as
       # its navigation policy. These prefixes contain only phase/state metadata;
       # do not broaden this to arbitrary app logs that may contain URLs or keys.

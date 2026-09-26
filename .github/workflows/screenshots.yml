@@ -234,6 +234,13 @@ jobs:
             build/screenshots/${{ matrix.platform }}/transport-metadata.log
             build/screenshots/${{ matrix.platform }}/daphne-*.sample.txt
             build/screenshots/${{ matrix.platform }}/daphne-sample-errors.log
+            build/screenshots/${{ matrix.platform }}/testmanagerd-failure.sample.txt
+            build/screenshots/${{ matrix.platform }}/SimRenderServer-*-failure.sample.txt
+            build/screenshots/${{ matrix.platform }}/SimMetalHost-*-failure.sample.txt
+            build/screenshots/${{ matrix.platform }}/screenshot-service-sample-errors.log
+            build/screenshots/${{ matrix.platform }}/simulator-screenshot-services.log
+            build/screenshots/${{ matrix.platform }}/host-screenshot-services.log
+            build/screenshots/${{ matrix.platform }}/screenshot-service-log-errors.log
             ${{ runner.temp }}/screenshot-server/server.log
             ${{ runner.temp }}/screenshot-server/logs/worker_daphne.log
             ${{ runner.temp }}/screenshot-server/logs/worker_runner.log

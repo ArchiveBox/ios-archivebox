@@ -231,6 +231,7 @@ jobs:
             build/screenshots/${{ matrix.platform }}/Capture.xcresult/
             build/screenshots/${{ matrix.platform }}/resource-samples.log
             build/screenshots/${{ matrix.platform }}/page-navigation.log
+            build/screenshots/${{ matrix.platform }}/transport-metadata.log
             ${{ runner.temp }}/screenshot-server/server.log
           retention-days: 7
       - name: Stop the disposable Simulator helper

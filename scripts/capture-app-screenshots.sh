@@ -17,6 +17,30 @@ mkdir -p "$output"
 output=$(cd "$output" && pwd)
 signing=(CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=)
 if [[ "$platform" == iphone ]]; then
+  tcpdump_launcher_pid=
+  tcpdump_pidfile=
+  stop_iphone_diagnostics() {
+    if [[ -n "$tcpdump_pidfile" && -s "$tcpdump_pidfile" ]]; then
+      tcpdump_pid=$(cat "$tcpdump_pidfile")
+      if [[ "$tcpdump_pid" =~ ^[0-9]+$ ]] && ps -p "$tcpdump_pid" -o comm= | grep -Eq '(^|/)tcpdump$'; then
+        sudo -n kill -INT "$tcpdump_pid" 2>/dev/null || true
+      fi
+      rm -f "$tcpdump_pidfile"
+    fi
+    if [[ -n "$tcpdump_launcher_pid" ]]; then
+      wait "$tcpdump_launcher_pid" 2>/dev/null || true
+      tcpdump_launcher_pid=
+    fi
+    if [[ -n "$sampler_pid" ]]; then
+      kill "$sampler_pid" 2>/dev/null || true
+      wait "$sampler_pid" 2>/dev/null || true
+      sampler_pid=
+    fi
+  }
+  sampler_pid=
+  trap stop_iphone_diagnostics EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
   # Keep a low-overhead record of simulator load while it boots and XCTest runs.
   # A post-failure process snapshot can be dominated by crash diagnostics.
   (
@@ -26,6 +50,8 @@ if [[ "$platform" == iphone ]]; then
     while :; do
       date -u '+%Y-%m-%dT%H:%M:%SZ'
       uptime
+      memory_pressure -Q || true
+      sysctl vm.swapusage || true
       ps -A -o pid=,ppid=,state=,%cpu=,%mem=,comm= | sort -k4,4nr | sed -n '1,20p'
       sleep 15 &
       sleep_pid=$!
@@ -34,7 +60,6 @@ if [[ "$platform" == iphone ]]; then
     done
   ) > "$output/resource-samples.log" 2>&1 &
   sampler_pid=$!
-  trap 'kill "$sampler_pid" 2>/dev/null || true; wait "$sampler_pid" 2>/dev/null || true' EXIT
 fi
 case "$platform" in
 
@@ -189,9 +214,28 @@ if [[ "$platform" == iphone && -n "${ARCHIVEBOX_IPHONE_APP:-}" ]]; then
 else
   test_action=test
 fi
+if [[ "$platform" == iphone && "${GITHUB_ACTIONS:-}" == true &&
+      "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:([0-9]+)$ ]]; then
+  # The disposable CI server is bound to this loopback port. Capture only the
+  # IPv4/TCP base headers, never HTTP payloads, to locate a stalled request.
+  tcpdump_port=${BASH_REMATCH[1]}
+  tcpdump_pidfile="$output/tcpdump.pid"
+  # The output is deliberately written by the unprivileged shell to this run's directory.
+  # shellcheck disable=SC2024
+  sudo -n sh -c 'printf "%s\n" "$$" > "$1"; exec /usr/sbin/tcpdump -i lo0 -y NULL -nn -tttt -q -l -s 44 "ip and tcp port $2"' \
+    sh "$tcpdump_pidfile" "$tcpdump_port" > "$output/transport-metadata.log" 2>&1 &
+  tcpdump_launcher_pid=$!
+  # Give tcpdump a bounded chance to attach before the app makes its first request.
+  for ((attempt=0; attempt<20; attempt++)); do
+    if [[ -s "$tcpdump_pidfile" ]] && ps -p "$(cat "$tcpdump_pidfile")" -o comm= | grep -Eq '(^|/)tcpdump$'; then break; fi
+    if ! kill -0 "$tcpdump_launcher_pid" 2>/dev/null; then break; fi
+    sleep 0.1
+  done
+fi
 xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     if [[ "$platform" == iphone ]]; then
+      stop_iphone_diagnostics
       # Include the connection checks that precede WebKit loading as well as
       # its navigation policy. These prefixes contain only phase/state metadata;
       # do not broaden this to arbitrary app logs that may contain URLs or keys.
@@ -215,4 +259,8 @@ xcodebuild "${test_args[@]}" "$test_action" || {
     fi
     exit "$result"
   }
+if [[ "$platform" == iphone ]]; then
+  stop_iphone_diagnostics
+fi
 xcrun xcresulttool export attachments --path "$output/Capture.xcresult" --output-path "$output/attachments"
+if [[ "$platform" == iphone ]]; then rm -f "$output/transport-metadata.log"; fi

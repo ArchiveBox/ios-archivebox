@@ -4,6 +4,9 @@ import WebKit
 
 @MainActor @Observable
 final class SettingsModel {
+    // Correlate async validation phases without recording server URLs or keys.
+    // A populated SecureField alone does not prove that token validation ran.
+    private let validationDiagnosticID = String(UUID().uuidString.prefix(8))
     var rememberedServers: [ServerConfiguration] = []
     var quickSwitchServers: [ServerConfiguration] {
         rememberedServers.filter { !$0.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -176,14 +179,40 @@ final class SettingsModel {
     func scheduleValidation() {
         // Editing the key must not cancel a server check already in progress.
         // That check will validate the current key after it verifies the server.
-        if busy && verifiedServer == nil { return }
+        if busy && verifiedServer == nil {
+            NSLog("ArchiveBox connection validation %@: schedule deferred serverCheck=1 tokenPresent=%d",
+                  validationDiagnosticID, tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
+            return
+        }
+        let replacingValidation = validation != nil
         validation?.cancel()
+        NSLog("ArchiveBox connection validation %@: scheduled serverVerified=%d tokenPresent=%d replacing=%d",
+              validationDiagnosticID, verifiedServer == nil ? 0 : 1,
+              tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1,
+              replacingValidation ? 1 : 0)
         busy = false
         validation = Task {
-            do { try await Task.sleep(for: .milliseconds(600)) } catch { return }
+            do { try await Task.sleep(for: .milliseconds(600)) }
+            catch {
+                NSLog("ArchiveBox connection validation %@: debounce cancelled", validationDiagnosticID)
+                return
+            }
+            NSLog("ArchiveBox connection validation %@: debounce complete serverVerified=%d tokenPresent=%d",
+                  validationDiagnosticID, verifiedServer == nil ? 0 : 1,
+                  tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
             if verifiedServer == nil && !serverText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { await testServer() }
-            guard !Task.isCancelled else { return }
-            if verifiedServer != nil && !tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { await testToken() }
+            guard !Task.isCancelled else {
+                NSLog("ArchiveBox connection validation %@: cancelled after serverCheck", validationDiagnosticID)
+                return
+            }
+            if verifiedServer != nil && !tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                NSLog("ArchiveBox connection validation %@: starting tokenCheck", validationDiagnosticID)
+                await testToken()
+            } else {
+                NSLog("ArchiveBox connection validation %@: tokenCheck skipped serverVerified=%d tokenPresent=%d",
+                      validationDiagnosticID, verifiedServer == nil ? 0 : 1,
+                      tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
+            }
         }
     }
     #if os(macOS)
@@ -277,16 +306,20 @@ final class SettingsModel {
     }
     func tokenChanged() {
         sidebarStatus = nil
-        if !(busy && verifiedServer == nil) {
+        let preserveServerCheck = busy && verifiedServer == nil
+        if !preserveServerCheck {
             validation?.cancel()
             busy = false
         }
+        NSLog("ArchiveBox connection validation %@: token edited preserveServerCheck=%d serverVerified=%d",
+              validationDiagnosticID, preserveServerCheck ? 1 : 0, verifiedServer == nil ? 0 : 1)
         tokenError = nil
         personas = []; personaError = nil; personasLoaded = false
         verifiedToken = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
     }
 
     func testServer() async {
+        NSLog("ArchiveBox connection validation %@: serverCheck started", validationDiagnosticID)
         serverReachable = false
         busy = true; errorMessage = nil; savedMessage = nil; serverError = nil
         verifiedServer = nil; verifiedToken = nil; tokenMessage = nil
@@ -299,16 +332,27 @@ final class SettingsModel {
             serverText = server.absoluteString
             verifiedServer = server
             serverReachable = true
+            NSLog("ArchiveBox connection validation %@: serverCheck succeeded tokenPresent=%d",
+                  validationDiagnosticID, tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
             // Remember success without closing a guide reopened during this check.
             UserDefaults.standard.set(true, forKey: "setupGuideDismissed")
             serverMessage = changed ? "Connected. Using \(server.absoluteString)." : "Connected to ArchiveBox."
             try persistConnection()
 
-        } catch { if !Task.isCancelled { serverError = error.localizedDescription } }
+        } catch {
+            let details = error as NSError
+            NSLog("ArchiveBox connection validation %@: serverCheck failed domain=%@ code=%ld cancelled=%d",
+                  validationDiagnosticID, details.domain, details.code, Task.isCancelled ? 1 : 0)
+            if !Task.isCancelled { serverError = error.localizedDescription }
+        }
     }
 
     func testToken() async {
-        guard let server = verifiedServer else { return }
+        guard let server = verifiedServer else {
+            NSLog("ArchiveBox connection validation %@: tokenCheck skipped serverUnverified=1", validationDiagnosticID)
+            return
+        }
+        NSLog("ArchiveBox connection validation %@: tokenCheck started", validationDiagnosticID)
         busy = true; errorMessage = nil; savedMessage = nil; verifiedToken = nil; tokenError = nil
         defer { if !Task.isCancelled { busy = false } }
         do {
@@ -316,6 +360,7 @@ final class SettingsModel {
             tokenText = token
             try await client.testToken(server: server, token: token)
             try Task.checkCancellation()
+            NSLog("ArchiveBox connection validation %@: tokenCheck accepted", validationDiagnosticID)
             verifiedToken = token
             tokenMessage = "API key verified."
             // Persist before fetching personas: an unavailable persona endpoint
@@ -323,7 +368,12 @@ final class SettingsModel {
             do { try persistConnection() }
             catch { errorMessage = error.localizedDescription; return }
             await fetchPersonas(server: server, token: token)
-        } catch { if !Task.isCancelled { tokenError = error.localizedDescription } }
+        } catch {
+            let details = error as NSError
+            NSLog("ArchiveBox connection validation %@: tokenCheck failed domain=%@ code=%ld cancelled=%d",
+                  validationDiagnosticID, details.domain, details.code, Task.isCancelled ? 1 : 0)
+            if !Task.isCancelled { tokenError = error.localizedDescription }
+        }
     }
 
     func refreshReachability() async {

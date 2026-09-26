@@ -49,16 +49,36 @@ import UIKit
 
     public func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                         decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
-        guard let url = action.request.url else { decisionHandler(.cancel); return }
+        let isMainFrame = action.targetFrame?.isMainFrame != false
+        guard let url = action.request.url else {
+            if isMainFrame { NSLog("ArchiveBox navigation policy: cancel missing URL") }
+            decisionHandler(.cancel)
+            return
+        }
+        let matchesBase = Self.belongsToServer(url, baseURL: baseURL)
+        let matchesAdminOrigin = authenticatedOrigin.map {
+            url.scheme == $0.scheme && url.host == $0.host && url.port == $0.port
+        } ?? false
         if openExternallyIfNeeded(url, isLink: action.navigationType == .linkActivated,
                                   targetIsMainFrame: action.targetFrame?.isMainFrame) {
+            if isMainFrame {
+                NSLog("ArchiveBox navigation policy: external cancel baseMatch=%d adminOriginMatch=%d",
+                      matchesBase ? 1 : 0, matchesAdminOrigin ? 1 : 0)
+            }
             decisionHandler(.cancel); return
         }
         if action.navigationType == .linkActivated, action.targetFrame?.isMainFrame != false,
            !action.shouldPerformDownload, let openSnapshot,
            Self.isSnapshotDetail(url) {
             openSnapshot(url)
+            NSLog("ArchiveBox navigation policy: snapshot cancel baseMatch=%d adminOriginMatch=%d",
+                  matchesBase ? 1 : 0, matchesAdminOrigin ? 1 : 0)
             decisionHandler(.cancel); return
+        }
+        if isMainFrame {
+            NSLog("ArchiveBox navigation policy: %@ baseMatch=%d adminOriginMatch=%d",
+                  action.shouldPerformDownload ? "download" : "allow",
+                  matchesBase ? 1 : 0, matchesAdminOrigin ? 1 : 0)
         }
         decisionHandler(action.shouldPerformDownload ? .download : .allow)
     }

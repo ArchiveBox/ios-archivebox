@@ -232,7 +232,13 @@ jobs:
             build/screenshots/${{ matrix.platform }}/resource-samples.log
             build/screenshots/${{ matrix.platform }}/page-navigation.log
             build/screenshots/${{ matrix.platform }}/transport-metadata.log
+            build/screenshots/${{ matrix.platform }}/daphne-*.sample.txt
+            build/screenshots/${{ matrix.platform }}/daphne-sample-errors.log
             ${{ runner.temp }}/screenshot-server/server.log
+            ${{ runner.temp }}/screenshot-server/logs/worker_daphne.log
+            ${{ runner.temp }}/screenshot-server/logs/worker_runner.log
+            ${{ runner.temp }}/screenshot-server/logs/supervisord.log
+            ${{ runner.temp }}/screenshot-server/logs/errors.log
           retention-days: 7
       - name: Stop the disposable Simulator helper
         if: always() && matrix.platform == 'iphone'

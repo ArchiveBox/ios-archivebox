@@ -19,6 +19,20 @@ signing=(CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=)
 if [[ "$platform" == iphone ]]; then
   tcpdump_launcher_pid=
   tcpdump_pidfile=
+  sample_daphne() {
+    local phase=$1 server_data="${RUNNER_TEMP:-}/screenshot-server" pid command
+    [[ "${GITHUB_ACTIONS:-}" == true && "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:[0-9]+$ ]] || return 0
+    pid=$(sed -nE "s/.*spawned: 'worker_daphne' with pid ([0-9]+).*/\1/p" "$server_data/logs/supervisord.log" 2>/dev/null | tail -1 || true)
+    if [[ -z "$pid" ]]; then
+      pid=$(sed -nE 's/.*Worker worker_daphne: started RUNNING \(pid ([0-9]+),.*/\1/p' "$server_data/server.log" 2>/dev/null | tail -1 || true)
+    fi
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 0
+    command=$(ps -p "$pid" -o command= 2>/dev/null) || return 0
+    [[ "$command" == *"-m daphne"* ]] || return 0
+    # Native stacks can reveal SQLite/native blocking versus an idle reactor.
+    # sample records no process environment, request headers, or payloads.
+    sample "$pid" 1 10 -file "$output/daphne-$phase.sample.txt" > /dev/null 2>> "$output/daphne-sample-errors.log" || true
+  }
   stop_iphone_diagnostics() {
     if [[ -n "$tcpdump_pidfile" && -s "$tcpdump_pidfile" ]]; then
       tcpdump_pid=$(cat "$tcpdump_pidfile")
@@ -232,9 +246,11 @@ if [[ "$platform" == iphone && "${GITHUB_ACTIONS:-}" == true &&
     sleep 0.1
   done
 fi
+if [[ "$platform" == iphone ]]; then sample_daphne start; fi
 xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     if [[ "$platform" == iphone ]]; then
+      sample_daphne failure
       stop_iphone_diagnostics
       # Include the connection checks that precede WebKit loading as well as
       # its navigation policy. These prefixes contain only phase/state metadata;
@@ -263,4 +279,6 @@ if [[ "$platform" == iphone ]]; then
   stop_iphone_diagnostics
 fi
 xcrun xcresulttool export attachments --path "$output/Capture.xcresult" --output-path "$output/attachments"
-if [[ "$platform" == iphone ]]; then rm -f "$output/transport-metadata.log"; fi
+if [[ "$platform" == iphone ]]; then
+  rm -f "$output/transport-metadata.log" "$output"/daphne-*.sample.txt "$output/daphne-sample-errors.log"
+fi

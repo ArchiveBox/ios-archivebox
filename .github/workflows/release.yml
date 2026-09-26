@@ -36,16 +36,11 @@ jobs:
         with:
           node-version: '22'
       - uses: astral-sh/setup-uv@v7
-        if: inputs.archivebox_version != ''
-      - name: Resolve dispatched ArchiveBox image
-        if: inputs.archivebox_version != ''
+      - name: Resolve latest published stable ArchiveBox image
         env:
           ARCHIVEBOX_VERSION: ${{ inputs.archivebox_version }}
-        run: uv run --no-project python ServerApp/server-image.py resolve
+        run: uv run --no-project python ServerApp/server-image.py resolve --stable
       - name: Record the verified image as app source
-        if: inputs.archivebox_version != ''
-        env:
-          ARCHIVEBOX_VERSION: ${{ inputs.archivebox_version }}
         run: node scripts/sync-server-image.mjs
       - name: Select pinned ArchiveBox image version
         id: image
@@ -108,7 +103,7 @@ jobs:
         id: server-image
         env:
           ARCHIVEBOX_VERSION: ${{ needs.prepare.outputs.image_version }}
-        run: uv run --no-project python ServerApp/server-image.py resolve
+        run: uv run --no-project python ServerApp/server-image.py resolve --stable
       - name: Verify immutable image lock
         if: needs.prepare.outputs.image_version != ''
         run: |

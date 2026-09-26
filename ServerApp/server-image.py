@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tarfile
@@ -14,6 +15,22 @@ def get(url, token=None):
         headers["Authorization"] = "Bearer " + token
     with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as response:
         return json.load(response), response.headers
+
+
+def latest_stable_version():
+    requested = os.environ.get("ARCHIVEBOX_VERSION", "")
+    if requested and not re.fullmatch(r"\d+\.\d+\.\d+", requested):
+        raise SystemExit(f"Stable Server.app releases cannot bundle ArchiveBox {requested}")
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "ArchiveBox-ServerApp"}
+    if token := os.environ.get("GH_TOKEN"):
+        headers["Authorization"] = "Bearer " + token
+    request = urllib.request.Request("https://api.github.com/repos/ArchiveBox/ArchiveBox/releases/latest", headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as response:
+        release = json.load(response)
+    tag = release.get("tag_name", "")
+    if release.get("draft") or release.get("prerelease") or not release.get("published_at") or not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
+        raise SystemExit(f"ArchiveBox latest published release is not a stable version: {tag}")
+    return tag[1:]
 
 
 def resolve(version=None, require_tip=True):
@@ -55,7 +72,7 @@ def resolve(version=None, require_tip=True):
             if architecture == "arm64":
                 arm_config = manifest["config"]["digest"]
     if len(set(digests)) != 1:
-        raise SystemExit("Docker Hub and GHCR dev digests do not match; image publication is incomplete.")
+        raise SystemExit("Docker Hub and GHCR image digests do not match; image publication is incomplete.")
     result = {"image": "archivebox/archivebox@" + digests[0], "digest": digests[0], "config": arm_config, "revision": revision}
     if version:
         result["version"] = version
@@ -89,6 +106,8 @@ def verify(path):
 os.chdir(Path(__file__).resolve().parent)
 if sys.argv[1:] == ["resolve"]:
     resolve(version=os.environ.get("ARCHIVEBOX_VERSION"))
+elif sys.argv[1:] == ["resolve", "--stable"]:
+    resolve(version=latest_stable_version())
 elif sys.argv[1:] == ["resolve", "--published"]:
     resolve(require_tip=False)
 elif len(sys.argv) == 3 and sys.argv[1] == "resolve":
@@ -96,4 +115,4 @@ elif len(sys.argv) == 3 and sys.argv[1] == "resolve":
 elif len(sys.argv) == 3 and sys.argv[1] == "verify":
     verify(sys.argv[2])
 else:
-    raise SystemExit("Usage: server-image.py resolve [--published] | verify /absolute/path/images.tar")
+    raise SystemExit("Usage: server-image.py resolve [--stable|--published|VERSION] | verify /absolute/path/images.tar")

@@ -196,11 +196,15 @@ Pinned components:
   from Kata Containers 3.32.0. Linux is GPL-2.0; matching sources/configuration:
   <https://github.com/kata-containers/kata-containers/tree/3.32.0/tools/packaging/kernel>.
 - ArchiveBox is resolved from the core release image recorded in
-  `core-image.json`. Docker Hub and GHCR must agree, and both architectures
-  must match the release tag and its published version.
+  `core-image.json`. Every public Server.app release resolves the latest
+  published stable ArchiveBox release and updates this lock automatically;
+  release candidates are rejected. Docker Hub and GHCR must agree, and both
+  architectures must match the release tag and its published version.
   The resolved digest keys the release payload cache; the packaged ARM64 config
   digest is checked before signing. Builds stop if image publication is behind.
   The shipped version, source revision, and digest are recorded in `Info.plist`.
+  The `archivebox/archivebox:dev` name inside the bundle is only a local alias
+  for that verified digest; it does not track the remote `dev` image.
 - SwiftTerm 1.19.0, MIT.
 
 Apple's and SwiftTerm's licenses are copied into the bundle. ArchiveBox and its

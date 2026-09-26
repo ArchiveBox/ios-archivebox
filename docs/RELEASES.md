@@ -51,12 +51,14 @@ written only under the runner's temporary directory and removed on exit; they
 are never attached to releases or cached with the server payload.
 
 The app version and engine image version are separate: the companion continues to
-show the actual packaged engine version/digest. Once the core release has published
-and verified its Docker images, the monorepo coordinator dispatches this workflow
-with `archivebox_version`. The workflow resolves the immutable image tag in both
-registries, checks its version and source revision against the core release tag,
-and commits the resulting digest to `ServerApp/core-image.json`. That source commit
-enters the normal app version reservation and signed release. Repeated dispatches
+show the actual packaged engine version/digest. Every release resolves the latest
+published stable ArchiveBox image, including releases started by a normal main push.
+The monorepo coordinator dispatches this workflow after core Docker publication;
+its `archivebox_version` is a stable-release hint and cannot downgrade the app.
+The workflow verifies both registries, the image version and source revision against
+the core release tag, then commits the resulting digest to
+`ServerApp/core-image.json`. That source commit enters the normal app version
+reservation and signed release. Repeated dispatches
 for the same image reuse the existing candidate or skip an already published release.
 Core image updates rebuild the Mac downloads and Sparkle feed without resubmitting
 the unchanged iOS/macOS client to TestFlight. Main pushes select TestFlight only

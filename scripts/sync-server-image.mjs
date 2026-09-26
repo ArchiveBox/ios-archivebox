@@ -1,21 +1,28 @@
-// The core release coordinator calls this workflow with an immutable ArchiveBox version.
-// A changed digest becomes an app source commit, so the normal release reservation
-// gives it a fresh app version without manually choosing one.
+// A changed stable image becomes an app source commit, so the normal release
+// reservation gives it a fresh app version without manually choosing one.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 
-const version = process.env.ARCHIVEBOX_VERSION;
-if (!/^\d+\.\d+\.\d+(?:rc\d+)?$/.test(version || '')) throw Error('Expected an ArchiveBox release version');
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 const image = JSON.parse(readFileSync('ServerApp/payload/resolved-image.json', 'utf8'));
-if (image.version !== version || !/^sha256:[0-9a-f]{64}$/.test(image.digest) || !/^[0-9a-f]{40}$/.test(image.revision)) {
-  throw Error('The resolved image does not match the dispatched release');
+const version = image.version;
+if (!/^\d+\.\d+\.\d+$/.test(version || '')) throw Error('Expected a published stable ArchiveBox image');
+if (!/^sha256:[0-9a-f]{64}$/.test(image.digest) || !/^[0-9a-f]{40}$/.test(image.revision)) {
+  throw Error('The resolved image is missing its verified digest or source revision');
 }
 const lockPath = 'ServerApp/core-image.json';
 const lock = { version, digest: image.digest, revision: image.revision };
 git('fetch', 'origin', 'main', '--tags');
 git('merge', '--ff-only', 'origin/main');
 const previous = existsSync(lockPath) ? JSON.parse(readFileSync(lockPath, 'utf8')) : null;
+if (previous && /^\d+\.\d+\.\d+$/.test(previous.version)) {
+  const currentParts = version.split('.').map(Number);
+  const previousParts = previous.version.split('.').map(Number);
+  for (let i = 0; i < currentParts.length; i++) {
+    if (currentParts[i] < previousParts[i]) throw Error(`Refusing to downgrade bundled ArchiveBox from ${previous.version} to ${version}`);
+    if (currentParts[i] > previousParts[i]) break;
+  }
+}
 if (previous?.version === version && previous.digest !== image.digest) {
   throw Error(`Published ArchiveBox ${version} changed its image digest`);
 }

@@ -19,8 +19,8 @@ signing=(CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=)
 if [[ "$platform" == iphone ]]; then
   tcpdump_launcher_pid=
   tcpdump_pidfile=
-  sample_daphne() {
-    local phase=$1 server_data="${RUNNER_TEMP:-}/screenshot-server" pid command
+  daphne_pid() {
+    local server_data="${RUNNER_TEMP:-}/screenshot-server" pid command
     [[ "${GITHUB_ACTIONS:-}" == true && "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:[0-9]+$ ]] || return 0
     pid=$(sed -nE "s/.*spawned: 'worker_daphne' with pid ([0-9]+).*/\1/p" "$server_data/logs/supervisord.log" 2>/dev/null | tail -1 || true)
     if [[ -z "$pid" ]]; then
@@ -29,6 +29,12 @@ if [[ "$platform" == iphone ]]; then
     [[ "$pid" =~ ^[0-9]+$ ]] || return 0
     command=$(ps -p "$pid" -o command= 2>/dev/null) || return 0
     [[ "$command" == *"-m daphne"* ]] || return 0
+    printf '%s\n' "$pid"
+  }
+  sample_daphne() {
+    local phase=$1 pid
+    pid=$(daphne_pid)
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 0
     # Native stacks can reveal SQLite/native blocking versus an idle reactor.
     # sample records no process environment, request headers, or payloads.
     sample "$pid" 1 10 -file "$output/daphne-$phase.sample.txt" > /dev/null 2>> "$output/daphne-sample-errors.log" || true
@@ -108,6 +114,18 @@ if [[ "$platform" == iphone ]]; then
       memory_pressure -Q || true
       sysctl vm.swapusage || true
       ps -A -o pid=,ppid=,state=,%cpu=,%mem=,comm= | sort -k4,4nr | sed -n '1,20p'
+      if [[ "${GITHUB_ACTIONS:-}" == true && "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:([0-9]+)$ ]]; then
+        backend_port=${BASH_REMATCH[1]}
+        # Only this backend's socket metadata: no payload, headers, or argv.
+        echo 'Backend TCP sockets: protocol recv-q send-q local peer state'
+        sudo -n /usr/sbin/netstat -anv -p tcp | awk -v endpoint="127.0.0.1.$backend_port" \
+          '$1 ~ /^tcp/ && ($4 == endpoint || $5 == endpoint) {print $1, $2, $3, $4, $5, $6}' || true
+        backend_pid=$(daphne_pid)
+        if [[ "$backend_pid" =~ ^[0-9]+$ ]]; then
+          echo 'Daphne process: pid ppid state cpu memory elapsed executable'
+          ps -p "$backend_pid" -o pid=,ppid=,state=,%cpu=,%mem=,etime=,comm= || true
+        fi
+      fi
       sleep 15 &
       sleep_pid=$!
       wait "$sleep_pid" || exit 0

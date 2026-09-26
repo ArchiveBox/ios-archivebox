@@ -18,9 +18,6 @@ def get(url, token=None):
 
 
 def latest_stable_version():
-    requested = os.environ.get("ARCHIVEBOX_VERSION", "")
-    if requested and not re.fullmatch(r"\d+\.\d+\.\d+", requested):
-        raise SystemExit(f"Stable Server.app releases cannot bundle ArchiveBox {requested}")
     headers = {"Accept": "application/vnd.github+json", "User-Agent": "ArchiveBox-ServerApp"}
     if token := os.environ.get("GH_TOKEN"):
         headers["Authorization"] = "Bearer " + token

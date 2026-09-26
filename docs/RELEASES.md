@@ -54,7 +54,8 @@ The app version and engine image version are separate: the companion continues t
 show the actual packaged engine version/digest. Every release resolves the latest
 published stable ArchiveBox image, including releases started by a normal main push.
 The monorepo coordinator dispatches this workflow after core Docker publication;
-its `archivebox_version` is a stable-release hint and cannot downgrade the app.
+its `archivebox_version` is a notification, including for release candidates,
+and cannot select or downgrade the bundled image.
 The workflow verifies both registries, the image version and source revision against
 the core release tag, then commits the resulting digest to
 `ServerApp/core-image.json`. That source commit enters the normal app version

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       archivebox_version:
-        description: Immutable ArchiveBox release version from the release coordinator
+        description: Core release notification; the Mac bundle selects the latest published stable image
         required: false
         type: string
 permissions:
@@ -37,8 +37,6 @@ jobs:
           node-version: '22'
       - uses: astral-sh/setup-uv@v7
       - name: Resolve latest published stable ArchiveBox image
-        env:
-          ARCHIVEBOX_VERSION: ${{ inputs.archivebox_version }}
         run: uv run --no-project python ServerApp/server-image.py resolve --stable
       - name: Record the verified image as app source
         run: node scripts/sync-server-image.mjs
@@ -103,7 +101,9 @@ jobs:
         id: server-image
         env:
           ARCHIVEBOX_VERSION: ${{ needs.prepare.outputs.image_version }}
-        run: uv run --no-project python ServerApp/server-image.py resolve --stable
+        run: |
+          [[ "$ARCHIVEBOX_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Refusing to bundle a non-stable ArchiveBox image' >&2; exit 1; }
+          uv run --no-project python ServerApp/server-image.py resolve "$ARCHIVEBOX_VERSION"
       - name: Verify immutable image lock
         if: needs.prepare.outputs.image_version != ''
         run: |

@@ -4,14 +4,14 @@
  // This is used to ensure we only kill Simulator processes and not host OS processes
  let simulatorPathSearchKey = "simruntime/Contents/Resources/RuntimeRoot"
  
-+// Stop only bundled system extensions in a disposable Simulator runtime.
-+// Installed ArchiveBox/Safari app extensions live in device data, outside this root.
-+func isSimulatorSystemExtension(_ path: String) -> Bool {
++// Stop only the extra poster extensions observed saturating disposable Simulators.
++// Other system extensions, including WebKit Networking and GPU, must keep running.
++func isSimulatorPosterExtension(_ path: String) -> Bool {
 +    guard let root = path.range(of: simulatorPathSearchKey + "/") else { return false }
 +    let parts = path[root.upperBound...].split(separator: "/")
 +    guard parts.count >= 3, parts[0] == "System" || parts[0] == "Applications" else { return false }
 +    let bundle = parts[parts.count - 2]
-+    return bundle.hasSuffix(".appex")
++    return ["MercuryPosterExtension.appex", "PridePosterExtension.appex", "Unity2025Poster.appex", "WeatherPoster.appex"].contains(bundle)
 +}
 +
  // How long to sleep between checks
@@ -22,7 +22,7 @@
          let path = String(cString: pathBuffer)
  
 -        if ProcessConfig.processes.contains(where: { $0 == name }) {
-+        if ProcessConfig.processes.contains(name) || isSimulatorSystemExtension(path) {
++        if ProcessConfig.processes.contains(name) || isSimulatorPosterExtension(path) {
              // TODO: determine if a process is sleeping and be efficient
              // We need either:
              // 1) get-task-allow entitlement (no SIP)

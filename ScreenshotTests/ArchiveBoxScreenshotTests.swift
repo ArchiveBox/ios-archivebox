@@ -87,10 +87,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         capture("connection-disconnected", app: app)
         replace(field, with: server)
         #if os(iOS)
-        // Drag the form content down to dismiss the URL keyboard before locating the key field.
-        let formStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.42))
-        let formEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.61))
-        formStart.press(forDuration: 0.05, thenDragTo: formEnd)
+        // Nearby servers can fill the visible form above the keyboard. Use the
+        // form's keyboard action instead of dragging through the discovery list.
+        press(app.buttons["connection.keyboardDone"])
         #endif
         waitForConnectionFormReady(app)
         enterAPIKey(token, after: field, in: app)

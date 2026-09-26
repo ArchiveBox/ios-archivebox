@@ -212,6 +212,9 @@ struct MainView: View {
         .onChange(of: settings.adminNavigationID) {
             selection = .admin
             compactColumn = .detail
+            #if os(iOS)
+            columnVisibility = .detailOnly
+            #endif
         }
         .onChange(of: settings.verifiedServer) { old, new in
             if old != nil && old != new {
@@ -451,6 +454,11 @@ struct MainView: View {
         }
         selection = screen
         compactColumn = .detail
+        #if os(iOS)
+        // A compact split view needs a visibility change when returning to
+        // the menu; keep it in step with the preferred column.
+        columnVisibility = .detailOnly
+        #endif
     }
 
     private func openSnapshot(_ url: URL) {
@@ -458,6 +466,9 @@ struct MainView: View {
         reloadIDs[.snapshots] = UUID()
         selection = .snapshots
         compactColumn = .detail
+        #if os(iOS)
+        columnVisibility = .detailOnly
+        #endif
     }
 
     private func destination(_ screen: Screen) -> URL? {

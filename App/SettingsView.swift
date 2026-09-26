@@ -597,6 +597,13 @@ struct SettingsView: View {
                 Text("Saved server addresses and API keys will be removed from this device, including its sharing extensions. Your archive files and server accounts will stay intact.")
             }
             .toolbar {
+                #if os(iOS)
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { focusedField = nil }
+                        .accessibilityIdentifier("connection.keyboardDone")
+                }
+                #endif
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", systemImage: "checkmark") { focusedField = nil; model.save() }
                         .buttonStyle(.glassProminent).disabled(!model.canSave)

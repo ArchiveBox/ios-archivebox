@@ -48,6 +48,10 @@ import UIKit
         routing.didCommit = { [weak self] page in
             guard let self, page.url?.scheme != "about" else { return }
             NSLog("ArchiveBox page navigation %@: committed", diagnosticID)
+            // The Add form can take time to parse after response headers commit.
+            // Keep its loading cover until WebKit finishes the document instead
+            // of exposing the under-page color as an apparently blank form.
+            if page.url?.lastPathComponent == "add" { return }
             isLoading = false
         }
         routing.didFail = { [weak self] error in
@@ -60,6 +64,7 @@ import UIKit
         }
         routing.didFinish = { [weak self] page in
             guard let self, page.url?.scheme != "about" else { return }
+            NSLog("ArchiveBox page navigation %@: finished", diagnosticID)
             isLoading = false
             if !owner.hasCredentials { owner.onWebLogin?(page) }
             guard page.url?.path.contains("/login") == true else { renewedLogin = nil; return }

@@ -131,6 +131,13 @@ struct MainView: View {
             }
             pages.configure(server: settings.verifiedServer, baseURL: settings.displayedBaseURL, token: settings.verifiedToken)
         }
+        .task(id: "\(settings.verifiedServer?.absoluteString ?? "")\n\(settings.verifiedToken ?? "")") {
+            guard let server = settings.verifiedServer, let token = settings.verifiedToken else { return }
+            // A first embedded page otherwise pays for browser-session creation
+            // after its tap. Begin it when the verified connection is available.
+            pages.configure(server: server, baseURL: settings.displayedBaseURL, token: token)
+            try? await pages.authenticate()
+        }
         .confirmationDialog("Connect to this ArchiveBox server?", isPresented: $confirmingServer) {
             Button("Use this server") {
                 if let incomingServer { settings.useConnectionLink(incomingServer, apiKey: incomingAPIKey); activate(.settings) }

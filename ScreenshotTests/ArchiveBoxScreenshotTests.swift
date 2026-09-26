@@ -56,6 +56,16 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             approvePermission(alert)
         }
         defer { removeUIInterruptionMonitor(interruption) }
+        #if os(iOS)
+        // Passwords can raise this sheet after a sidebar button passes the
+        // normal hittability check; handle the interrupted tap as in the full tour.
+        let passwordInterruption = addUIInterruptionMonitor(withDescription: "Decline saving the disposable API key") { [self] alert in
+            guard alert.staticTexts["Save Password?"].exists, alert.buttons["Not Now"].exists else { return false }
+            declinePasswordPrompt()
+            return true
+        }
+        defer { removeUIInterruptionMonitor(passwordInterruption) }
+        #endif
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
         let app = application
@@ -169,9 +179,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         }
         defer { removeUIInterruptionMonitor(interruption) }
         #if os(iOS)
-        let passwordInterruption = addUIInterruptionMonitor(withDescription: "Decline saving the disposable API key") { alert in
+        let passwordInterruption = addUIInterruptionMonitor(withDescription: "Decline saving the disposable API key") { [self] alert in
             guard alert.staticTexts["Save Password?"].exists, alert.buttons["Not Now"].exists else { return false }
-            alert.buttons["Not Now"].tap()
+            declinePasswordPrompt()
             return true
         }
         defer { removeUIInterruptionMonitor(passwordInterruption) }

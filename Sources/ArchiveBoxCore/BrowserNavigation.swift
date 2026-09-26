@@ -35,10 +35,18 @@ import UIKit
         // Resource frames must continue loading in place. User-clicked links inside
         // those frames are navigations too, including archived pages and PDF links.
         guard isLink || targetIsMainFrame != false else { return false }
-        guard !["about", "blob", "data", "javascript"].contains(url.scheme?.lowercased() ?? ""),
-              !Self.belongsToServer(url, baseURL: baseURL) else { return false }
-        if let origin = authenticatedOrigin, url.scheme == origin.scheme,
-           url.host == origin.host, url.port == origin.port { return false }
+        let scheme = url.scheme?.lowercased() ?? ""
+        guard !["about", "blob", "data", "javascript"].contains(scheme) else { return false }
+        // A user-requested new browser window must leave WKWebView even for our
+        // own server. In particular, the replay fallback opens the same viewer in
+        // Safari when this embedded context cannot run its service worker. Loading
+        // that link back into this view would just show the same fallback again.
+        let opensBrowserWindow = isLink && targetIsMainFrame == nil && ["http", "https"].contains(scheme)
+        if !opensBrowserWindow {
+            guard !Self.belongsToServer(url, baseURL: baseURL) else { return false }
+            if let origin = authenticatedOrigin, url.scheme == origin.scheme,
+               url.host == origin.host, url.port == origin.port { return false }
+        }
         #if os(macOS)
         NSWorkspace.shared.open(url)
         #else
@@ -117,8 +125,8 @@ import UIKit
     }
     public func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                         for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        // Reuse the authenticated view for internal new-window links. External
-        // links have already been cancelled by the navigation policy above.
+        // User-clicked new-window links have already been handed to the browser
+        // by navigation policy. Keep script-created internal windows authenticated.
         if action.targetFrame == nil { webView.load(action.request) }
         return nil
     }

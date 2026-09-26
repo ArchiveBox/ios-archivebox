@@ -108,6 +108,13 @@ jobs:
           test -n "$screen_id"
           displayplacer "id:$screen_id res:1920x1080 scaling:off"
           swift -e 'import AppKit; let size = NSScreen.main!.frame.size; print("Desktop: \(size)"); precondition(size.width >= 1920 && size.height >= 1080, "Capture desktop is too small")'
+      - name: Disable host Spotlight indexing on the disposable iPhone runner
+        if: matrix.platform == 'iphone'
+        # Resource samples show host indexers competing with the Simulator.
+        # This changes only the ephemeral host, not Simulator services or app behavior.
+        run: |
+          sudo mdutil -i off / /System/Volumes/Data
+          mdutil -s / /System/Volumes/Data
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

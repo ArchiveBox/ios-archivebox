@@ -66,33 +66,53 @@ import WebKit
         let generation = UUID()
         self.generation = generation
         let task = Task { @MainActor in
-            if changed {
-                await dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
-                session = nil
+            var phase = "clear-previous-web-data"
+            do {
+                if changed {
+                    await dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+                    session = nil
+                }
+                phase = "check-cancellation-before-browser-session"
+                try Task.checkCancellation()
+                phase = "request-browser-session"
+                let login = try await client.browserSession(server: server, token: token)
+                phase = "check-cancellation-after-browser-session"
+                try Task.checkCancellation()
+                phase = "validate-browser-session"
+                guard self.generation == generation else { throw CancellationError() }
+                guard let host = login.admin_url.host, ["http", "https"].contains(login.admin_url.scheme ?? ""),
+                      login.cookie.expires > Date().timeIntervalSince1970 else {
+                    throw ArchiveBoxError.message("The server returned an invalid browser session.")
+                }
+                phase = "create-session-cookie"
+                var properties: [HTTPCookiePropertyKey: Any] = [
+                    .name: login.cookie.name, .value: login.cookie.value, .domain: host, .path: "/",
+                    .expires: Date(timeIntervalSince1970: login.cookie.expires),
+                    HTTPCookiePropertyKey("HttpOnly"): "TRUE",
+                ]
+                if login.cookie.secure { properties[.secure] = "TRUE" }
+                guard let cookie = HTTPCookie(properties: properties) else {
+                    throw ArchiveBoxError.message("The server returned an invalid session cookie.")
+                }
+                phase = "store-session-cookie"
+                await dataStore.httpCookieStore.setCookie(cookie)
+                session = login
+                NSLog("ArchiveBox browser authentication completed phase=%@", phase)
+            } catch {
+                Self.logAuthenticationFailure(phase, error: error)
+                throw error
             }
-            try Task.checkCancellation()
-            let login = try await client.browserSession(server: server, token: token)
-            try Task.checkCancellation()
-            guard self.generation == generation else { throw CancellationError() }
-            guard let host = login.admin_url.host, ["http", "https"].contains(login.admin_url.scheme ?? ""),
-                  login.cookie.expires > Date().timeIntervalSince1970 else {
-                throw ArchiveBoxError.message("The server returned an invalid browser session.")
-            }
-            var properties: [HTTPCookiePropertyKey: Any] = [
-                .name: login.cookie.name, .value: login.cookie.value, .domain: host, .path: "/",
-                .expires: Date(timeIntervalSince1970: login.cookie.expires),
-                HTTPCookiePropertyKey("HttpOnly"): "TRUE",
-            ]
-            if login.cookie.secure { properties[.secure] = "TRUE" }
-            guard let cookie = HTTPCookie(properties: properties) else {
-                throw ArchiveBoxError.message("The server returned an invalid session cookie.")
-            }
-            await dataStore.httpCookieStore.setCookie(cookie)
-            session = login
         }
         pending = task
         defer { if self.generation == generation { pending = nil } }
         try await task.value
+    }
+
+    private static func logAuthenticationFailure(_ phase: String, error: Error) {
+        let details = error as NSError
+        NSLog("ArchiveBox browser authentication failed phase=%@ type=%@ domain=%@ code=%ld cancelled=%d",
+              phase, String(reflecting: type(of: error)), details.domain, details.code,
+              Task.isCancelled ? 1 : 0)
     }
 
     public func sidebarProgress(server: URL, token: String) async throws -> SidebarProgress {

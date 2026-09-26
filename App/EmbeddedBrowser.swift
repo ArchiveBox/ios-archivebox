@@ -1,6 +1,9 @@
 import SwiftUI
 import WebKit
 import ArchiveBoxCore
+#if os(iOS)
+import UIKit
+#endif
 
 // Embedded pages share an in-memory cookie store; the Keychain API key restores
 // the session after relaunch without persisting browser credentials.
@@ -121,7 +124,15 @@ import ArchiveBoxCore
                 NSLog("ArchiveBox page navigation %@: WebKit returned", diagnosticID)
             }
             catch {
-                NSLog("ArchiveBox page navigation %@: preparation failed", diagnosticID)
+                let details = error as NSError
+                #if os(iOS)
+                let appState = String(UIApplication.shared.applicationState.rawValue)
+                #else
+                let appState = "not-applicable"
+                #endif
+                NSLog("ArchiveBox page navigation %@: preparation failed type=%@ domain=%@ code=%ld cancelled=%d appState=%@",
+                      diagnosticID, String(reflecting: type(of: error)), details.domain, details.code,
+                      Task.isCancelled ? 1 : 0, appState)
                 if !Task.isCancelled { isLoading = false; errorMessage = error.localizedDescription }
             }
         }

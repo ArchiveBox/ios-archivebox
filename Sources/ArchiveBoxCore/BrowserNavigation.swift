@@ -11,6 +11,7 @@ import UIKit
     /// Exact admin origin returned by the authenticated session endpoint.
     public var authenticatedOrigin: URL?
     public var openSnapshot: ((URL) -> Void)?
+    public var didStartProvisional: ((WKWebView) -> Void)?
     public var didCommit: ((WKWebView) -> Void)?
     public var didFinish: ((WKWebView) -> Void)?
     public var didFail: ((Error) -> Void)?
@@ -102,6 +103,9 @@ import UIKit
         return nil
     }
     public func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) { didCommit?(webView) }
+    public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        didStartProvisional?(webView)
+    }
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { didFinish?(webView) }
     public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { report(error) }
     public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { report(error) }

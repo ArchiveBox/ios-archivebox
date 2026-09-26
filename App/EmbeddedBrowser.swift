@@ -41,6 +41,10 @@ import UIKit
         ]
         // Present the document as soon as WebKit starts rendering it. Archived
         // subframes may keep loading long after the main page is usable.
+        routing.didStartProvisional = { [weak self] _ in
+            guard let self else { return }
+            NSLog("ArchiveBox page navigation %@: provisional navigation started", diagnosticID)
+        }
         routing.didCommit = { [weak self] page in
             guard let self, page.url?.scheme != "about" else { return }
             NSLog("ArchiveBox page navigation %@: committed", diagnosticID)
@@ -48,7 +52,9 @@ import UIKit
         }
         routing.didFail = { [weak self] error in
             guard let self else { return }
-            NSLog("ArchiveBox page navigation %@: failed", diagnosticID)
+            let details = error as NSError
+            NSLog("ArchiveBox page navigation %@: failed domain=%@ code=%ld",
+                  diagnosticID, details.domain, details.code)
             isLoading = false
             errorMessage = error.localizedDescription
         }
@@ -120,8 +126,9 @@ import UIKit
                 routing.authenticatedOrigin = owner.authentication.adminURL
                 NSLog("ArchiveBox page navigation %@: invoking WebKit mounted=%d width=%.0f height=%.0f",
                       diagnosticID, page.window == nil ? 0 : 1, Double(page.frame.width), Double(page.frame.height))
-                page.load(URLRequest(url: owner.authentication.authenticatedPageURL(url)))
-                NSLog("ArchiveBox page navigation %@: WebKit returned", diagnosticID)
+                let webNavigation = page.load(URLRequest(url: owner.authentication.authenticatedPageURL(url)))
+                NSLog("ArchiveBox page navigation %@: WebKit returned handleCreated=%d isLoading=%d",
+                      diagnosticID, webNavigation == nil ? 0 : 1, page.isLoading ? 1 : 0)
             }
             catch {
                 let details = error as NSError

@@ -396,14 +396,10 @@ struct MainView: View {
             .overlay(alignment: .topLeading) {
                 if screen != .settings && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
                     Button {
-                        NSLog("ArchiveBox page navigation sidebar button action preferred=%@ visibility=%@",
-                              String(describing: compactColumn), String(describing: columnVisibility))
                         withAnimation {
                             compactColumn = .sidebar
                             columnVisibility = .all
                         }
-                        NSLog("ArchiveBox page navigation sidebar button updated preferred=%@ visibility=%@",
-                              String(describing: compactColumn), String(describing: columnVisibility))
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))
@@ -422,14 +418,6 @@ struct MainView: View {
             }
             #endif
         }
-        #if os(iOS)
-        .onChange(of: compactColumn) { _, value in
-            NSLog("ArchiveBox page navigation preferred changed to %@", String(describing: value))
-        }
-        .onChange(of: columnVisibility) { _, value in
-            NSLog("ArchiveBox page navigation visibility changed to %@", String(describing: value))
-        }
-        #endif
         #if os(macOS)
         // Hiding the window toolbar also removes traffic lights. Keep its controls,
         // but let web content fill the transparent titlebar in the detail column.

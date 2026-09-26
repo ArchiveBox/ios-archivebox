@@ -174,6 +174,9 @@ final class SettingsModel {
     }
 
     func scheduleValidation() {
+        // Editing the key must not cancel a server check already in progress.
+        // That check will validate the current key after it verifies the server.
+        if busy && verifiedServer == nil { return }
         validation?.cancel()
         busy = false
         validation = Task {
@@ -274,7 +277,11 @@ final class SettingsModel {
     }
     func tokenChanged() {
         sidebarStatus = nil
-        validation?.cancel(); busy = false; tokenError = nil
+        if !(busy && verifiedServer == nil) {
+            validation?.cancel()
+            busy = false
+        }
+        tokenError = nil
         personas = []; personaError = nil; personasLoaded = false
         verifiedToken = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
     }

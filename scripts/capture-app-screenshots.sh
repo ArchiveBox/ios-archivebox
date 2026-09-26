@@ -192,11 +192,14 @@ fi
 xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     if [[ "$platform" == iphone ]]; then
+      # Include the connection checks that precede WebKit loading as well as
+      # its navigation policy. These prefixes contain only phase/state metadata;
+      # do not broaden this to arbitrary app logs that may contain URLs or keys.
       xcrun simctl spawn "$device_id" log show --last 5m --style compact --info \
-        --predicate 'process == "ArchiveBox" AND eventMessage CONTAINS "ArchiveBox page navigation "' \
+        --predicate 'process == "ArchiveBox" AND (eventMessage CONTAINS "ArchiveBox page navigation " OR eventMessage CONTAINS "ArchiveBox connection validation " OR eventMessage CONTAINS "ArchiveBox navigation policy:")' \
         > "$output/page-navigation.log" 2>&1 || true
-      if ! grep -q 'ArchiveBox page navigation ' "$output/page-navigation.log"; then
-        echo "No page navigation phase markers were found in the Simulator log." >&2
+      if ! grep -Eq 'ArchiveBox (page navigation |connection validation |navigation policy:)' "$output/page-navigation.log"; then
+        echo "No connection or navigation phase markers were found in the Simulator log." >&2
       fi
       cat "$output/page-navigation.log"
     fi

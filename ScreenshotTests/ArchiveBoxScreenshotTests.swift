@@ -611,27 +611,27 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     #if os(iOS)
     private func declinePasswordPrompt(dismissalTimeout: TimeInterval = 5) {
-        // The sheet appears in ArchiveBox's tree, but SafariViewService owns
-        // its controls. Query that process while the WebView is navigating.
-        let service = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
-        let servicePrompt = service.staticTexts["Save Password?"]
-        if service.state != .notRunning && servicePrompt.exists {
-            let notNow = service.buttons["Not Now"]
+        // The system sheet's controls are exposed in ArchiveBox's accessibility
+        // tree with a remote PID. Query that tree: SafariViewService may not be
+        // running as a separately addressable XCUIApplication when it appears.
+        let app = application
+        let prompt = app.staticTexts["Save Password?"]
+        if prompt.exists {
+            let notNow = app.buttons["Not Now"]
             XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
-            // XCTest activates SafariViewService before tapping its AX button;
-            // that activation can invalidate the hit point even while the
-            // system sheet remains on screen. Tap its visible screen position.
+            // Tapping the remote AX button may change its owning process and
+            // invalidate the hit point. Tap its visible screen position.
             let button = notNow.frame
-            let screen = application.frame
+            let screen = app.frame
             let center = CGPoint(x: button.midX, y: button.midY)
             XCTAssertTrue(screen.contains(center), "Not Now must be visible on the iPhone screen")
-            application.coordinate(withNormalizedOffset: CGVector(
+            app.coordinate(withNormalizedOffset: CGVector(
                 dx: (center.x - screen.minX) / screen.width,
                 dy: (center.y - screen.minY) / screen.height
             )).tap()
-            XCTAssertTrue(servicePrompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
+            XCTAssertTrue(prompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
         }
-        XCTAssertTrue(service.state == .notRunning || !servicePrompt.exists, "The disposable API key must not be saved to Passwords")
+        XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")
     }
     #endif
 

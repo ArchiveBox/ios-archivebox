@@ -79,7 +79,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(app.buttons["setup.connect"].waitForExistence(timeout: 5))
         capture("setup-mac", app: app)
         press(app.buttons["setup.back"])
+        XCTAssertTrue(app.staticTexts["Choose a home for your archive"].waitForExistence(timeout: 5), app.debugDescription)
         press(app.buttons["setup.docker"])
+        XCTAssertTrue(app.staticTexts["Install with Docker Compose"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.buttons["setup.connect"].waitForExistence(timeout: 5), app.debugDescription)
         capture("setup-docker", app: app)
         press(app.buttons["setup.connect"])
         let field = app.textFields["serverURL"]

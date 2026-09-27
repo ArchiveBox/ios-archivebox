@@ -13,6 +13,12 @@ final class FirstRunUITests: XCTestCase {
         app.buttons["setup.choose"].tap()
         XCTAssertTrue(app.staticTexts["Choose a home for your archive"].waitForExistence(timeout: 5))
         capture("Server choices", app: app)
+        let routeHeadings = [
+            "mac": "Keep your archive on a Mac",
+            "hosting": "Let a hosting service run it",
+            "docker": "Install with Docker Compose",
+            "python": "Install the Python package",
+        ]
         for route in ["mac", "hosting", "docker", "python"] {
             let choice = app.buttons["setup.\(route)"]
             let content = app.scrollViews["setup.content"]
@@ -26,10 +32,12 @@ final class FirstRunUITests: XCTestCase {
             }
             XCTAssertTrue(choice.isHittable, app.debugDescription)
             choice.tap()
+            XCTAssertTrue(app.staticTexts[routeHeadings[route]!].waitForExistence(timeout: 5), app.debugDescription)
             XCTAssertTrue(app.buttons["setup.connect"].waitForExistence(timeout: 5))
             XCTAssertFalse(app.textFields["serverURL"].exists)
             capture("Setup \(route)", app: app)
             app.buttons["setup.back"].tap()
+            XCTAssertTrue(app.staticTexts["Choose a home for your archive"].waitForExistence(timeout: 5), app.debugDescription)
         }
         app.buttons["setup.skip"].tap()
         XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 5))

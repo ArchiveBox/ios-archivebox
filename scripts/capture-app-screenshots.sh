@@ -317,9 +317,9 @@ xcodebuild "${test_args[@]}" "$test_action" || {
       # its navigation policy. These prefixes contain only phase/state metadata;
       # do not broaden this to arbitrary app logs that may contain URLs or keys.
       xcrun simctl spawn "$device_id" log show --last 5m --style compact --info \
-        --predicate 'process == "ArchiveBox" AND (eventMessage CONTAINS "ArchiveBox page navigation " OR eventMessage CONTAINS "ArchiveBox connection validation " OR eventMessage CONTAINS "ArchiveBox navigation policy:")' \
+        --predicate 'process == "ArchiveBox" AND (eventMessage CONTAINS "ArchiveBox page navigation " OR eventMessage CONTAINS "ArchiveBox connection validation " OR eventMessage CONTAINS "ArchiveBox navigation policy:" OR eventMessage CONTAINS "ArchiveBox sidebar ")' \
         > "$output/page-navigation.log" 2>&1 || true
-      if ! grep -Eq 'ArchiveBox (page navigation |connection validation |navigation policy:)' "$output/page-navigation.log"; then
+      if ! grep -Eq 'ArchiveBox (page navigation |connection validation |navigation policy:|sidebar )' "$output/page-navigation.log"; then
         echo "No connection or navigation phase markers were found in the Simulator log." >&2
       fi
       cat "$output/page-navigation.log"

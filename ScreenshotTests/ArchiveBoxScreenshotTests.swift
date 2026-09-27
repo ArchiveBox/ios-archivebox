@@ -566,14 +566,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let content = app.webViews.descendants(matching: type).matching(predicate)
         let deadline = ProcessInfo.processInfo.systemUptime + 30
         #if os(iOS)
-        let passwordService = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
-        let passwordPrompt = passwordService.staticTexts["Save Password?"]
+        let passwordPrompt = app.staticTexts["Save Password?"]
         #endif
         let rendered = NSPredicate { _, _ in
             #if os(iOS)
             // Observe the system prompt here; XCTest UI actions must run outside
             // the expectation's predicate evaluation.
-            return content.firstMatch.exists || (passwordService.state != .notRunning && passwordPrompt.exists)
+            return content.firstMatch.exists || passwordPrompt.exists
             #else
             return content.firstMatch.exists
             #endif
@@ -581,7 +580,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         expectation(for: rendered, evaluatedWith: app)
         waitForExpectations(timeout: 30)
         #if os(iOS)
-        if passwordService.state != .notRunning && passwordPrompt.exists {
+        if passwordPrompt.exists {
             declinePasswordPrompt(dismissalTimeout: min(5, max(0, deadline - ProcessInfo.processInfo.systemUptime)))
         }
         #endif

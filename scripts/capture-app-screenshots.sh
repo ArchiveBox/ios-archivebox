@@ -19,6 +19,9 @@ signing=(CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=)
 if [[ "$platform" == iphone ]]; then
   tcpdump_launcher_pid=
   tcpdump_pidfile=
+  profile_launcher_pid=
+  profile_pidfile=
+  profile_target_pid=
   daphne_pid() {
     local server_data="${RUNNER_TEMP:-}/screenshot-server" pid command
     [[ "${GITHUB_ACTIONS:-}" == true && "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:[0-9]+$ ]] || return 0
@@ -38,6 +41,30 @@ if [[ "$platform" == iphone ]]; then
     # Native stacks can reveal SQLite/native blocking versus an idle reactor.
     # sample records no process environment, request headers, or payloads.
     sample "$pid" 1 10 -file "$output/daphne-$phase.sample.txt" > /dev/null 2>> "$output/daphne-sample-errors.log" || true
+  }
+  start_daphne_profile() {
+    local pid pyspy cpu_time
+    pid=$(daphne_pid)
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 0
+    pyspy=$(command -v py-spy || true)
+    [[ -x "$pyspy" ]] || { echo 'py-spy is unavailable; skipping optional server profile.' > "$output/daphne-profile.log"; return 0; }
+    profile_pidfile="$output/daphne-profile.pid"
+    profile_target_pid=$pid
+    cpu_time=$(ps -p "$pid" -o time= 2>/dev/null || true)
+    printf '%s Starting py-spy for verified Daphne PID %s (10 Hz, max 600s); Daphne cumulative CPU %s.\n' \
+      "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$pid" "${cpu_time:-unavailable}" > "$output/daphne-profile.log"
+    # Periodic native samples landed after the 20-second response stalls and
+    # could not identify Python functions. Record through XCTest so a request
+    # that clears before the failure report still has an attributable stack.
+    # Attach only to the verified Daphne worker. No locals or request data are recorded.
+    # --idle includes waiting stacks, and --nonblocking avoids pausing the live server.
+    # The root shell writes its PID then execs py-spy so shutdown can signal the recorder
+    # directly; SIGINT makes py-spy flush the completed speedscope profile.
+    sudo -n /bin/sh -c 'umask 022; printf "%s\n" "$$" > "$1"; shift; exec "$@"' \
+      sh "$profile_pidfile" "$pyspy" record --pid "$pid" --duration 600 --rate 10 --format speedscope \
+      --idle --threads --nonblocking --output "$output/daphne-profile.speedscope.json" \
+      >> "$output/daphne-profile.log" 2>&1 &
+    profile_launcher_pid=$!
   }
   sample_screenshot_services() {
     [[ "${GITHUB_ACTIONS:-}" == true ]] || return 0
@@ -81,6 +108,23 @@ if [[ "$platform" == iphone ]]; then
       2>> "$output/screenshot-service-log-errors.log" | awk 'NR <= 200 {print substr($0, 1, 500)}' > "$output/simulator-screenshot-services.log" || true
   }
   stop_iphone_diagnostics() {
+    if [[ -n "$profile_launcher_pid" ]]; then
+      profile_cpu_time=$(ps -p "$profile_target_pid" -o time= 2>/dev/null || true)
+      printf '%s Stopping py-spy after XCTest capture; Daphne cumulative CPU %s. This endpoint follows any final native failure sample.\n' \
+        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "${profile_cpu_time:-unavailable}" >> "$output/daphne-profile.log"
+      if [[ -n "$profile_pidfile" && -s "$profile_pidfile" ]]; then
+        profile_pid=$(cat "$profile_pidfile")
+        profile_command=$(ps -p "$profile_pid" -o comm= 2>/dev/null || true)
+        if [[ "$profile_pid" =~ ^[0-9]+$ && "$profile_command" =~ (^|/)py-spy$ ]]; then
+          sudo -n kill -INT "$profile_pid" 2>/dev/null || true
+        fi
+      else
+        kill -INT "$profile_launcher_pid" 2>/dev/null || true
+      fi
+      wait "$profile_launcher_pid" 2>/dev/null || true
+      profile_launcher_pid=
+      [[ -z "$profile_pidfile" ]] || rm -f "$profile_pidfile"
+    fi
     if [[ -n "$tcpdump_pidfile" && -s "$tcpdump_pidfile" ]]; then
       tcpdump_pid=$(cat "$tcpdump_pidfile")
       if [[ "$tcpdump_pid" =~ ^[0-9]+$ ]] && ps -p "$tcpdump_pid" -o comm= | grep -Eq '(^|/)tcpdump$'; then
@@ -110,11 +154,6 @@ if [[ "$platform" == iphone ]]; then
     trap '[[ -z "$sleep_pid" ]] || kill "$sleep_pid" 2>/dev/null || true' EXIT
     while :; do
       date -u '+%Y-%m-%dT%H:%M:%SZ'
-      # A timed-out app request can be gone before XCTest reports its failure.
-      # Keep timestamped stacks during capture so an idle post-failure reactor
-      # cannot hide a blocked request thread. Reuse this sampler and the existing
-      # payload-free failure artifacts; no app settings or deadlines change.
-      sample_daphne "active-$(date -u '+%Y%m%dT%H%M%SZ')"
       uptime
       memory_pressure -Q || true
       sysctl vm.swapusage || true
@@ -315,7 +354,10 @@ if [[ "$platform" == iphone && "${GITHUB_ACTIONS:-}" == true &&
     sleep 0.1
   done
 fi
-if [[ "$platform" == iphone ]]; then sample_daphne start; fi
+if [[ "$platform" == iphone ]]; then
+  if [[ "${GITHUB_ACTIONS:-}" == true ]]; then start_daphne_profile; fi
+  sample_daphne start
+fi
 xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     if [[ "$platform" == iphone ]]; then
@@ -351,5 +393,5 @@ if [[ "$platform" == iphone ]]; then
 fi
 xcrun xcresulttool export attachments --path "$output/Capture.xcresult" --output-path "$output/attachments"
 if [[ "$platform" == iphone ]]; then
-  rm -f "$output/transport-metadata.log" "$output"/daphne-*.sample.txt "$output/daphne-sample-errors.log"
+  rm -f "$output"/daphne-*.sample.txt "$output/daphne-sample-errors.log" "$output/daphne-profile.pid"
 fi

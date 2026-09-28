@@ -47,6 +47,9 @@ public final class ArchiveBoxClient: Sendable {
         throw ArchiveBoxError.message("Could not connect to the ArchiveBox API. Check the address and your Wi-Fi or VPN.\n\n" + failures.joined(separator: "\n"))
     }
 
+    /// Check availability after `discoverServer` has verified the API capabilities.
+    /// The long-standing "OK" body also works with older servers that do not send
+    /// the newer health marker header; availability alone does not verify the API.
     public func healthCheck(server: URL) async throws {
         let data = try await request(server, path: "health/")
         guard data == Data("OK".utf8) else {

@@ -126,10 +126,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         Thread.sleep(forTimeInterval: 10)
         capture("agent-welcome", app: app)
         press(start)
-        assertPage("New session", app: app, type: pageTextType)
+        assertPage("New session", app: app, type: pageTextType, screen: "agent")
         capture("agent", app: app)
         openScreen("openActivity", app: app)
-        assertPage("Downloads", app: app, type: pageTextType)
+        assertPage("Downloads", app: app, type: pageTextType, screen: "activity")
         capture("activity", app: app)
         openScreen("settings", app: app)
         XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 20), app.debugDescription)
@@ -249,7 +249,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             capture(id, app: app)
         }
         openScreen("openActivity", app: app)
-        assertPage("Downloads", app: app)
+        assertPage("Downloads", app: app, screen: "activity")
         capture("activity", app: app)
 
         openScreen("add", app: app)

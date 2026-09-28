@@ -13,6 +13,8 @@ struct IntegrationChecks {
         let server = try await client.discoverServer(address)
         guard server.absoluteString == expected else { fatalError("Wrong discovered host: \(server)") }
         print("PASS: discovered \(server)")
+        try await client.healthCheck(server: server)
+        print("PASS: verified server health")
         var rejected = false
         do { try await client.testToken(server: server, token: "invalid-integration-key") }
         catch { rejected = true }

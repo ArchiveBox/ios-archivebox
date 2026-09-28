@@ -12,7 +12,9 @@ permissions:
   contents: read
 concurrency:
   group: build-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # A failed release emits workflow_run too, but its build below is skipped.
+  # Do not let that empty follow-up cancel validation of the original push.
+  cancel-in-progress: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
 jobs:
   build:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'

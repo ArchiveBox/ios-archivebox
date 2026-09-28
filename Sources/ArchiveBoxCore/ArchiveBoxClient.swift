@@ -47,6 +47,13 @@ public final class ArchiveBoxClient: Sendable {
         throw ArchiveBoxError.message("Could not connect to the ArchiveBox API. Check the address and your Wi-Fi or VPN.\n\n" + failures.joined(separator: "\n"))
     }
 
+    public func healthCheck(server: URL) async throws {
+        let data = try await request(server, path: "health/")
+        guard data == Data("OK".utf8) else {
+            throw ArchiveBoxError.message("The server returned an invalid ArchiveBox health response.")
+        }
+    }
+
     public func testToken(server: URL, token: String) async throws {
         guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ArchiveBoxError.message("Enter your API key.")

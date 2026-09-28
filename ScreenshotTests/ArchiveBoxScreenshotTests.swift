@@ -116,7 +116,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                                    ("snapshots", "Example Domain", snapshotMarkerType),
                                    ("crawls", crawlsMarker, pageTextType)] {
             openScreen(id, app: app)
-            assertPage(marker, app: app, type: type)
+            assertPage(marker, app: app, type: type, screen: id)
             capture(id, app: app)
         }
         openScreen("agent", app: app)
@@ -244,7 +244,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                 capture("agent-welcome", app: app)
                 press(start)
             }
-            assertPage(marker, app: app)
+            assertPage(marker, app: app, screen: id)
 
             capture(id, app: app)
         }
@@ -558,12 +558,19 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(element.isHittable, app.debugDescription)
     }
 
-    private func assertPage(_ marker: String, app: XCUIApplication, type: XCUIElement.ElementType = .any) {
+    private func assertPage(_ marker: String, app: XCUIApplication, type: XCUIElement.ElementType = .any, screen: String? = nil) {
         resolveSystemPermissions()
         // Buttons expose labels while macOS text exposes AXValue. Select a
         // visible matching element, not an offscreen accessibility group.
         let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR CAST(value, 'NSString') CONTAINS[c] %@", marker, marker)
-        let content = app.webViews.descendants(matching: type).matching(predicate)
+        // "CRAWLS" also appears in the Snapshots progress summary. While the
+        // old page remains visible during navigation, matching its text can
+        // fulfill the wait and then disappear when the new page commits.
+        // Require the requested cached page before checking its real content.
+        let pages = screen.map { screen in
+            app.webViews.matching(NSPredicate(format: "identifier BEGINSWITH %@", "server-page.\(screen)-"))
+        } ?? app.webViews
+        let content = pages.descendants(matching: type).matching(predicate)
         let deadline = ProcessInfo.processInfo.systemUptime + 30
         #if os(iOS)
         let passwordPrompt = app.staticTexts["Save Password?"]

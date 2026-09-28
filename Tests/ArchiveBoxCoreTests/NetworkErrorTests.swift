@@ -3,6 +3,25 @@ import Darwin
 import Testing
 @testable import ArchiveBoxCore
 
+private func expectRefusedConnection(_ operation: () async throws -> Void) async throws {
+    do {
+        try await operation()
+        Issue.record("A connection to a port without a listener must fail")
+    } catch {
+        let error = error as NSError
+        #expect(error.domain == NSURLErrorDomain)
+        #expect(error.code == URLError.cannotConnectToHost.rawValue)
+        // Fail before invoking the encoder, which raises an Objective-C
+        // exception for Network.__NWPath in an unsanitized URLSession error.
+        try #require(Set(error.userInfo.keys) == [NSLocalizedDescriptionKey])
+        let data = try NSKeyedArchiver.archivedData(withRootObject: error, requiringSecureCoding: true)
+        let decoded = try #require(try NSKeyedUnarchiver.unarchivedObject(ofClass: NSError.self, from: data))
+        #expect(decoded.domain == error.domain)
+        #expect(decoded.code == error.code)
+        #expect(decoded.localizedDescription == error.localizedDescription)
+    }
+}
+
 @Test func refusedConnectionErrorCanCrossSecureCodingBoundary() async throws {
     // Reserve and release an ephemeral loopback port for a real refused
     // URLSession connection, without a test HTTP handler or external service.
@@ -27,20 +46,11 @@ import Testing
     close(socketFD)
     socketFD = -1
     let server = try #require(URL(string: "http://127.0.0.1:\(UInt16(bigEndian: address.sin_port))"))
-    do {
-        _ = try await ArchiveBoxClient().snapshots(configuration: ServerConfiguration(server: server, token: ""))
-        Issue.record("A connection to a port without a listener must fail")
-    } catch {
-        let error = error as NSError
-        #expect(error.domain == NSURLErrorDomain)
-        #expect(error.code == URLError.cannotConnectToHost.rawValue)
-        // Fail before invoking the encoder, which raises an Objective-C
-        // exception for Network.__NWPath in an unsanitized URLSession error.
-        try #require(Set(error.userInfo.keys) == [NSLocalizedDescriptionKey])
-        let data = try NSKeyedArchiver.archivedData(withRootObject: error, requiringSecureCoding: true)
-        let decoded = try #require(try NSKeyedUnarchiver.unarchivedObject(ofClass: NSError.self, from: data))
-        #expect(decoded.domain == error.domain)
-        #expect(decoded.code == error.code)
-        #expect(decoded.localizedDescription == error.localizedDescription)
+    let client = ArchiveBoxClient()
+    try await expectRefusedConnection {
+        _ = try await client.snapshots(configuration: ServerConfiguration(server: server, token: ""))
+    }
+    try await expectRefusedConnection {
+        try await client.healthCheck(server: server)
     }
 }

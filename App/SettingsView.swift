@@ -379,7 +379,10 @@ final class SettingsModel {
     func refreshReachability() async {
         guard let server = verifiedServer else { return }
         do {
-            _ = try await client.discoverServer(server.absoluteString)
+            // Initial discovery already verified ArchiveBox's API identity and capabilities.
+            // Rebuilding and decoding the full OpenAPI schema on every five-second heartbeat
+            // adds avoidable work to the server while it handles normal app requests.
+            try await client.healthCheck(server: server)
             try Task.checkCancellation()
             guard verifiedServer == server else { return }
             serverReachable = true

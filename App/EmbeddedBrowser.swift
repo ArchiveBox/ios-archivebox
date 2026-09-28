@@ -211,13 +211,11 @@ import UIKit
         // WKWebView exposes authenticated download and blob completion callbacks;
         // SwiftUI's WebPage currently does not. Keep the surrounding UI in SwiftUI.
         let webPage = WKWebView(frame: .zero, configuration: configuration)
-        // The previous screen stays visible until this page commits. Give each
-        // cached page its own identity so accessibility checks cannot mistake
-        // shared admin text on the previous screen for the requested page.
         #if os(iOS)
+        // The previous screen stays visible until this page commits. UIKit
+        // exposes this identity so checks can distinguish shared admin text
+        // on that old screen from content on the requested cached page.
         webPage.accessibilityIdentifier = "server-page.\(key)"
-        #else
-        webPage.setAccessibilityIdentifier("server-page.\(key)")
         #endif
         webPage.navigationDelegate = routing
         webPage.uiDelegate = routing

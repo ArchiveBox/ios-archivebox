@@ -563,6 +563,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         // Buttons expose labels while macOS text exposes AXValue. Select a
         // visible matching element, not an offscreen accessibility group.
         let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR CAST(value, 'NSString') CONTAINS[c] %@", marker, marker)
+        #if os(iOS)
         // "CRAWLS" also appears in the Snapshots progress summary. While the
         // old page remains visible during navigation, matching its text can
         // fulfill the wait and then disappear when the new page commits.
@@ -570,6 +571,12 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let pages = screen.map { screen in
             app.webViews.matching(NSPredicate(format: "identifier BEGINSWITH %@", "server-page.\(screen)-"))
         } ?? app.webViews
+        #else
+        // AppKit's remote web content did not expose the native WKWebView ID
+        // in real CI, even with the page visibly rendered. Preserve its
+        // existing content query rather than altering the accessibility tree.
+        let pages = app.webViews
+        #endif
         let content = pages.descendants(matching: type).matching(predicate)
         let deadline = ProcessInfo.processInfo.systemUptime + 30
         #if os(iOS)

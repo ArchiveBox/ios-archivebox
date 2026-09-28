@@ -110,14 +110,24 @@ if [[ "$platform" == iphone ]]; then
     trap '[[ -z "$sleep_pid" ]] || kill "$sleep_pid" 2>/dev/null || true' EXIT
     while :; do
       date -u '+%Y-%m-%dT%H:%M:%SZ'
+      # A timed-out app request can be gone before XCTest reports its failure.
+      # Keep timestamped stacks during capture so an idle post-failure reactor
+      # cannot hide a blocked request thread. Reuse this sampler and the existing
+      # payload-free failure artifacts; no app settings or deadlines change.
+      sample_daphne "active-$(date -u '+%Y%m%dT%H%M%SZ')"
       uptime
       memory_pressure -Q || true
       sysctl vm.swapusage || true
       ps -A -o pid=,ppid=,state=,%cpu=,%mem=,comm= | sort -k4,4nr | sed -n '1,20p'
+      # The CPU top twenty omit SIGSTOP'd poster services. Record the whole
+      # host's state distribution before attributing load averages to CPU work.
+      echo 'Host process states: count state'
+      ps -A -o state= | sort | uniq -c
       if [[ "${GITHUB_ACTIONS:-}" == true && "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:([0-9]+)$ ]]; then
         backend_port=${BASH_REMATCH[1]}
         # Only this backend's socket metadata: no payload, headers, or argv.
         echo 'Backend TCP sockets: protocol recv-q send-q local peer state'
+        date -u '+%Y-%m-%dT%H:%M:%SZ'
         sudo -n /usr/sbin/netstat -anv -p tcp | awk -v endpoint="127.0.0.1.$backend_port" \
           '$1 ~ /^tcp/ && ($4 == endpoint || $5 == endpoint) {print $1, $2, $3, $4, $5, $6}' || true
         backend_pid=$(daphne_pid)
@@ -295,7 +305,7 @@ if [[ "$platform" == iphone && "${GITHUB_ACTIONS:-}" == true &&
   tcpdump_pidfile="$output/tcpdump.pid"
   # The output is deliberately written by the unprivileged shell to this run's directory.
   # shellcheck disable=SC2024
-  sudo -n sh -c 'printf "%s\n" "$$" > "$1"; exec /usr/sbin/tcpdump -i lo0 -y NULL -nn -tttt -q -l -s 44 "ip and tcp port $2"' \
+  sudo -n sh -c 'printf "%s\n" "$$" > "$1"; exec /usr/sbin/tcpdump -i lo0 -y NULL -nn -tttt -l -s 44 "ip and tcp port $2"' \
     sh "$tcpdump_pidfile" "$tcpdump_port" > "$output/transport-metadata.log" 2>&1 &
   tcpdump_launcher_pid=$!
   # Give tcpdump a bounded chance to attach before the app makes its first request.

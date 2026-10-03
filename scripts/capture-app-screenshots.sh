@@ -361,6 +361,17 @@ fi
 xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
     if [[ "$platform" == iphone ]]; then
+      # A synthesized Back tap sometimes never reaches its SwiftUI handler.
+      # Capture the app first, before slower server diagnostics let it recover.
+      app_pid=$(xcrun simctl spawn "$device_id" launchctl list 2>/dev/null | awk '$3 ~ /^UIKitApplication:io[.]archivebox[.]ArchiveBox\[/ && $1 ~ /^[0-9]+$/ {print $1; exit}' || true)
+      if [[ "$app_pid" =~ ^[0-9]+$ ]]; then
+        sample "$app_pid" 1 10 -file "$output/app-failure.sample.txt" > /dev/null 2>> "$output/screenshot-service-sample-errors.log" || true
+      fi
+      # Only UIKit's dispatch decision metadata; never arbitrary app messages,
+      # text input, request payloads, URLs, or credentials.
+      xcrun simctl spawn "$device_id" log show --last 2m --style compact --info \
+        --predicate 'process == "ArchiveBox" AND subsystem == "com.apple.UIKit" AND category == "EventDispatch" AND eventMessage BEGINSWITH "Evaluating dispatch of UIEvent:"' \
+        > "$output/input-dispatch.log" 2>> "$output/screenshot-service-log-errors.log" || true
       sample_daphne failure
       stop_iphone_diagnostics
       sample_screenshot_services

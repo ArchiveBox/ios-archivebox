@@ -253,6 +253,8 @@ jobs:
             build/screenshots/${{ matrix.platform }}/Capture.xcresult/
             build/screenshots/${{ matrix.platform }}/resource-samples.log
             build/screenshots/${{ matrix.platform }}/page-navigation.log
+            build/screenshots/${{ matrix.platform }}/app-failure.sample.txt
+            build/screenshots/${{ matrix.platform }}/input-dispatch.log
             build/screenshots/${{ matrix.platform }}/transport-metadata.log
             build/screenshots/${{ matrix.platform }}/daphne-*.sample.txt
             build/screenshots/${{ matrix.platform }}/daphne-sample-errors.log

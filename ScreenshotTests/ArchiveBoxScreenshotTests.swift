@@ -472,8 +472,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             let back = app.buttons["navigation.sidebar"].exists ? app.buttons["navigation.sidebar"] : app.navigationBars.buttons.firstMatch
             XCTAssertTrue(back.exists, app.debugDescription)
             press(back)
-            expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: sidebar)
+            // Leaving the secure field can present Passwords over the sidebar.
+            // Observe that transition, then dismiss its owning system process.
+            expectation(for: NSPredicate { _, _ in
+                sidebar.isHittable || app.staticTexts["Save Password?"].exists
+            }, evaluatedWith: app)
             waitForExpectations(timeout: 5)
+            declinePasswordPrompt()
+            XCTAssertTrue(sidebar.isHittable, "Returning from Settings must reveal the sidebar")
         }
         #endif
     }
@@ -501,6 +507,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let visibleTop = app.staticTexts["ArchiveBox"].frame.maxY
         let visibleBottom = app.buttons["sidebar.openActivity"].frame.minY
         let visible = {
+            // Passwords can present after returning from Settings. Scrolling
+            // cannot uncover the list while that system sheet intercepts input.
+            self.declinePasswordPrompt()
             guard item.exists, item.isHittable else { return false }
             let frame = item.frame
             return frame.minY >= visibleTop && frame.maxY <= visibleBottom
@@ -624,24 +633,20 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
     #if os(iOS)
     private func declinePasswordPrompt(dismissalTimeout: TimeInterval = 5) {
-        // The system sheet's controls are exposed in ArchiveBox's accessibility
-        // tree with a remote PID. Query that tree: SafariViewService may not be
-        // running as a separately addressable XCUIApplication when it appears.
+        // The sheet is visible in ArchiveBox's AX tree, but its controls belong
+        // to SafariViewService. Taps rooted in ArchiveBox target the wrong PID
+        // on iOS 26 and leave the sheet blocking navigation.
         let app = application
         let prompt = app.staticTexts["Save Password?"]
         if prompt.exists {
-            let notNow = app.buttons["Not Now"]
-            XCTAssertTrue(notNow.isHittable, "The Save Password prompt must offer Not Now")
-            // Tapping the remote AX button may change its owning process and
-            // invalidate the hit point. Tap its visible screen position.
-            let button = notNow.frame
-            let screen = app.frame
-            let center = CGPoint(x: button.midX, y: button.midY)
-            XCTAssertTrue(screen.contains(center), "Not Now must be visible on the iPhone screen")
-            app.coordinate(withNormalizedOffset: CGVector(
-                dx: (center.x - screen.minX) / screen.width,
-                dy: (center.y - screen.minY) / screen.height
-            )).tap()
+            let passwords = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
+            let notNow = passwords.buttons["Not Now"]
+            // The remote sheet enters AX before its presentation finishes.
+            // Wait on its button before tapping: iOS drops touches during that
+            // transition (UIKit logs ignoreInteractionEvents=1).
+            expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: notNow)
+            waitForExpectations(timeout: dismissalTimeout)
+            notNow.tap()
             XCTAssertTrue(prompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
         }
         XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")

@@ -49,7 +49,7 @@ with socket.socket() as sock:
     print(sock.getsockname()[1])
 PYPORT
 )
-# Use the built-in SQLite search backend; Sonic has no supported Intel macOS binary.
+# Use the built-in SQLite search backend for this disposable collection.
 abx config --set SEARCH_BACKEND_ENGINE=sqlite SEARCH_BACKEND_SONIC_ENABLED=False SEARCH_BACKEND_SQLITE_ENABLED=True \
     PLUGINS=title,headers,wget,screenshot,search_backend_sqlite,opencode OPENCODE_ENABLED=True "OPENCODE_PORT=$opencode_port"
 abx manage shell --no-imports -c '

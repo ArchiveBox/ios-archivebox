@@ -39,6 +39,12 @@ cp -f .build/checkouts/SwiftTerm/LICENSE "$app/Contents/Resources/SWIFTTERM-LICE
 sparkle="$PWD/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 mkdir -p "$app/Contents/Frameworks"
 ditto "$sparkle" "$app/Contents/Frameworks/Sparkle.framework"
+# Sparkle's upstream archive is universal; ship only the architecture we support.
+for binary in Sparkle Autoupdate Updater.app/Contents/MacOS/Updater \
+    XPCServices/Downloader.xpc/Contents/MacOS/Downloader XPCServices/Installer.xpc/Contents/MacOS/Installer; do
+    path="$app/Contents/Frameworks/Sparkle.framework/Versions/B/$binary"
+    lipo "$path" -thin arm64 -output "$path"
+done
 # Sign Sparkle's nested executable bundles from the inside out with our identity.
 for component in XPCServices/Downloader.xpc XPCServices/Installer.xpc Autoupdate Updater.app; do
     codesign --force --options runtime --timestamp --sign "${signing_identity}" "$app/Contents/Frameworks/Sparkle.framework/Versions/B/$component"

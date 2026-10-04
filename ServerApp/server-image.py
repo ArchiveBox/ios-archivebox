@@ -54,20 +54,18 @@ def resolve(version=None, require_tip=True):
         base = f"https://{host}/v2/archivebox/archivebox"
         index, headers = get(base + "/manifests/" + (version or "dev"), token)
         digests.append(headers["Docker-Content-Digest"])
-        for architecture in ("arm64", "amd64"):
-            descriptor = next(item for item in index["manifests"] if item.get("platform", {}).get("architecture") == architecture)
-            manifest, _ = get(base + "/manifests/" + descriptor["digest"], token)
-            config, _ = get(base + "/blobs/" + manifest["config"]["digest"], token)
-            labels = config["config"]["Labels"]
-            actual = labels["org.opencontainers.image.revision"]
-            if version and labels.get("org.opencontainers.image.version") != version:
-                raise SystemExit(f"{host}:{version} ({architecture}) has the wrong ArchiveBox version")
-            if revision is None:
-                revision = actual
-            if actual != revision:
-                raise SystemExit(f"{host}:{version or 'dev'} ({architecture}) is at {actual}, but the source ref is {revision}. Wait for the ArchiveBox image release to finish before building the app.")
-            if architecture == "arm64":
-                arm_config = manifest["config"]["digest"]
+        descriptor = next(item for item in index["manifests"] if item.get("platform", {}).get("architecture") == "arm64")
+        manifest, _ = get(base + "/manifests/" + descriptor["digest"], token)
+        config, _ = get(base + "/blobs/" + manifest["config"]["digest"], token)
+        labels = config["config"]["Labels"]
+        actual = labels["org.opencontainers.image.revision"]
+        if version and labels.get("org.opencontainers.image.version") != version:
+            raise SystemExit(f"{host}:{version} (arm64) has the wrong ArchiveBox version")
+        if revision is None:
+            revision = actual
+        if actual != revision:
+            raise SystemExit(f"{host}:{version or 'dev'} (arm64) is at {actual}, but the source ref is {revision}. Wait for the ArchiveBox image release to finish before building the app.")
+        arm_config = manifest["config"]["digest"]
     if len(set(digests)) != 1:
         raise SystemExit("Docker Hub and GHCR image digests do not match; image publication is incomplete.")
     result = {"image": "archivebox/archivebox@" + digests[0], "digest": digests[0], "config": arm_config, "revision": revision}

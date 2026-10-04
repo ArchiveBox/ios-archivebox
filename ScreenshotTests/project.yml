@@ -9,14 +9,12 @@ settings:
   base:
     SWIFT_VERSION: '6.0'
     GENERATE_INFOPLIST_FILE: YES
+    ARCHS: arm64
 targets:
   ArchiveBoxMacScreenshots:
     type: bundle.ui-testing
     platform: macOS
     sources: [ArchiveBoxScreenshotTests.swift]
-    settings:
-      base:
-        ARCHS: arm64
   ArchiveBoxIPhoneScreenshots:
     type: bundle.ui-testing
     platform: iOS

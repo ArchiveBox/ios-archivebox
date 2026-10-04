@@ -3,6 +3,9 @@ import ArchiveBoxCore
 import UserNotifications
 import AppIntents
 import CoreSpotlight
+#if os(iOS)
+import UIKit
+#endif
 
 struct MainView: View {
     @Environment(\.openURL) private var openURL
@@ -395,7 +398,7 @@ struct MainView: View {
             }
             .overlay(alignment: .topLeading) {
                 if screen != .settings && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
-                    Button {
+                    SidebarBackButton {
                         NSLog("ArchiveBox sidebar navigation tap: screen=%@ compact=%@ visibility=%@",
                               screen.rawValue, String(describing: compactColumn), String(describing: columnVisibility))
                         withAnimation {
@@ -404,17 +407,8 @@ struct MainView: View {
                         }
                         NSLog("ArchiveBox sidebar navigation requested: compact=%@ visibility=%@",
                               String(describing: compactColumn), String(describing: columnVisibility))
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.6), radius: 1)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Back to menu")
-                    .accessibilityIdentifier("navigation.sidebar")
+                    .frame(width: 44, height: 44)
                     .padding(.horizontal, 8)
                     .padding(.bottom, 8)
                     .offset(y: -5)
@@ -498,6 +492,35 @@ struct MainView: View {
 }
 
 // Keep draft edits local: typing must not rebuild navigation and the active web page.
+#if os(iOS)
+// A plain SwiftUI overlay hit-tests to the WKWebView below it. Its scroll
+// gestures can consume Back taps even when accessibility says the button is
+// hittable. A native control owns this 44-point target independently of WebKit.
+private struct SidebarBackButton: UIViewRepresentable {
+    var action: () -> Void
+
+    func makeUIView(context: Context) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "chevron.left", withConfiguration:
+            UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)), for: .normal)
+        button.tintColor = .white
+        button.accessibilityLabel = "Back to menu"
+        button.accessibilityIdentifier = "navigation.sidebar"
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.6
+        button.layer.shadowRadius = 1
+        button.layer.shadowOffset = .zero
+        return button
+    }
+
+    func updateUIView(_ button: UIButton, context: Context) {
+        let identifier = UIAction.Identifier("showSidebar")
+        button.removeAction(identifiedBy: identifier, for: .touchUpInside)
+        button.addAction(UIAction(identifier: identifier) { _ in action() }, for: .touchUpInside)
+    }
+}
+#endif
+
 private struct SidebarSearchField: View {
     let query: String
     let modes: [String]

@@ -638,17 +638,19 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         // on iOS 26 and leave the sheet blocking navigation.
         let app = application
         let prompt = app.staticTexts["Save Password?"]
-        if prompt.exists {
-            let passwords = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
-            let notNow = passwords.buttons["Not Now"]
-            // The remote sheet enters AX before its presentation finishes.
-            // Wait on its button before tapping: iOS drops touches during that
-            // transition (UIKit logs ignoreInteractionEvents=1).
-            expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: notNow)
-            waitForExpectations(timeout: dismissalTimeout)
-            notNow.tap()
-            XCTAssertTrue(prompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
-        }
+        // A sheet can appear between two absent-state queries. Only assert
+        // dismissal after handling it; later presentations go through the
+        // same helper from the next UI action or interruption monitor.
+        guard prompt.exists else { return }
+        let passwords = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
+        let notNow = passwords.buttons["Not Now"]
+        // The remote sheet enters AX before its presentation finishes.
+        // Wait on its button before tapping: iOS drops touches during that
+        // transition (UIKit logs ignoreInteractionEvents=1).
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: notNow)
+        waitForExpectations(timeout: dismissalTimeout)
+        notNow.tap()
+        XCTAssertTrue(prompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
         XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")
     }
     #endif

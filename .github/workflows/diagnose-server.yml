@@ -5,7 +5,7 @@ on:
       runner:
         type: choice
         default: macos-26
-        options: [macos-26, macos-15]
+        options: [macos-26, macos-26-xlarge, macos-15]
       early_boot:
         description: Start Simulator before installing and populating the backend
         type: boolean

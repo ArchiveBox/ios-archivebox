@@ -62,12 +62,17 @@ runtimes = sorted((key for key in devices if 'iOS-26' in key), reverse=True)
 device = next(d for runtime in runtimes for d in devices[runtime] if d['name'].startswith('iPhone'))
 subprocess.run(['xcrun', 'simctl', 'bootstatus', device['udid'], '-b'], check=True)
 measure('after-boot')
-with (output / 'profiler.log').open('w') as stream:
-    profile = subprocess.Popen(['sudo', '-n', 'py-spy', 'record', '--pid', str(pid),
-                                '--duration', '60', '--rate', '10', '--format', 'speedscope',
-                                '--idle', '--threads', '--nonblocking',
-                                '--output', str(output / 'profile.json')], stdout=stream, stderr=stream)
-    measure('with-profiler')
-    profile.wait()
-measure('after-profiler')
+# Repeat attachment/removal on one VM to distinguish profiler interference
+# from Simulator first-boot work fading with time. These are measurements,
+# never retries or readiness gates for the app.
+for trial in range(2):
+    measure(f'before-profiler-{trial}')
+    with (output / f'profiler-{trial}.log').open('w') as stream:
+        profile = subprocess.Popen(['sudo', '-n', 'py-spy', 'record', '--pid', str(pid),
+                                    '--duration', '20', '--rate', '10', '--format', 'speedscope',
+                                    '--idle', '--threads', '--nonblocking',
+                                    '--output', str(output / f'profile-{trial}.json')], stdout=stream, stderr=stream)
+        measure(f'with-profiler-{trial}')
+        profile.wait()
+    measure(f'after-profiler-{trial}')
 assert not failures, failures

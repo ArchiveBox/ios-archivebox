@@ -6,6 +6,10 @@ on:
         type: choice
         default: macos-26
         options: [macos-26, macos-15]
+      early_boot:
+        description: Start Simulator before installing and populating the backend
+        type: boolean
+        default: false
       quiesce:
         type: boolean
         default: false
@@ -25,9 +29,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ArchiveBox/ArchiveBox
-          ref: dev
+          ref: ${{ inputs.gallery && 'df13c2c84c8c202d258b840df08122b7e66fe1e3' || 'dev' }}
           path: backend
           persist-credentials: false
+      - name: Boot Simulator before backend setup
+        if: inputs.early_boot
+        run: |
+          device=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries | map(select(.key | contains("iOS-26"))) | sort_by(.key) | reverse | map(.value[]) | map(select(.name | startswith("iPhone"))) | first | .udid')
+          xcrun simctl bootstatus "$device" -b
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: '3.13'

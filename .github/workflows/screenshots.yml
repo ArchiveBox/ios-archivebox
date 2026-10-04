@@ -1,21 +1,34 @@
 name: Capture native app screenshots
+
 on:
-  push:
-    branches: [main]
-    paths-ignore: ['.github/pages/**', 'README.md', 'docs/site/**', '.github/workflows/pages.yml', 'release.json', 'docs/TESTFLIGHT.md']
+  schedule:
+    - cron: '43 5,17 * * *'
   workflow_dispatch:
-  workflow_run:
-    workflows: ['Release apps']
-    types: [completed]
-    branches: [main]
+
 permissions:
   contents: read
-env:
-  # Pin the real server so app captures are reproducible and record both revisions.
-  BACKEND_REVISION: dev
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      key: ${{ steps.check.outputs.key }}
+      backend: ${{ steps.check.outputs.backend }}
+    steps:
+      - id: check
+        uses: ArchiveBox/monorepo/.github/actions/changed-scheduled-inputs@main
+        with:
+          backend: dev
+
   build-macos:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
     outputs:
       source_sha: ${{ steps.source.outputs.sha }}
     concurrency:
@@ -30,8 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Release apps uses GITHUB_TOKEN to update main; that push cannot trigger us.
-          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
+          ref: ${{ github.sha }}
       - name: Record the checked-out source revision
         id: source
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -74,10 +86,12 @@ jobs:
           path: build/screenshots/iphone-build/ArchiveBox.app.zip
           if-no-files-found: error
           retention-days: 7
+
   capture:
-    needs: build-macos
+    needs: [changes, build-macos]
     env:
       SOURCE_SHA: ${{ needs.build-macos.outputs.source_sha }}
+      BACKEND_REVISION: ${{ needs.changes.outputs.backend }}
     concurrency:
       group: app-captures-${{ matrix.platform }}-${{ github.ref }}
       cancel-in-progress: false
@@ -281,3 +295,11 @@ jobs:
               --predicate 'subsystem == "dev.biscuit.yeetd"' 2>/dev/null | tail -30 || true
             kill "$(cat "$tool/yeetd.pid")" 2>/dev/null || true
           fi
+
+  complete:
+    name: 'Scheduled inputs: ${{ needs.changes.outputs.key }}'
+    needs: [changes, capture, build-macos]
+    if: needs.changes.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo 'Scheduled work completed successfully.'

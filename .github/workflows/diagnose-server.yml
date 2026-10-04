@@ -1,10 +1,19 @@
 name: Diagnose Simulator server latency
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        type: choice
+        default: macos-26
+        options: [macos-26, macos-15]
+      quiesce:
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
   diagnose:
-    runs-on: macos-26
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +28,14 @@ jobs:
           python-version: '3.13'
       - run: uv sync --frozen --project backend
       - run: brew install py-spy
+      - if: inputs.runner == 'macos-15'
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app
       - run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"
+      - name: Run the capture workflow's exact Simulator helper
+        if: inputs.quiesce
+        run: |
+          yq -r '.jobs.capture.steps[] | select(.name == "Quiesce stock Simulator posters and widgets on the disposable iPhone runner") | .run' .github/workflows/screenshots.yml > "$RUNNER_TEMP/start-helper.sh"
+          bash "$RUNNER_TEMP/start-helper.sh"
       - name: Measure real requests across Simulator boot and profiler attachment
         run: uv run --no-sync --project backend python scripts/diagnose-server.py
       - uses: actions/upload-artifact@v4

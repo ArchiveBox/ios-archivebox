@@ -557,7 +557,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             if element.isHittable { break }
             // Scroll visible native guide content, outside the embedded web
             // page. Selecting its text survives window and device size changes.
-            let guide = app.otherElements["add.guide"]
+            // AppKit exposes this container as Group, UIKit as OtherElement.
+            let guide = app.descendants(matching: .any)["add.guide"].firstMatch
             let anchor = guide.staticTexts.allElementsBoundByIndex.first { $0.isHittable }
             XCTAssertNotNil(anchor, "Missing visible Add guide content: \(app.debugDescription)")
             #if os(macOS)

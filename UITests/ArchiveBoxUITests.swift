@@ -403,7 +403,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(picker.waitForExistence(timeout: 10), app.debugDescription)
         // The native guide and web form scroll independently. Select visible
         // guide text instead of guessing where the embedded page ends.
-        let content = app.otherElements["add.guide"]
+        let content = app.descendants(matching: .any)["add.guide"].firstMatch
         for _ in 0..<10 where !picker.isHittable {
             let anchor = content.staticTexts.allElementsBoundByIndex.first { $0.isHittable }
             XCTAssertNotNil(anchor, app.debugDescription)

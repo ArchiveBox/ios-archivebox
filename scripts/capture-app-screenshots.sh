@@ -16,178 +16,6 @@ class=ArchiveBoxScreenshotTests
 mkdir -p "$output"
 output=$(cd "$output" && pwd)
 signing=(CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=)
-if [[ "$platform" == iphone ]]; then
-  tcpdump_launcher_pid=
-  tcpdump_pidfile=
-  profile_launcher_pid=
-  profile_pidfile=
-  profile_target_pid=
-  daphne_pid() {
-    local server_data="${RUNNER_TEMP:-}/screenshot-server" pid command
-    [[ "${GITHUB_ACTIONS:-}" == true && "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:[0-9]+$ ]] || return 0
-    pid=$(sed -nE "s/.*spawned: 'worker_daphne' with pid ([0-9]+).*/\1/p" "$server_data/logs/supervisord.log" 2>/dev/null | tail -1 || true)
-    if [[ -z "$pid" ]]; then
-      pid=$(sed -nE 's/.*Worker worker_daphne: started RUNNING \(pid ([0-9]+),.*/\1/p' "$server_data/server.log" 2>/dev/null | tail -1 || true)
-    fi
-    [[ "$pid" =~ ^[0-9]+$ ]] || return 0
-    command=$(ps -p "$pid" -o command= 2>/dev/null) || return 0
-    [[ "$command" == *"-m daphne"* ]] || return 0
-    printf '%s\n' "$pid"
-  }
-  sample_daphne() {
-    local phase=$1 pid
-    pid=$(daphne_pid)
-    [[ "$pid" =~ ^[0-9]+$ ]] || return 0
-    # Native stacks can reveal SQLite/native blocking versus an idle reactor.
-    # sample records no process environment, request headers, or payloads.
-    sample "$pid" 1 10 -file "$output/daphne-$phase.sample.txt" > /dev/null 2>> "$output/daphne-sample-errors.log" || true
-  }
-  start_daphne_profile() {
-    local pid pyspy cpu_time
-    pid=$(daphne_pid)
-    [[ "$pid" =~ ^[0-9]+$ ]] || return 0
-    pyspy=$(command -v py-spy || true)
-    [[ -x "$pyspy" ]] || { echo 'py-spy is unavailable; skipping optional server profile.' > "$output/daphne-profile.log"; return 0; }
-    profile_pidfile="$output/daphne-profile.pid"
-    profile_target_pid=$pid
-    cpu_time=$(ps -p "$pid" -o time= 2>/dev/null || true)
-    printf '%s Starting py-spy for verified Daphne PID %s (10 Hz, max 600s); Daphne cumulative CPU %s.\n' \
-      "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$pid" "${cpu_time:-unavailable}" > "$output/daphne-profile.log"
-    # Periodic native samples landed after the 20-second response stalls and
-    # could not identify Python functions. Record through XCTest so a request
-    # that clears before the failure report still has an attributable stack.
-    # Attach only to the verified Daphne worker. No locals or request data are recorded.
-    # --idle includes waiting stacks, and --nonblocking avoids pausing the live server.
-    # The root shell writes its PID then execs py-spy so shutdown can signal the recorder
-    # directly; SIGINT makes py-spy flush the completed speedscope profile.
-    sudo -n /bin/sh -c 'umask 022; printf "%s\n" "$$" > "$1"; shift; exec "$@"' \
-      sh "$profile_pidfile" "$pyspy" record --pid "$pid" --duration 600 --rate 10 --format speedscope \
-      --idle --threads --nonblocking --output "$output/daphne-profile.speedscope.json" \
-      >> "$output/daphne-profile.log" 2>&1 &
-    profile_launcher_pid=$!
-  }
-  sample_screenshot_services() {
-    [[ "${GITHUB_ACTIONS:-}" == true ]] || return 0
-    local pid command sole_booted sampled=0
-    # A rendered page can still fail when XCTest's screenshot RPC never replies.
-    # Sample only system services for this disposable Simulator, not the app.
-    pid=$(xcrun simctl spawn "$device_id" launchctl list 2>/dev/null | awk '$3 == "com.apple.testmanagerd" && $1 ~ /^[0-9]+$/ {print $1; exit}' || true)
-    if [[ "$pid" =~ ^[0-9]+$ ]]; then
-      command=$(ps -p "$pid" -o comm= 2>/dev/null || true)
-      if [[ "$command" == */testmanagerd ]]; then
-        sample "$pid" 1 10 -file "$output/testmanagerd-failure.sample.txt" > /dev/null 2>> "$output/screenshot-service-sample-errors.log" || true
-      fi
-    fi
-    # Host render services cannot be mapped to a UDID by their argv. Only
-    # inspect them when the selected Simulator is the sole booted device.
-    sole_booted=$(xcrun simctl list devices booted -j | node -e '
-      let input=""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => {
-        const devices=Object.values(JSON.parse(input).devices).flat();
-        if (devices.length === 1) process.stdout.write(devices[0].udid);
-      });' 2>/dev/null || true)
-    [[ "$sole_booted" == "$device_id" ]] || return 0
-    while read -r pid command; do
-      case "$command" in
-        */SimRenderServer|*/SimMetalHost)
-          [[ "$pid" =~ ^[0-9]+$ ]] || continue
-          sample "$pid" 1 10 -file "$output/$(basename "$command")-$pid-failure.sample.txt" > /dev/null 2>> "$output/screenshot-service-sample-errors.log" || true
-          ((sampled+=1))
-          ((sampled < 4)) || break
-          ;;
-      esac
-    done < <(ps -A -o pid=,comm=)
-    log show --last 2m --style compact --info \
-      --predicate '(process == "SimRenderServer" OR process == "SimMetalHost") AND (eventMessage CONTAINS[c] "screenshot" OR eventMessage CONTAINS[c] "screen capture" OR eventMessage CONTAINS[c] "IOSurface")' \
-      2>> "$output/screenshot-service-log-errors.log" | awk 'NR <= 200 {print substr($0, 1, 500)}' > "$output/host-screenshot-services.log" || true
-  }
-  collect_simulator_screenshot_log() {
-    [[ "${GITHUB_ACTIONS:-}" == true ]] || return 0
-    # Keep only screenshot metadata from this Simulator's system services.
-    xcrun simctl spawn "$device_id" log show --last 2m --style compact --info \
-      --predicate '(process == "testmanagerd" OR process == "backboardd") AND (eventMessage CONTAINS[c] "screenshot" OR eventMessage CONTAINS[c] "screen capture" OR eventMessage CONTAINS[c] "IOSurface")' \
-      2>> "$output/screenshot-service-log-errors.log" | awk 'NR <= 200 {print substr($0, 1, 500)}' > "$output/simulator-screenshot-services.log" || true
-  }
-  stop_iphone_diagnostics() {
-    if [[ -n "$profile_launcher_pid" ]]; then
-      profile_cpu_time=$(ps -p "$profile_target_pid" -o time= 2>/dev/null || true)
-      printf '%s Stopping py-spy after XCTest capture; Daphne cumulative CPU %s. This endpoint follows any final native failure sample.\n' \
-        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "${profile_cpu_time:-unavailable}" >> "$output/daphne-profile.log"
-      if [[ -n "$profile_pidfile" && -s "$profile_pidfile" ]]; then
-        profile_pid=$(cat "$profile_pidfile")
-        profile_command=$(ps -p "$profile_pid" -o comm= 2>/dev/null || true)
-        if [[ "$profile_pid" =~ ^[0-9]+$ && "$profile_command" =~ (^|/)py-spy$ ]]; then
-          sudo -n kill -INT "$profile_pid" 2>/dev/null || true
-        fi
-      else
-        kill -INT "$profile_launcher_pid" 2>/dev/null || true
-      fi
-      wait "$profile_launcher_pid" 2>/dev/null || true
-      profile_launcher_pid=
-      [[ -z "$profile_pidfile" ]] || rm -f "$profile_pidfile"
-    fi
-    if [[ -n "$tcpdump_pidfile" && -s "$tcpdump_pidfile" ]]; then
-      tcpdump_pid=$(cat "$tcpdump_pidfile")
-      if [[ "$tcpdump_pid" =~ ^[0-9]+$ ]] && ps -p "$tcpdump_pid" -o comm= | grep -Eq '(^|/)tcpdump$'; then
-        sudo -n kill -INT "$tcpdump_pid" 2>/dev/null || true
-      fi
-      rm -f "$tcpdump_pidfile"
-    fi
-    if [[ -n "$tcpdump_launcher_pid" ]]; then
-      wait "$tcpdump_launcher_pid" 2>/dev/null || true
-      tcpdump_launcher_pid=
-    fi
-    if [[ -n "$sampler_pid" ]]; then
-      kill "$sampler_pid" 2>/dev/null || true
-      wait "$sampler_pid" 2>/dev/null || true
-      sampler_pid=
-    fi
-  }
-  sampler_pid=
-  trap stop_iphone_diagnostics EXIT
-  trap 'exit 130' INT
-  trap 'exit 143' TERM
-  # Keep a low-overhead record of simulator load while it boots and XCTest runs.
-  # A post-failure process snapshot can be dominated by crash diagnostics.
-  (
-    sleep_pid=
-    trap 'exit 0' TERM INT
-    trap '[[ -z "$sleep_pid" ]] || kill "$sleep_pid" 2>/dev/null || true' EXIT
-    while :; do
-      date -u '+%Y-%m-%dT%H:%M:%SZ'
-      uptime
-      memory_pressure -Q || true
-      sysctl vm.swapusage || true
-      # "Free percentage" includes reclaimable memory; it hid heavy compression
-      # and eviction of Daphne's working set during real Simulator failures.
-      vm_stat
-      echo 'Largest resident processes: pid ppid rss-kib executable'
-      ps -A -o pid=,ppid=,rss=,comm= | sort -k3,3nr | sed -n '1,30p'
-      ps -A -o pid=,ppid=,state=,%cpu=,%mem=,comm= | sort -k4,4nr | sed -n '1,20p'
-      # The CPU top twenty omit SIGSTOP'd poster services. Record the whole
-      # host's state distribution before attributing load averages to CPU work.
-      echo 'Host process states: count state'
-      ps -A -o state= | sort | uniq -c
-      if [[ "${GITHUB_ACTIONS:-}" == true && "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:([0-9]+)$ ]]; then
-        backend_port=${BASH_REMATCH[1]}
-        # Only this backend's socket metadata: no payload, headers, or argv.
-        echo 'Backend TCP sockets: protocol recv-q send-q local peer state'
-        date -u '+%Y-%m-%dT%H:%M:%SZ'
-        sudo -n /usr/sbin/netstat -anv -p tcp | awk -v endpoint="127.0.0.1.$backend_port" \
-          '$1 ~ /^tcp/ && ($4 == endpoint || $5 == endpoint) {print $1, $2, $3, $4, $5, $6}' || true
-        backend_pid=$(daphne_pid)
-        if [[ "$backend_pid" =~ ^[0-9]+$ ]]; then
-          echo 'Daphne process: pid ppid state cpu memory elapsed executable'
-          ps -p "$backend_pid" -o pid=,ppid=,state=,%cpu=,%mem=,etime=,comm= || true
-        fi
-      fi
-      sleep 15 &
-      sleep_pid=$!
-      wait "$sleep_pid" || exit 0
-      sleep_pid=
-    done
-  ) > "$output/resource-samples.log" 2>&1 &
-  sampler_pid=$!
-fi
 case "$platform" in
 
   macos|server)
@@ -284,16 +112,21 @@ YAML
   iphone|ipad)
     scheme=ArchiveBoxScreenshots
     if [[ "$platform" == iphone ]]; then device_prefix=iPhone; else device_prefix=iPad; fi
-    device_id=$(xcrun simctl list devices available -j | DEVICE_PREFIX="$device_prefix" node -e '
-      let input=""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => {
-        const runtimes=Object.entries(JSON.parse(input).devices)
-          .filter(([runtime]) => Number(runtime.match(/iOS-(\d+)/)?.[1]) >= 26)
-          .sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true }));
-        const device=runtimes.flatMap(([runtime, devices])=>devices.map(device=>({...device, runtime})))
-          .find(device=>device.name.startsWith(process.env.DEVICE_PREFIX));
-        if (!device) throw new Error(`No iOS 26+ ${process.env.DEVICE_PREFIX} simulator available`);
-        process.stdout.write(device.udid);
-      });')
+    # CI passes the device selected and erased by simulator-action. Reuse that
+    # exact UDID so a second selection cannot accidentally boot another phone.
+    device_id=${ARCHIVEBOX_SIMULATOR_UDID:-}
+    if [[ -z "$device_id" ]]; then
+      device_id=$(xcrun simctl list devices available -j | DEVICE_PREFIX="$device_prefix" node -e '
+        let input=""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => {
+          const runtimes=Object.entries(JSON.parse(input).devices)
+            .filter(([runtime]) => Number(runtime.match(/iOS-(\d+)/)?.[1]) >= 26)
+            .sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true }));
+          const device=runtimes.flatMap(([runtime, devices])=>devices.map(device=>({...device, runtime})))
+            .find(device=>device.name.startsWith(process.env.DEVICE_PREFIX));
+          if (!device) throw new Error(`No iOS 26+ ${process.env.DEVICE_PREFIX} simulator available`);
+          process.stdout.write(device.udid);
+        });')
+    fi
     destination="platform=iOS Simulator,id=$device_id"
     if [[ "$platform" == iphone && -n "${ARCHIVEBOX_IPHONE_APP:-}" ]]; then
       test -d "$ARCHIVEBOX_IPHONE_APP"
@@ -341,57 +174,8 @@ if [[ "$platform" == iphone && -n "${ARCHIVEBOX_IPHONE_APP:-}" ]]; then
 else
   test_action=test
 fi
-if [[ "$platform" == iphone && "${GITHUB_ACTIONS:-}" == true &&
-      "${ARCHIVEBOX_TEST_SERVER:-}" =~ ^http://127[.]0[.]0[.]1:([0-9]+)$ ]]; then
-  # The disposable CI server is bound to this loopback port. Capture only the
-  # IPv4/TCP base headers, never HTTP payloads, to locate a stalled request.
-  tcpdump_port=${BASH_REMATCH[1]}
-  tcpdump_pidfile="$output/tcpdump.pid"
-  # The output is deliberately written by the unprivileged shell to this run's directory.
-  # shellcheck disable=SC2024
-  sudo -n sh -c 'printf "%s\n" "$$" > "$1"; exec /usr/sbin/tcpdump -i lo0 -y NULL -nn -tttt -l -s 44 "ip and tcp port $2"' \
-    sh "$tcpdump_pidfile" "$tcpdump_port" > "$output/transport-metadata.log" 2>&1 &
-  tcpdump_launcher_pid=$!
-  # Give tcpdump a bounded chance to attach before the app makes its first request.
-  for ((attempt=0; attempt<20; attempt++)); do
-    if [[ -s "$tcpdump_pidfile" ]] && ps -p "$(cat "$tcpdump_pidfile")" -o comm= | grep -Eq '(^|/)tcpdump$'; then break; fi
-    if ! kill -0 "$tcpdump_launcher_pid" 2>/dev/null; then break; fi
-    sleep 0.1
-  done
-fi
-if [[ "$platform" == iphone ]]; then
-  if [[ "${GITHUB_ACTIONS:-}" == true ]]; then start_daphne_profile; fi
-  sample_daphne start
-fi
 xcodebuild "${test_args[@]}" "$test_action" || {
     result=$?
-    if [[ "$platform" == iphone ]]; then
-      # A synthesized Back tap sometimes never reaches its SwiftUI handler.
-      # Capture the app first, before slower server diagnostics let it recover.
-      app_pid=$(xcrun simctl spawn "$device_id" launchctl list 2>/dev/null | awk '$3 ~ /^UIKitApplication:io[.]archivebox[.]ArchiveBox\[/ && $1 ~ /^[0-9]+$/ {print $1; exit}' || true)
-      if [[ "$app_pid" =~ ^[0-9]+$ ]]; then
-        sample "$app_pid" 1 10 -file "$output/app-failure.sample.txt" > /dev/null 2>> "$output/screenshot-service-sample-errors.log" || true
-      fi
-      # Only UIKit's dispatch decision metadata; never arbitrary app messages,
-      # text input, request payloads, URLs, or credentials.
-      xcrun simctl spawn "$device_id" log show --last 2m --style compact --info \
-        --predicate 'process == "ArchiveBox" AND subsystem == "com.apple.UIKit" AND category == "EventDispatch" AND eventMessage BEGINSWITH "Evaluating dispatch of UIEvent:"' \
-        > "$output/input-dispatch.log" 2>> "$output/screenshot-service-log-errors.log" || true
-      sample_daphne failure
-      stop_iphone_diagnostics
-      sample_screenshot_services
-      collect_simulator_screenshot_log
-      # Include the connection checks that precede WebKit loading as well as
-      # its navigation policy. These prefixes contain only phase/state metadata;
-      # do not broaden this to arbitrary app logs that may contain URLs or keys.
-      xcrun simctl spawn "$device_id" log show --last 5m --style compact --info \
-        --predicate 'process == "ArchiveBox" AND (eventMessage CONTAINS "ArchiveBox page navigation " OR eventMessage CONTAINS "ArchiveBox connection validation " OR eventMessage CONTAINS "ArchiveBox navigation policy:" OR eventMessage CONTAINS "ArchiveBox sidebar ")' \
-        > "$output/page-navigation.log" 2>&1 || true
-      if ! grep -Eq 'ArchiveBox (page navigation |connection validation |navigation policy:|sidebar )' "$output/page-navigation.log"; then
-        echo "No connection or navigation phase markers were found in the Simulator log." >&2
-      fi
-      cat "$output/page-navigation.log"
-    fi
     # Distinguish an app assertion from a stopped server or an exhausted runner.
     uptime
     sysctl hw.memsize hw.ncpu
@@ -404,10 +188,4 @@ xcodebuild "${test_args[@]}" "$test_action" || {
     fi
     exit "$result"
   }
-if [[ "$platform" == iphone ]]; then
-  stop_iphone_diagnostics
-fi
 xcrun xcresulttool export attachments --path "$output/Capture.xcresult" --output-path "$output/attachments"
-if [[ "$platform" == iphone ]]; then
-  rm -f "$output"/daphne-*.sample.txt "$output/daphne-sample-errors.log" "$output/daphne-profile.pid"
-fi

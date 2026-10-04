@@ -103,10 +103,11 @@ jobs:
       matrix:
         # Server companion screenshots are captured locally with capture-app-screenshots.sh.
         platform: [iphone, macos]
-    # The SDK27 iPhone app runs against its iOS26 deployment target; build the
-    # independent XCTest harness on stable ARM macOS26 with iOS26.5.
-    # Keep Mac WebKit capture on stable macOS26 (macOS27 fails IOSurface creation).
-    runs-on: macos-26
+    # iOS26 startup on the 7GB host evicted Daphne's working set and stalled
+    # real API/UI requests. The 14GB ARM host passed fresh gallery runs
+    # 37185900511 and 37186470168 with stock Simulator services and no swap.
+    # Keep Mac WebKit on stable macOS26 (macOS27 fails IOSurface creation).
+    runs-on: ${{ matrix.platform == 'iphone' && 'macos-26-xlarge' || 'macos-26' }}
     environment: testflight
     timeout-minutes: 45
     steps:
@@ -137,9 +138,6 @@ jobs:
           version: '10.33.2'
       - name: Install XcodeGen
         run: brew install xcodegen
-      - name: Install py-spy for iPhone server diagnostics
-        if: matrix.platform == 'iphone'
-        run: brew install py-spy
       - uses: actions/download-artifact@v4
         if: matrix.platform == 'iphone'
         with:
@@ -195,48 +193,22 @@ jobs:
               'run_id': os.environ['GITHUB_RUN_ID'],
           }) + '\n')
           PY
-      - name: Quiesce stock Simulator posters and widgets on the disposable iPhone runner
+      - name: Start a clean iPhone Simulator
         if: matrix.platform == 'iphone'
-        run: |
-          # Stock wallpaper/widget services and apsd can starve localhost API
-          # requests as well as the app (capture run 37165885145, load >500).
-          # Keep the allowlist narrow: WebKit also runs as system extensions, and
-          # stopping those prevents the app from loading pages at all.
-          # https://github.com/actions/runner-images/issues/13540
-          tool="$RUNNER_TEMP/yeetd"
-          mkdir -p "$tool"
-          revision=4c6ffe408c0a06f3d5df15f075ef369061d8c47e
-          for source in main Logger; do
-            curl --fail --silent --show-error --location \
-              "https://raw.githubusercontent.com/biscuitehh/yeetd/$revision/yeetd/$source.swift" \
-              -o "$tool/$source.swift"
-          done
-          test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = d7eb383bb2e15f4280430323b15d6bf45f3501e1563fd37c737b2b1f05d80128
-          test "$(openssl dgst -sha256 -r "$tool/Logger.swift" | awk '{print $1}')" = 110fd7b95c7f4ca7d2f0e6200a25fdd927da8d7c488f3eb9238e1526f02c6e32
-          # Match observed OS bundles in both Simulator layouts; leave app extensions alone.
-          patch -d "$tool" -p0 -F 0 < scripts/yeetd-simulator-posters.patch
-          test "$(openssl dgst -sha256 -r "$tool/main.swift" | awk '{print $1}')" = 9d84c6ba2546a1dda6a2bfd43ccc4065d7b192122fa26e1d562ad4ea9ebe9080
-          xcrun swiftc -swift-version 5 "$tool/main.swift" "$tool/Logger.swift" -o "$tool/yeetd"
-          # Screenshot flows do not use Simulator push notifications.
-          defaults write dev.biscuit.yeetd killapsd -bool true
-          nohup "$tool/yeetd" > "$tool/yeetd.log" 2>&1 < /dev/null &
-          echo "$!" > "$tool/yeetd.pid"
-          sleep 1
-          kill -0 "$(cat "$tool/yeetd.pid")"
-      - name: Capture every native app screen with XCTest
-        run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}' 'build/screenshots/${{ matrix.platform }}' gallery
-      - name: Preserve iPhone server profile and resource samples
-        if: always() && matrix.platform == 'iphone'
-        uses: actions/upload-artifact@v4
+        id: simulator
+        uses: futureware-tech/simulator-action@c768f52966d5f70335ec77881f9806b24a52f80e
         with:
-          name: iphone-server-profile-${{ github.run_id }}
-          path: |
-            build/screenshots/iphone/daphne-profile.speedscope.json
-            build/screenshots/iphone/daphne-profile.log
-            build/screenshots/iphone/resource-samples.log
-            build/screenshots/iphone/transport-metadata.log
-          if-no-files-found: warn
-          retention-days: 7
+          model: iPhone 17 Pro
+          os: iOS
+          os_version: '^26.5'
+          erase_before_boot: true
+          wait_for_boot: true
+          boot_retries: 0
+          settle_timeout_seconds: 0
+      - name: Capture every native app screen with XCTest
+        env:
+          ARCHIVEBOX_SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
+        run: bash scripts/capture-app-screenshots.sh '${{ matrix.platform }}' 'build/screenshots/${{ matrix.platform }}' gallery
       - name: Validate this complete capture group
         env:
           CAPTURE_BACKEND: ${{ env.BACKEND_REVISION }}
@@ -266,35 +238,12 @@ jobs:
           name: app-screenshot-diagnostics-${{ matrix.platform }}
           path: |
             build/screenshots/${{ matrix.platform }}/Capture.xcresult/
-            build/screenshots/${{ matrix.platform }}/resource-samples.log
-            build/screenshots/${{ matrix.platform }}/page-navigation.log
-            build/screenshots/${{ matrix.platform }}/app-failure.sample.txt
-            build/screenshots/${{ matrix.platform }}/input-dispatch.log
-            build/screenshots/${{ matrix.platform }}/transport-metadata.log
-            build/screenshots/${{ matrix.platform }}/daphne-*.sample.txt
-            build/screenshots/${{ matrix.platform }}/daphne-sample-errors.log
-            build/screenshots/${{ matrix.platform }}/testmanagerd-failure.sample.txt
-            build/screenshots/${{ matrix.platform }}/SimRenderServer-*-failure.sample.txt
-            build/screenshots/${{ matrix.platform }}/SimMetalHost-*-failure.sample.txt
-            build/screenshots/${{ matrix.platform }}/screenshot-service-sample-errors.log
-            build/screenshots/${{ matrix.platform }}/simulator-screenshot-services.log
-            build/screenshots/${{ matrix.platform }}/host-screenshot-services.log
-            build/screenshots/${{ matrix.platform }}/screenshot-service-log-errors.log
             ${{ runner.temp }}/screenshot-server/server.log
             ${{ runner.temp }}/screenshot-server/logs/worker_daphne.log
             ${{ runner.temp }}/screenshot-server/logs/worker_runner.log
             ${{ runner.temp }}/screenshot-server/logs/supervisord.log
             ${{ runner.temp }}/screenshot-server/logs/errors.log
           retention-days: 7
-      - name: Stop the disposable Simulator helper
-        if: always() && matrix.platform == 'iphone'
-        run: |
-          tool="$RUNNER_TEMP/yeetd"
-          if [[ -f "$tool/yeetd.pid" ]]; then
-            log show --last 40m --style compact --info \
-              --predicate 'subsystem == "dev.biscuit.yeetd"' 2>/dev/null | tail -30 || true
-            kill "$(cat "$tool/yeetd.pid")" 2>/dev/null || true
-          fi
 
   complete:
     name: 'Scheduled inputs: ${{ needs.changes.outputs.key }}'

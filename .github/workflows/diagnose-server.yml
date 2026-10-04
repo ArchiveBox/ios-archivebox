@@ -1,0 +1,32 @@
+name: Diagnose Simulator server latency
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ArchiveBox/ArchiveBox
+          ref: dev
+          path: backend
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.13'
+      - run: uv sync --frozen --project backend
+      - run: brew install py-spy
+      - run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"
+      - name: Measure real requests across Simulator boot and profiler attachment
+        run: uv run --no-sync --project backend python scripts/diagnose-server.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: server-latency-diagnostics
+          path: |
+            ${{ runner.temp }}/server-latency/
+            ${{ runner.temp }}/screenshot-server/logs/worker_daphne.log
+          if-no-files-found: error

@@ -407,7 +407,7 @@ final class ArchiveBoxUITests: XCTestCase {
         for _ in 0..<10 where !picker.isHittable {
             let anchor = content.staticTexts.allElementsBoundByIndex.first { $0.isHittable }
             XCTAssertNotNil(anchor, app.debugDescription)
-            anchor?.swipeUp()
+            anchor?.press(forDuration: 0.05, thenDragTo: app.buttons["navigation.sidebar"])
         }
         XCTAssertTrue(picker.isHittable, app.debugDescription)
         picker.tap()
@@ -583,7 +583,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertGreaterThan(app.staticTexts["More ways to add"].frame.minY, app.webViews.firstMatch.frame.maxY)
         XCTAssertTrue(app.staticTexts["More ways to add"].isHittable)
         attach("Add URLs form and inline help fill viewport", app: app)
-        app.staticTexts["More ways to add"].swipeUp()
+        app.staticTexts["More ways to add"].press(forDuration: 0.05, thenDragTo: app.buttons["navigation.sidebar"])
         attach("Add URLs help on neutral background", app: app)
         let guide = app.images["iPhone share sheet with ArchiveBox available in the Apps list"]
         XCTAssertTrue(guide.exists)

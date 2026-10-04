@@ -564,7 +564,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             #if os(macOS)
             anchor?.scroll(byDeltaX: 0, deltaY: -250)
             #else
-            anchor?.swipeUp()
+            // swipeUp() on a one-line label travels only within that short
+            // frame. Drag between real elements to scroll the outer guide.
+            anchor?.press(forDuration: 0.05, thenDragTo: app.buttons["navigation.sidebar"])
             #endif
         }
         XCTAssertTrue(element.isHittable, app.debugDescription)

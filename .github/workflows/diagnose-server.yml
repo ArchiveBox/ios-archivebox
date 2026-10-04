@@ -6,6 +6,10 @@ on:
         type: choice
         default: macos-26
         options: [macos-26, macos-26-xlarge, macos-15]
+      simulator_action:
+        description: Compare a freshly erased device using simulator-action
+        type: boolean
+        default: false
       early_boot:
         description: Start Simulator before installing and populating the backend
         type: boolean
@@ -68,6 +72,17 @@ jobs:
       - if: inputs.runner == 'macos-15'
         run: sudo xcode-select --switch /Applications/Xcode_26.3.app
       - run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"
+      - name: Boot a clean device with simulator-action
+        if: inputs.simulator_action
+        uses: futureware-tech/simulator-action@c768f52966d5f70335ec77881f9806b24a52f80e
+        with:
+          model: iPhone 17 Pro
+          os: iOS
+          os_version: '26.5'
+          erase_before_boot: true
+          wait_for_boot: true
+          boot_retries: 0
+          settle_timeout_seconds: 0
       - name: Run the capture workflow's exact Simulator helper
         if: inputs.quiesce
         run: |

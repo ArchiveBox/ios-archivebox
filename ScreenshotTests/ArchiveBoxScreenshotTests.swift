@@ -124,6 +124,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let start = app.webViews.buttons["Start using Agent"]
         XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
         scrollTo(start, app: app)
+        Thread.sleep(forTimeInterval: 10)
         capture("agent-welcome", app: app)
         press(start)
         assertPage("New session", app: app, type: pageTextType, screen: "agent")
@@ -236,6 +237,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                 let start = app.webViews.buttons["Start using Agent"]
                 XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
                 scrollTo(start, app: app)
+                Thread.sleep(forTimeInterval: 10)
                 capture("agent-welcome", app: app)
                 press(start)
             }
@@ -627,8 +629,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         }, evaluatedWith: app)
         waitForExpectations(timeout: 10)
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
-        // Visible, hittable page content is the readiness signal. A fixed sleep
-        // adds time to every screen without guaranteeing readiness on a slow host.
+        // AX can expose hittable content before WebKit finishes painting it.
+        // Keep this guard until a replacement is verified against actual captures;
+        // the accessibility waits above alone do not cover that rendering gap.
+        Thread.sleep(forTimeInterval: 10)
     }
 
     #if os(iOS)

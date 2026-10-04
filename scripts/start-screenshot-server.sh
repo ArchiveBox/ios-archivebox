@@ -143,8 +143,6 @@ PY
 uv run --no-sync --project "$backend" python - <<'PY'
 import json
 import os
-import re
-from html import unescape
 from pathlib import Path
 from time import monotonic
 from urllib.request import Request, urlopen
@@ -172,25 +170,8 @@ assert "Log out" in html and os.environ["SCREENSHOT_USERNAME"] in html, "Add pag
 assert "FIRST-TIME SERVER SETUP" not in html, "Server setup is incomplete"
 print(f"Authenticated Add page rendered in {monotonic() - start:.2f}s.")
 
-# Agent starts its real OpenCode process/session on the iframe's first request.
-# Provision that dependency before Simulator boot, like the archived pages above;
-# otherwise its cold startup competes with iOS and consumes the page's UI deadline.
-start = monotonic()
-headers = {"Cookie": f'{cookie["name"]}={cookie["value"]}'}
-with urlopen(Request(f"{base}/admin/agent/", headers=headers), timeout=15) as response:
-    assert response.status == 200 and response.url == f"{base}/admin/agent/"
-    agent_html = response.read().decode("utf-8")
-frame = re.search(r'<iframe src="([^"]+)" title="OpenCode Agent"', agent_html)
-assert frame, "Agent page must embed OpenCode"
-path = unescape(frame.group(1))
-assert path.startswith("/admin/agent/opencode/"), "Unexpected Agent iframe origin"
-with urlopen(Request(base + path, headers=headers), timeout=15) as response:
-    assert response.status == 200 and response.url.startswith(base + path + "/ses_"), "Agent session was not created"
-    assert response.headers.get_content_type() == "text/html", "Agent session is not HTML"
-    assert "OpenCode" in response.read().decode("utf-8"), "OpenCode app is missing"
-with urlopen(Request(f"{base}/admin/agent/opencode/global/health", headers=headers), timeout=15) as response:
-    assert json.load(response)["healthy"] is True, "Agent backend is not ready"
-print(f"Authenticated Agent session ready in {monotonic() - start:.2f}s.")
+# Leave Agent cold: its first process/session must be created by the real UI
+# navigation, otherwise this fixture hides first-use startup failures.
 PY
 for variable in ARCHIVEBOX_TEST_SERVER ARCHIVEBOX_TEST_TOKEN; do
     printf '%s=%s\n' "$variable" "${!variable}" >> "$data/connection.env"

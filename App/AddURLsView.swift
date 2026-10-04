@@ -89,6 +89,8 @@ struct AddURLsView: View {
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }
                     }.padding(20).frame(maxWidth: 1000)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("add.guide")
                 }.frame(maxWidth: .infinity)
             }
             .accessibilityIdentifier("add.content")

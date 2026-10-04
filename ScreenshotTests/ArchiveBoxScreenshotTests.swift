@@ -28,13 +28,9 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let skip = app.buttons["setup.skip"]
         if skip.waitForExistence(timeout: 2) { press(skip) }
         XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 20), app.debugDescription)
-        // A normal app interaction lets XCTest handle a system permission interruption.
         #if os(macOS)
         let window = app.windows.firstMatch
         XCTAssertTrue(window.waitForExistence(timeout: 10), app.debugDescription)
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).click()
-        #else
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
         #endif
         resolveSystemPermissions()
         XCTAssertFalse(app.alerts.firstMatch.exists, app.debugDescription)
@@ -118,12 +114,16 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             openScreen(id, app: app)
             assertPage(marker, app: app, type: type, screen: id)
             capture(id, app: app)
+            if id == "add" {
+                // Exercise the separate native guide scroll area on both
+                // platforms; the gallery above still shows the initial form.
+                reveal(app.descendants(matching: .any)["defaultPersona"].firstMatch, app: app)
+            }
         }
         openScreen("agent", app: app)
         let start = app.webViews.buttons["Start using Agent"]
         XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
         scrollTo(start, app: app)
-        Thread.sleep(forTimeInterval: 10)
         capture("agent-welcome", app: app)
         press(start)
         assertPage("New session", app: app, type: pageTextType, screen: "agent")
@@ -157,11 +157,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             if element.isHittable { break }
             #if os(macOS)
             if element.identifier.isEmpty {
-                // The Agent page has its own scroll area below the status panel.
-                // Scroll over the visible page content, not the outer WebView's
-                // midpoint (which lands in the fixed status panel).
-                app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.73))
-                    .scroll(byDeltaX: 0, deltaY: -280)
+                // Target the real welcome content: window-relative coordinates
+                // land on the fixed status panel when its layout changes.
+                let welcome = app.webViews.descendants(matching: .any).matching(NSPredicate(
+                    format: "label CONTAINS %@ OR CAST(value, 'NSString') CONTAINS %@",
+                    "ArchiveBox AI Agent", "ArchiveBox AI Agent"))
+                let visible = welcome.allElementsBoundByIndex.first { $0.isHittable }
+                XCTAssertNotNil(visible, "Missing visible Agent welcome panel: \(app.debugDescription)")
+                visible?.scroll(byDeltaX: 0, deltaY: -280)
             } else {
                 let pane = app.scrollViews.containing(.any, identifier: element.identifier).firstMatch
                 XCTAssertTrue(pane.exists, "Missing scroll pane for \(element.identifier)")
@@ -198,18 +201,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         if skip.waitForExistence(timeout: 2) { press(skip) }
         let field = app.textFields["serverURL"]
         XCTAssertTrue(field.waitForExistence(timeout: 20), app.debugDescription)
-        #if os(macOS)
-        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).click()
-        #else
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
-        #endif
         XCTAssertTrue(app.staticTexts["Server not connected"].exists, "Capture requires a fresh disposable simulator/runner")
         capture("connection-disconnected", app: app)
         replace(field, with: server)
         #if os(iOS)
-        let formStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.42))
-        let formEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.61))
-        formStart.press(forDuration: 0.05, thenDragTo: formEnd)
+        press(app.buttons["connection.keyboardDone"])
         #endif
         waitForConnectionFormReady(app)
         enterAPIKey(token, after: field, in: app)
@@ -240,7 +236,6 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                 let start = app.webViews.buttons["Start using Agent"]
                 XCTAssertTrue(start.waitForExistence(timeout: 30), app.debugDescription)
                 scrollTo(start, app: app)
-                Thread.sleep(forTimeInterval: 10)
                 capture("agent-welcome", app: app)
                 press(start)
             }
@@ -254,7 +249,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
         openScreen("add", app: app)
         let persona = app.descendants(matching: .any)["defaultPersona"].firstMatch
-        reveal(persona, named: "defaultPersona", app: app)
+        reveal(persona, app: app)
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@ OR CAST(value, 'NSString') == %@", "More ways to add", "More ways to add")).firstMatch.exists, app.debugDescription)
         capture("add-guide", app: app)
         press(persona)
@@ -263,7 +258,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         capture("persona-picker", app: app)
         press(choice)
         let safari = app.buttons["Safari"]
-        reveal(safari, named: "Safari", app: app)
+        reveal(safari, app: app)
         press(safari)
         #if os(macOS)
         let setup = app.sheets.containing(NSPredicate(format: "CAST(value, 'NSString') == %@", "Enable ArchiveBox in Safari")).firstMatch
@@ -527,13 +522,11 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         // Scroll the actual sidebar surface in both compact and regular split views.
         for _ in 0..<6 {
             if visible() { break }
-            surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).press(forDuration: 0.05,
-                thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)))
+            surface.swipeDown()
         }
         for _ in 0..<10 {
             if visible() { break }
-            surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)).press(forDuration: 0.05,
-                thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
+            surface.swipeUp()
         }
         XCTAssertTrue(visible(), "Sidebar item is outside the visible list: \(item.debugDescription)")
         #endif
@@ -557,21 +550,18 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         #endif
     }
 
-    private func reveal(_ element: XCUIElement, named name: String, app: XCUIApplication) {
+    private func reveal(_ element: XCUIElement, app: XCUIApplication) {
         for _ in 0..<10 {
             if element.isHittable { break }
+            // Scroll visible native guide content, outside the embedded web
+            // page. Selecting its text survives window and device size changes.
+            let guide = app.otherElements["add.guide"]
+            let anchor = guide.staticTexts.allElementsBoundByIndex.first { $0.isHittable }
+            XCTAssertNotNil(anchor, "Missing visible Add guide content: \(app.debugDescription)")
             #if os(macOS)
-            // Wheel over visible native content, outside WebKit and the auto-hidden scrollbar.
-            let anchor = name == "defaultPersona"
-                ? app.staticTexts.matching(NSPredicate(format: "CAST(value, 'NSString') == %@", "More ways to add")).firstMatch
-                : app.staticTexts.matching(NSPredicate(format: "CAST(value, 'NSString') == %@", "Default persona")).firstMatch
-            XCTAssertTrue(anchor.isHittable, app.debugDescription)
-            anchor.scroll(byDeltaX: 0, deltaY: -250)
+            anchor?.scroll(byDeltaX: 0, deltaY: -250)
             #else
-            let outer = app.scrollViews.containing(.any, identifier: name).firstMatch
-            // Begin below the embedded page's 80%-height viewport, in native guide content.
-            outer.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.93)).press(forDuration: 0.05,
-                thenDragTo: outer.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.3)))
+            anchor?.swipeUp()
             #endif
         }
         XCTAssertTrue(element.isHittable, app.debugDescription)
@@ -637,8 +627,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         }, evaluatedWith: app)
         waitForExpectations(timeout: 10)
         XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists, "Unexpected login page")
-        // Allow the embedded page to finish painting before its gallery capture.
-        Thread.sleep(forTimeInterval: 10)
+        // Visible, hittable page content is the readiness signal. A fixed sleep
+        // adds time to every screen without guaranteeing readiness on a slow host.
     }
 
     #if os(iOS)

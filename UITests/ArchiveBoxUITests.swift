@@ -401,12 +401,13 @@ final class ArchiveBoxUITests: XCTestCase {
         openScreen("Add URLs", app: app)
         let picker = app.buttons["defaultPersona"]
         XCTAssertTrue(picker.waitForExistence(timeout: 10), app.debugDescription)
-        // Start below the embedded form so the gesture scrolls the native
-        // share settings rather than the web page's independent viewport.
-        let content = app.scrollViews["add.content"]
+        // The native guide and web form scroll independently. Select visible
+        // guide text instead of guessing where the embedded page ends.
+        let content = app.otherElements["add.guide"]
         for _ in 0..<10 where !picker.isHittable {
-            content.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.93)).press(forDuration: 0.05,
-                thenDragTo: content.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.3)))
+            let anchor = content.staticTexts.allElementsBoundByIndex.first { $0.isHittable }
+            XCTAssertNotNil(anchor, app.debugDescription)
+            anchor?.swipeUp()
         }
         XCTAssertTrue(picker.isHittable, app.debugDescription)
         picker.tap()
@@ -582,9 +583,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertGreaterThan(app.staticTexts["More ways to add"].frame.minY, app.webViews.firstMatch.frame.maxY)
         XCTAssertTrue(app.staticTexts["More ways to add"].isHittable)
         attach("Add URLs form and inline help fill viewport", app: app)
-        app.staticTexts["More ways to add"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)),
-                   withVelocity: .slow, thenHoldForDuration: 1)
+        app.staticTexts["More ways to add"].swipeUp()
         attach("Add URLs help on neutral background", app: app)
         let guide = app.images["iPhone share sheet with ArchiveBox available in the Apps list"]
         XCTAssertTrue(guide.exists)
@@ -647,11 +646,7 @@ final class ArchiveBoxUITests: XCTestCase {
             XCTAssertTrue(app.webViews.firstMatch.frame.contains(back.frame))
             attach("\(screen) with back over web header", app: app)
             let page = app.webViews.firstMatch
-            // Drag from the page margin so a link/form control cannot start a drag session.
-            page.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.25))
-                .press(forDuration: 0.1,
-                       thenDragTo: page.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.7)),
-                       withVelocity: .slow, thenHoldForDuration: 2)
+            page.swipeDown()
             attach("\(screen) after pulling down at top", app: app)
             if screen == "Snapshots" {
                 page.swipeUp()

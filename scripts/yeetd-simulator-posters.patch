@@ -1,28 +1,38 @@
 --- main.swift
 +++ main.swift
-@@ -50,6 +50,16 @@
+@@ -50,6 +50,26 @@
  // This is used to ensure we only kill Simulator processes and not host OS processes
  let simulatorPathSearchKey = "simruntime/Contents/Resources/RuntimeRoot"
  
-+// Stop only the extra poster extensions observed saturating disposable Simulators.
-+// Other system extensions, including WebKit Networking and GPU, must keep running.
-+func isSimulatorPosterExtension(_ path: String) -> Bool {
++// Stock posters and widgets saturated the screenshot runner (load >500),
++// starving even localhost API requests. Match observed OS bundles, not all
++// extensions: WebKit and ArchiveBox's own widgets must keep running.
++func isSimulatorBackgroundExtension(_ path: String) -> Bool {
 +    guard let root = path.range(of: simulatorPathSearchKey + "/") else { return false }
 +    let parts = path[root.upperBound...].split(separator: "/")
 +    guard parts.count >= 3, parts[0] == "System" || parts[0] == "Applications" else { return false }
 +    let bundle = parts[parts.count - 2]
-+    return ["MercuryPosterExtension.appex", "PridePosterExtension.appex", "Unity2025Poster.appex", "WeatherPoster.appex"].contains(bundle)
++    return [
++        "MercuryPosterExtension.appex", "PridePosterExtension.appex",
++        "Unity2025Poster.appex", "WeatherPoster.appex", "RhizomePoster.appex",
++        "ScreenTimeWidgetExtension.appex", "CalendarWidgetExtension.appex",
++        "GeneralMapsWidget.appex", "NewsTag.appex", "NewsTodayIntents.appex",
++        "HealthMentalHealthWidgetExtension.appex", "SleepWidgetExtension.appex",
++        "HealthMedicationsWidgetExtension.appex", "HealthCycleTrackingWidgetExtension.appex",
++        "SafariWidgetExtension.appex", "FitnessWidget.appex", "AdaptiveMusicWidget.appex",
++        "PassbookWidgetsExtension-iPhone.appex", "PassbookLockedWidgetsExtension.appex",
++    ].contains(bundle)
 +}
 +
  // How long to sleep between checks
  let sleepDelay: UInt32 = 5
  
-@@ -87,7 +97,7 @@
+@@ -87,7 +107,7 @@
          let name = String(cString: nameBuffer)
          let path = String(cString: pathBuffer)
  
 -        if ProcessConfig.processes.contains(where: { $0 == name }) {
-+        if ProcessConfig.processes.contains(name) || isSimulatorPosterExtension(path) {
++        if ProcessConfig.processes.contains(name) || isSimulatorBackgroundExtension(path) {
              // TODO: determine if a process is sleeping and be efficient
              // We need either:
              // 1) get-task-allow entitlement (no SIP)

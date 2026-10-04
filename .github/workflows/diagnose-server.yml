@@ -9,8 +9,13 @@ on:
       quiesce:
         type: boolean
         default: false
+      gallery:
+        description: Run the unchanged real UI tour instead of the API benchmark
+        type: boolean
+        default: false
 permissions:
   contents: read
+  actions: read
 jobs:
   diagnose:
     runs-on: ${{ inputs.runner }}
@@ -28,6 +33,29 @@ jobs:
           python-version: '3.13'
       - run: uv sync --frozen --project backend
       - run: brew install py-spy
+      - if: inputs.gallery
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - if: inputs.gallery
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+      - if: inputs.gallery
+        run: |
+          brew install xcodegen
+          sudo mdutil -i off / /System/Volumes/Data
+      - if: inputs.gallery
+        uses: actions/download-artifact@v4
+        with:
+          name: iphone-capture-app
+          run-id: '37182161933'
+          github-token: ${{ github.token }}
+          path: build/screenshots/iphone-app
+      - if: inputs.gallery
+        run: |
+          ditto -x -k build/screenshots/iphone-app/ArchiveBox.app.zip build/screenshots/iphone-app
+          echo "ARCHIVEBOX_IPHONE_APP=$GITHUB_WORKSPACE/build/screenshots/iphone-app/ArchiveBox.app" >> "$GITHUB_ENV"
       - if: inputs.runner == 'macos-15'
         run: sudo xcode-select --switch /Applications/Xcode_26.3.app
       - run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"
@@ -37,7 +65,11 @@ jobs:
           yq -r '.jobs.capture.steps[] | select(.name == "Quiesce stock Simulator posters and widgets on the disposable iPhone runner") | .run' .github/workflows/screenshots.yml > "$RUNNER_TEMP/start-helper.sh"
           bash "$RUNNER_TEMP/start-helper.sh"
       - name: Measure real requests across Simulator boot and profiler attachment
+        if: ${{ !inputs.gallery }}
         run: uv run --no-sync --project backend python scripts/diagnose-server.py
+      - name: Run the unchanged real UI tour
+        if: inputs.gallery
+        run: bash scripts/capture-app-screenshots.sh iphone build/screenshots/iphone gallery
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -45,4 +77,8 @@ jobs:
           path: |
             ${{ runner.temp }}/server-latency/
             ${{ runner.temp }}/screenshot-server/logs/worker_daphne.log
+            build/screenshots/iphone/*.log
+            build/screenshots/iphone/*.json
+            build/screenshots/iphone/*.sample.txt
+            build/screenshots/iphone/Capture.xcresult
           if-no-files-found: error

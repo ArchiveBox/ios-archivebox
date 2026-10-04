@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 import re
-import signal
 import subprocess
 import time
 from urllib.request import urlopen
@@ -20,14 +19,20 @@ failures = []
 
 def measure(phase):
     print(f'PHASE {phase}', flush=True)
-    with (output / f'{phase}-policy.txt').open('w') as stream:
-        subprocess.run(['sudo', '-n', 'launchctl', 'procinfo', str(pid)], stdout=stream, stderr=stream)
-    subprocess.run(['ps', '-p', str(pid), '-o', 'pid,stat,pri,nice,time,majflt,inblk,rss,comm'])
-    subprocess.run(['vm_stat'])
+    # The app cancels discovery when URL editing finishes. Exercise that real
+    # HTTP cancellation before the first full request, while server pages are cold.
+    start = time.monotonic()
+    try:
+        with urlopen(base + '/api/v1/openapi.json', timeout=0.2) as response:
+            response.read()
+        result = 'completed'
+    except TimeoutError:
+        result = 'cancelled'
+    print(json.dumps(dict(phase=phase, cancellation=result, seconds=time.monotonic() - start)), flush=True)
     # A fixed measurement batch, not a retry/readiness loop. Every response is
     # validated and every timeout remains a failure after all phases finish.
     for sample in range(3):
-        for path in ('/health/', '/api/v1/openapi.json'):
+        for path in ('/api/v1/openapi.json', '/health/'):
             start = time.monotonic()
             try:
                 with urlopen(base + path, timeout=15) as response:
@@ -43,6 +48,12 @@ def measure(phase):
                 failures.append((phase, path, result))
             print(json.dumps(dict(phase=phase, sample=sample, path=path,
                                   seconds=time.monotonic() - start, result=result)), flush=True)
+    # Collect only after measuring: procinfo itself took 50s under boot pressure
+    # and otherwise moved the request away from the period being investigated.
+    subprocess.run(['ps', '-p', str(pid), '-o', 'pid,stat,pri,nice,time,rss,comm'])
+    subprocess.run(['vm_stat'])
+    with (output / f'{phase}-memory.txt').open('w') as stream:
+        subprocess.run(['ps', '-A', '-o', 'pid,ppid,rss,comm'], stdout=stream)
 
 
 measure('before-boot')

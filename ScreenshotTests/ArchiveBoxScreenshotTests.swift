@@ -478,14 +478,18 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             // settle that optional presentation before tapping a sidebar row.
             declinePasswordPrompt(waitForPresentation: leavingConnectionSettings)
             // Notifications can delay Passwords until after the sidebar first
-            // appears. Resolve that sheet inside the readiness wait: separate
-            // "sidebar OR prompt" and final hittability checks race each other.
-            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                self.declinePasswordPrompt()
-                return sidebar.isHittable
-            }, object: nil)
-            XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed,
-                           "Returning from Settings must reveal the sidebar")
+            // appears. Observe both transitions under one deadline; Back is
+            // tapped only once. Keep gestures outside XCTest's wait predicates.
+            let deadline = ProcessInfo.processInfo.systemUptime + 5
+            repeat {
+                let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    sidebar.isHittable || app.staticTexts["Save Password?"].exists
+                }, object: nil)
+                XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: max(0, deadline - ProcessInfo.processInfo.systemUptime)), .completed)
+                declinePasswordPrompt(dismissalTimeout: max(0, deadline - ProcessInfo.processInfo.systemUptime))
+                if sidebar.isHittable { return }
+            } while ProcessInfo.processInfo.systemUptime < deadline
+            XCTFail("Returning from Settings must reveal the sidebar")
         }
         #endif
     }

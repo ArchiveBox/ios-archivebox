@@ -469,9 +469,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         declinePasswordPrompt()
         let sidebar = app.collectionViews["sidebar"]
         if !sidebar.isHittable {
+            let leavingConnectionSettings = app.secureTextFields["apiKey"].exists
             let back = app.buttons["navigation.sidebar"].exists ? app.buttons["navigation.sidebar"] : app.navigationBars.buttons.firstMatch
             XCTAssertTrue(back.exists, app.debugDescription)
             press(back)
+            // The sidebar can become hittable before Passwords finishes
+            // presenting. Only this credential-view exit can trigger it;
+            // settle that optional presentation before tapping a sidebar row.
+            declinePasswordPrompt(waitForPresentation: leavingConnectionSettings)
             // Leaving the secure field can present Passwords over the sidebar.
             // Observe that transition, then dismiss its owning system process.
             expectation(for: NSPredicate { _, _ in
@@ -632,12 +637,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     }
 
     #if os(iOS)
-    private func declinePasswordPrompt(dismissalTimeout: TimeInterval = 5) {
+    private func declinePasswordPrompt(dismissalTimeout: TimeInterval = 5, waitForPresentation: Bool = false) {
         // The sheet is visible in ArchiveBox's AX tree, but its controls belong
         // to SafariViewService. Taps rooted in ArchiveBox target the wrong PID
         // on iOS 26 and leave the sheet blocking navigation.
         let app = application
         let prompt = app.staticTexts["Save Password?"]
+        if waitForPresentation { _ = prompt.waitForExistence(timeout: dismissalTimeout) }
         // A sheet can appear between two absent-state queries. Only assert
         // dismissal after handling it; later presentations go through the
         // same helper from the next UI action or interruption monitor.

@@ -477,14 +477,15 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             // presenting. Only this credential-view exit can trigger it;
             // settle that optional presentation before tapping a sidebar row.
             declinePasswordPrompt(waitForPresentation: leavingConnectionSettings)
-            // Leaving the secure field can present Passwords over the sidebar.
-            // Observe that transition, then dismiss its owning system process.
-            expectation(for: NSPredicate { _, _ in
-                sidebar.isHittable || app.staticTexts["Save Password?"].exists
-            }, evaluatedWith: app)
-            waitForExpectations(timeout: 5)
-            declinePasswordPrompt()
-            XCTAssertTrue(sidebar.isHittable, "Returning from Settings must reveal the sidebar")
+            // Notifications can delay Passwords until after the sidebar first
+            // appears. Resolve that sheet inside the readiness wait: separate
+            // "sidebar OR prompt" and final hittability checks race each other.
+            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                self.declinePasswordPrompt()
+                return sidebar.isHittable
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed,
+                           "Returning from Settings must reveal the sidebar")
         }
         #endif
     }
@@ -653,8 +654,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         // The remote sheet enters AX before its presentation finishes.
         // Wait on its button before tapping: iOS drops touches during that
         // transition (UIKit logs ignoreInteractionEvents=1).
-        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: notNow)
-        waitForExpectations(timeout: dismissalTimeout)
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: notNow)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: dismissalTimeout), .completed)
         notNow.tap()
         XCTAssertTrue(prompt.waitForNonExistence(timeout: dismissalTimeout), "The disposable API key must not be saved to Passwords")
         XCTAssertFalse(prompt.exists, "The disposable API key must not be saved to Passwords")

@@ -157,6 +157,11 @@ if [[ "$platform" == iphone ]]; then
       uptime
       memory_pressure -Q || true
       sysctl vm.swapusage || true
+      # "Free percentage" includes reclaimable memory; it hid heavy compression
+      # and eviction of Daphne's working set during real Simulator failures.
+      vm_stat
+      echo 'Largest resident processes: pid ppid rss-kib executable'
+      ps -A -o pid=,ppid=,rss=,comm= | sort -k3,3nr | sed -n '1,30p'
       ps -A -o pid=,ppid=,state=,%cpu=,%mem=,comm= | sort -k4,4nr | sed -n '1,20p'
       # The CPU top twenty omit SIGSTOP'd poster services. Record the whole
       # host's state distribution before attributing load averages to CPU work.

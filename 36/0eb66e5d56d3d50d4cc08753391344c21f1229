@@ -1,0 +1,14 @@
+.github/workflows/release.yml
+  h_923c208e183a7b 73-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "360eb66e5d56d3d50d4cc08753391344c21f1229",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+scripts/diagnose-server.py
+  h_923c208e183a7b 65-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4307bd6b364e80e4de07d2e5a96be1caa3a9e9fc",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

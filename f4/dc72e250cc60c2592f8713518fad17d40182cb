@@ -1,0 +1,14 @@
+UITests/ArchiveBoxUITests.swift
+  h_923c208e183a7b 507-509,528
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f4dc72e250cc60c2592f8713518fad17d40182cb",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

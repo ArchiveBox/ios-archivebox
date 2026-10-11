@@ -1,0 +1,14 @@
+.github/workflows/diagnose-server.yml
+  h_923c208e183a7b 9-12,75-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c92f6108fce52e68d0340aa9bf91e4cd17254844",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

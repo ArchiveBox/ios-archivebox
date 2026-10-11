@@ -1,0 +1,16 @@
+App/SetupGuide.swift
+  h_923c208e183a7b 38,40-49,58,118
+README.md
+  h_923c208e183a7b 34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "749f9ea49875dff9e6a399770609b66de61ce1b0",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+Sources/ArchiveBoxCore/BrowserNavigation.swift
+  h_923c208e183a7b 38-49,128-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cd53c9c2d9e9498e2a95abd6caf31cccaf235741",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

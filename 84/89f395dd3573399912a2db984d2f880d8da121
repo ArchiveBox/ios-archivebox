@@ -1,0 +1,14 @@
+scripts/release.mjs
+  h_923c208e183a7b 72-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8489f395dd3573399912a2db984d2f880d8da121",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

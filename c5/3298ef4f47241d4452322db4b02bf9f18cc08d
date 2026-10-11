@@ -1,0 +1,16 @@
+App/MainView.swift
+  h_923c208e183a7b 476,494-499,509,514,526-577
+Sources/ArchiveBoxCore/EmbeddedPage.swift
+  h_923c208e183a7b 114-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c53298ef4f47241d4452322db4b02bf9f18cc08d",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

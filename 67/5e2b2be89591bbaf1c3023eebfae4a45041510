@@ -1,0 +1,14 @@
+.github/workflows/screenshots.yml
+  h_923c208e183a7b 75,77,101,103-104,107-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "675e2b2be89591bbaf1c3023eebfae4a45041510",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

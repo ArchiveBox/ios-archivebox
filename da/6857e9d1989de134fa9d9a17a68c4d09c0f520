@@ -1,0 +1,22 @@
+App/MainView.swift
+  h_923c208e183a7b 404-406
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxMac.xcscheme
+  h_923c208e183a7b 4,7,18,29,34,57,74
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxMacDirect.xcscheme
+  h_923c208e183a7b 4,7,18,29,34,57,74
+ArchiveBox.xcodeproj/xcshareddata/xcschemes/ArchiveBoxMacScreenshots.xcscheme
+  h_923c208e183a7b 4,7,18,43,48,65-76,93,110
+Sources/ArchiveBoxCore/EmbeddedPage.swift
+  h_923c208e183a7b 15,29-33,58-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "da6857e9d1989de134fa9d9a17a68c4d09c0f520",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

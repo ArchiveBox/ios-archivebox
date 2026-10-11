@@ -1,0 +1,16 @@
+.github/workflows/screenshots.yml
+  h_923c208e183a7b 193
+scripts/yeetd-simulator-posters.patch
+  h_923c208e183a7b 3,14,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c78a1c083b5f86149d93b3e061ab8ba38c54d802",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

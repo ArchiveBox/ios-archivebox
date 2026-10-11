@@ -1,0 +1,22 @@
+docs/site/ar/index.html
+  h_923c208e183a7b 97,170
+docs/site/es/index.html
+  h_923c208e183a7b 97,170
+docs/site/fr/index.html
+  h_923c208e183a7b 97,170
+docs/site/ru/index.html
+  h_923c208e183a7b 97,170
+docs/site/zh/index.html
+  h_923c208e183a7b 97,170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ff93e627284669903283b03ba79d95fcb88f6263",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

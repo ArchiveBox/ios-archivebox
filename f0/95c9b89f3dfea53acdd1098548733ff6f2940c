@@ -1,0 +1,20 @@
+.github/workflows/screenshots.yml
+  h_923c208e183a7b 215
+App/EmbeddedBrowser.swift
+  h_923c208e183a7b 21,42-44,47-50,100,113,118-119,121,124
+ScreenshotTests/ArchiveBoxScreenshotTests.swift
+  h_923c208e183a7b 90-92,94,514,519,562-567,570
+scripts/capture-app-screenshots.sh
+  h_923c208e183a7b 196-199,201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f095c9b89f3dfea53acdd1098548733ff6f2940c",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

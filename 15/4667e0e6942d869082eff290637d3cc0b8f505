@@ -1,0 +1,24 @@
+.github/pages/README.md
+  h_923c208e183a7b 109-117
+.github/pages/base/chrome.css
+  h_923c208e183a7b 1-10
+.github/pages/base/chrome.js
+  h_923c208e183a7b 1-10
+.github/pages/base/footer-end.html
+  h_923c208e183a7b 1-10
+.github/pages/base/footer-start.html
+  h_923c208e183a7b 1-10
+.github/pages/base/header.html
+  h_923c208e183a7b 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "154667e0e6942d869082eff290637d3cc0b8f505",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

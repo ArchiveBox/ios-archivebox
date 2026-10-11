@@ -1,0 +1,14 @@
+ServerApp/build.sh
+  h_923c208e183a7b 31,44,46,89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fb6214c3155dd5d72f804aca542b9a51a74dc8b1",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

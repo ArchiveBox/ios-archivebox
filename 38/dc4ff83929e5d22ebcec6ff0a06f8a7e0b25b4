@@ -1,0 +1,26 @@
+App/EmbeddedBrowser.swift
+  h_923c208e183a7b 38-39,76-77,170-174
+App/MainView.swift
+  h_923c208e183a7b 235-257,315-331
+App/SettingsView.swift
+  h_923c208e183a7b 8-11,30-37,264,379-384,603-614
+ServerApp/Tests/ClientWebLoginAcceptance.swift
+  h_923c208e183a7b 107,111-114,117-123,125-131,143,145-180,202-207
+Sources/ArchiveBoxCore/BrowserAuthentication.swift
+  h_923c208e183a7b 16-25
+Sources/ArchiveBoxCore/BrowserNavigation.swift
+  h_923c208e183a7b 11-12,37-38
+UITests/ArchiveBoxUITests.swift
+  h_923c208e183a7b 371,375-382
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "38dc4ff83929e5d22ebcec6ff0a06f8a7e0b25b4",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+.github/pages/artifacts.py
+  h_923c208e183a7b 17
+.github/workflows/screenshots.yml
+  h_923c208e183a7b 2,4-5,7,10-15,17-28,30-31,46,89,91,94,298-305
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "69bdee880631e6a64195edab70925278cd140141",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

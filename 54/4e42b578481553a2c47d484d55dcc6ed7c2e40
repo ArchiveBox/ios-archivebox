@@ -1,0 +1,20 @@
+App/AddURLsView.swift
+  h_923c208e183a7b 92-93
+ScreenshotTests/ArchiveBoxScreenshotTests.swift
+  h_923c208e183a7b 117-121,160-167,208,252,261,525,529,553,556-560,562,564,630-631
+UITests/ArchiveBoxUITests.swift
+  h_923c208e183a7b 404-406,408-410,586,649
+scripts/start-screenshot-server.sh
+  h_923c208e183a7b 173-174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "544e42b578481553a2c47d484d55dcc6ed7c2e40",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

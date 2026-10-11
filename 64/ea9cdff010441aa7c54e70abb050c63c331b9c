@@ -1,0 +1,24 @@
+.github/workflows/release.yml
+  h_923c208e183a7b 39,42,106
+ServerApp/README.md
+  h_923c208e183a7b 199-202,206-207
+ServerApp/prepare.sh
+  h_923c208e183a7b 28
+ServerApp/server-image.py
+  h_923c208e183a7b 5,20-35,75,109-110,118
+docs/RELEASES.md
+  h_923c208e183a7b 54-61
+scripts/sync-server-image.mjs
+  h_923c208e183a7b 1-2,8-11,18-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "64ea9cdff010441aa7c54e70abb050c63c331b9c",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

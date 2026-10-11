@@ -1,0 +1,14 @@
+Sources/ArchiveBoxCore/BrowserAuthentication.swift
+  h_923c208e183a7b 64,71-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c604c2ef2b3247efdd9e10ec18bbd9604c8e81a6",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

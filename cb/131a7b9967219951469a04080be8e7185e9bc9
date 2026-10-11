@@ -1,0 +1,26 @@
+.github/workflows/build.yml
+  h_923c208e183a7b 15-17
+App/EmbeddedBrowser.swift
+  h_923c208e183a7b 214-221
+App/SettingsView.swift
+  h_923c208e183a7b 382-385
+IntegrationTests/Smoke.swift
+  h_923c208e183a7b 16-17
+ScreenshotTests/ArchiveBoxScreenshotTests.swift
+  h_923c208e183a7b 119,247,561,566-573
+Sources/ArchiveBoxCore/ArchiveBoxClient.swift
+  h_923c208e183a7b 50-56
+Tests/ArchiveBoxCoreTests/NetworkErrorTests.swift
+  h_923c208e183a7b 6-24,49-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cb131a7b9967219951469a04080be8e7185e9bc9",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

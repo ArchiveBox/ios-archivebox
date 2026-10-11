@@ -1,0 +1,18 @@
+docs/site/build.sh
+  h_923c208e183a7b 10
+docs/site/robots.txt
+  h_923c208e183a7b 1-4
+docs/site/sitemap.xml
+  h_923c208e183a7b 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "244a3bdefb8886f77f0e86551e2db843513e592c",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

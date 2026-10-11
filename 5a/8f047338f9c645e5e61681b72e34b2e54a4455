@@ -1,0 +1,24 @@
+ArchiveBox.xcodeproj/project.pbxproj
+  h_923c208e183a7b 1564,2023,2091,2295
+ScreenshotTests/project.yml
+  h_923c208e183a7b 12
+ServerApp/build.sh
+  h_923c208e183a7b 42-47
+ServerApp/server-image.py
+  h_923c208e183a7b 57-68
+project.yml
+  h_923c208e183a7b 19
+scripts/start-screenshot-server.sh
+  h_923c208e183a7b 52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5a8f047338f9c645e5e61681b72e34b2e54a4455",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

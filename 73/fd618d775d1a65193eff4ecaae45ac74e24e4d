@@ -1,0 +1,40 @@
+App/Info.plist
+  h_923c208e183a7b 28
+ArchiveBox.xcodeproj/project.pbxproj
+  h_923c208e183a7b 1620,2073,2147,2345
+MacApp/Info.plist
+  h_923c208e183a7b 28
+MacShareExtension/Info.plist
+  h_923c208e183a7b 22
+SafariWebExtension/Info-iOS.plist
+  h_923c208e183a7b 28
+SafariWebExtension/Info-macOS.plist
+  h_923c208e183a7b 28
+ServerApp/bundle-metadata.py
+  h_923c208e183a7b 33-36
+ShareExtension/Info.plist
+  h_923c208e183a7b 22
+Widgets/Info-iOS.plist
+  h_923c208e183a7b 20
+Widgets/Info-macOS.plist
+  h_923c208e183a7b 20
+docs/RELEASES.md
+  h_923c208e183a7b 14-17
+project.yml
+  h_923c208e183a7b 21
+release.json
+  h_923c208e183a7b 2-3
+scripts/release.mjs
+  h_923c208e183a7b 36,42-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "73fd618d775d1a65193eff4ecaae45ac74e24e4d",
+  "prompts": {},
+  "humans": {
+    "h_923c208e183a7b": {
+      "author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -261,6 +261,7 @@ final class ArchiveBoxUITests: XCTestCase {
         // invokes its native helper, rather than reusing an older installation.
         XCUIApplication().launch()
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        safari.terminate()
         safari.launch()
         let captureURL = "https://example.com/?archivebox-safari-local=\(UUID().uuidString)"
         let address = safari.textFields["Address"]
@@ -275,9 +276,9 @@ final class ArchiveBoxUITests: XCTestCase {
         extensionButton.tap()
         let allow = safari.buttons["AllowForOneDayButton"].firstMatch
         if allow.waitForExistence(timeout: 3) { allow.tap() }
-        XCTAssertTrue(safari.staticTexts["Saved locally"].waitForExistence(timeout: 15), safari.debugDescription)
+        XCTAssertTrue(safari.staticTexts["Saved locally. Server connection unavailable."].waitForExistence(timeout: 15), safari.debugDescription)
         XCTAssertTrue(safari.staticTexts["Saved"].exists, safari.debugDescription)
-        XCTAssertTrue(safari.staticTexts["Server not configured"].exists, safari.debugDescription)
+        XCTAssertTrue(safari.staticTexts["Connection unavailable"].exists, safari.debugDescription)
         XCTAssertFalse(safari.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Could not access secure settings")).firstMatch.exists)
         attach("Safari local save without server", app: safari)
     }

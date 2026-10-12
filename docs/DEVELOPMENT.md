@@ -23,6 +23,18 @@ To run on Mac or a physical device, select your Apple Developer team for the app
 
 When updating an existing simulator installation, preserve its `ArchiveBoxKeychainGroup` value from the installed app's `Info.plist` by passing the same `ARCHIVEBOX_KEYCHAIN_GROUP` to `xcodebuild`. A build with a different group cannot read the existing saved connection, including from Safari's native handler. The unsigned build commands above check compilation; they do not preserve a previously configured team's Keychain group automatically.
 
+For simulator runtime tests, leave signing enabled and explicitly install the rebuilt app before testing Safari. Launching Safari directly from a UI test can leave an older ArchiveBox installation in place:
+
+```sh
+xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
+  -sdk iphonesimulator -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+  -derivedDataPath build CODE_SIGN_IDENTITY=- \
+  ARCHIVEBOX_KEYCHAIN_GROUP="$SIMULATOR_KEYCHAIN_GROUP" build
+xcrun simctl install "$SIMULATOR_UDID" build/Build/Products/Debug-iphonesimulator/ArchiveBox.app
+```
+
+Set those variables to the test simulator and its existing Keychain group. Simulator entitlements are embedded in the executable's `__TEXT,__entitlements` section; an empty `codesign --entitlements` listing alone does not establish that they are missing. Error `-34018` indicates missing entitlements, not a locked device.
+
 Both platform apps use `io.archivebox.ArchiveBox`, with `.Share`, `.Safari`, and `.Widgets` extensions. This supports adding iOS and macOS to **one App Store Connect listing / universal purchase**; distribution signing and store submission remain release steps. iPhone/iPad layouts adapt to window size and orientation without model-specific code; unreleased hardware is not separately certified.
 
 ## Architecture

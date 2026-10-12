@@ -14,7 +14,7 @@ with tarfile.open(app / 'Contents/Resources/images.tar') as archive:
     def blob(digest):
         return json.load(archive.extractfile('blobs/' + digest.replace(':', '/')))
     images = json.load(archive.extractfile('index.json'))['manifests']
-    image = next(item for item in images if item['annotations']['org.opencontainers.image.ref.name'].endswith('archivebox/archivebox:dev'))
+    image = next(item for item in images if item['annotations']['org.opencontainers.image.ref.name'].endswith('archivebox/archivebox:latest'))
     manifest = blob(image['digest'])
     if 'manifests' in manifest:
         manifest = blob(next(item for item in manifest['manifests'] if item['platform']['architecture'] == 'arm64')['digest'])

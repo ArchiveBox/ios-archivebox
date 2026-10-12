@@ -250,8 +250,36 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(settings.navigationBars["ArchiveBox"].waitForExistence(timeout: 5), settings.debugDescription)
         let enabled = settings.switches.firstMatch
         XCTAssertTrue(enabled.exists, settings.debugDescription)
-        if (enabled.value as? String) != "1" { enabled.tap() }
+        if (enabled.value as? String) != "1" { enabled.switches.firstMatch.tap() }
         XCTAssertEqual(enabled.value as? String, "1", settings.debugDescription)
+    }
+
+    // Run on a disposable simulator with the Safari extension enabled and no server configured.
+    func testSafariLocalSaveWithoutConfiguredServer() throws {
+        continueAfterFailure = false
+        // Launch the app under test so Xcode installs this build before Safari
+        // invokes its native helper, rather than reusing an older installation.
+        XCUIApplication().launch()
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        safari.launch()
+        let captureURL = "https://example.com/?archivebox-safari-local=\(UUID().uuidString)"
+        let address = safari.textFields["Address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 10), safari.debugDescription)
+        address.tap()
+        address.typeText(captureURL + "\n")
+        let pageMenu = safari.buttons["Page Menu"]
+        XCTAssertTrue(pageMenu.waitForExistence(timeout: 10), safari.debugDescription)
+        pageMenu.tap()
+        let extensionButton = safari.buttons.containing(NSPredicate(format: "label CONTAINS %@", "ArchiveBox")).firstMatch
+        XCTAssertTrue(extensionButton.waitForExistence(timeout: 10), safari.debugDescription)
+        extensionButton.tap()
+        let allow = safari.buttons["AllowForOneDayButton"].firstMatch
+        if allow.waitForExistence(timeout: 3) { allow.tap() }
+        XCTAssertTrue(safari.staticTexts["Saved locally"].waitForExistence(timeout: 15), safari.debugDescription)
+        XCTAssertTrue(safari.staticTexts["Saved"].exists, safari.debugDescription)
+        XCTAssertTrue(safari.staticTexts["Server not configured"].exists, safari.debugDescription)
+        XCTAssertFalse(safari.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Could not access secure settings")).firstMatch.exists)
+        attach("Safari local save without server", app: safari)
     }
 
     // Run after enabling Safari's extension and screenshot uploads in its Configuration UI.

@@ -27,8 +27,8 @@ if pathlib.Path(status["paths"]["installRoot"]).resolve() != expected.resolve():
 ' "$app"
         image=$(uv run --no-project python -c 'import json; print(json.load(open("payload/resolved-image.json"))["image"])')
         "$cli" image pull --arch arm64 "$image"
-        "$cli" image tag "$image" archivebox/archivebox:dev
-        "$cli" image save --arch arm64 -o "$payload" archivebox/archivebox:dev ghcr.io/apple/containerization/vminit:0.45.0
+        "$cli" image tag "$image" archivebox/archivebox:latest
+        "$cli" image save --arch arm64 -o "$payload" archivebox/archivebox:latest ghcr.io/apple/containerization/vminit:0.45.0
         uv run --no-project python server-image.py verify "$payload"
     fi
 fi

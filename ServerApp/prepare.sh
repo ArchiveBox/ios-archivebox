@@ -25,9 +25,9 @@ fi
 trap '"$cli" system stop' EXIT
 "$cli" system start --app-root "$PWD/.runtime" --install-root "$PWD/vendor/package/Payload" --enable-kernel-install
 "$cli" image pull --arch arm64 "$image"
-# This is a local bundle alias for the verified digest, not a registry dev pull.
-"$cli" image tag "$image" archivebox/archivebox:dev
+# This is a local bundle alias for the verified digest, not a registry tag pull.
+"$cli" image tag "$image" archivebox/archivebox:latest
 "$cli" image pull --arch arm64 ghcr.io/apple/containerization/vminit:0.45.0
-"$cli" image save --arch arm64 -o "$PWD/payload/images.tar" archivebox/archivebox:dev ghcr.io/apple/containerization/vminit:0.45.0
+"$cli" image save --arch arm64 -o "$PWD/payload/images.tar" archivebox/archivebox:latest ghcr.io/apple/containerization/vminit:0.45.0
 cp .runtime/kernels/vmlinux-6.18.35-197-debug payload/vmlinux
 uv run --no-project python server-image.py verify "$PWD/payload/images.tar"

@@ -147,7 +147,7 @@ final class Runtime: Sendable {
         _ = try command(["system", "kernel", "set", "--force", "--binary", resources.appendingPathComponent("vmlinux").path])
         // Validate actual runtime state rather than trusting an install marker
         // after an interrupted import or a user clearing the image store.
-        let imagesPresent = (try? command(["image", "inspect", "archivebox/archivebox:dev", "ghcr.io/apple/containerization/vminit:0.45.0"], logOutput: false)) != nil
+        let imagesPresent = (try? command(["image", "inspect", "archivebox/archivebox:latest", "ghcr.io/apple/containerization/vminit:0.45.0"], logOutput: false)) != nil
         if !imagesPresent || bundleChanged {
             progress("Preparing ArchiveBox for its first launch…")
             _ = try command(["image", "load", "--input", resources.appendingPathComponent("images.tar").path])
@@ -169,7 +169,7 @@ final class Runtime: Sendable {
             }
             if !fm.fileExists(atPath: collectionDirectory.appendingPathComponent("index.sqlite3").path) {
                 _ = try command(["run", "--rm", "--env", "OPENCODE_ENABLED=true", "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + [
-                                 "archivebox/archivebox:dev", "/bin/sh", "-c",
+                                 "archivebox/archivebox:latest", "/bin/sh", "-c",
                                  "archivebox init && archivebox config --set BASE_URL=\(address.absoluteString)"])
             }
             try runContainer()
@@ -197,7 +197,7 @@ final class Runtime: Sendable {
     var initializeCollectionArguments: [String] {
         let newCollection = !FileManager.default.fileExists(atPath: collectionDirectory.appendingPathComponent("index.sqlite3").path)
         return ["run", "--rm", "--interactive", "--tty", "--name", name + "-init", "--env", "TERM=xterm-256color", "--env", "OPENCODE_ENABLED=true",
-                "--workdir", "/data", "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:dev",
+                "--workdir", "/data", "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:latest",
                 "/bin/bash", "--noprofile", "--norc", "-c",
                 "printf '$ archivebox init\\n'; archivebox init" + (newCollection ? " && archivebox config --set BASE_URL=\(address.absoluteString)" : "")]
     }
@@ -211,7 +211,7 @@ final class Runtime: Sendable {
         _ = try command(["run", "--detach", "--name", name, "--cpus", "4", "--memory", "4G",
                          "--env", "OPENCODE_ENABLED=true", "--env", "ARCHIVEBOX_HOST_BROWSER_PROFILES=/data/.host-browser-profiles",
                          "--publish", "127.0.0.1:\(address.port!):5797",
-                         "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:dev",
+                         "--volume", collectionDirectory.path + ":/data"] + browserProfileMountArguments + ["archivebox/archivebox:latest",
                          "archivebox", "server", "--init", "0.0.0.0:5797"])
         // Dependency installs in a previous container's writable layer do not
         // survive recreation. Resolve them again without modifying the image.

@@ -31,7 +31,7 @@ def latest_stable_version():
 
 
 def resolve(version=None, require_tip=True):
-    ref = f"refs/tags/v{version}^{{}}" if version else "refs/heads/dev"
+    ref = f"refs/tags/v{version}^{{}}" if version else "refs/heads/main"
     revision_output = subprocess.check_output(
         ["git", "ls-remote", "https://github.com/ArchiveBox/ArchiveBox.git", ref], text=True
     ).split() if require_tip else []
@@ -52,7 +52,7 @@ def resolve(version=None, require_tip=True):
         credentials, _ = get(auth)
         token = credentials.get("token") or credentials["access_token"]
         base = f"https://{host}/v2/archivebox/archivebox"
-        index, headers = get(base + "/manifests/" + (version or "dev"), token)
+        index, headers = get(base + "/manifests/" + (version or "latest"), token)
         digests.append(headers["Docker-Content-Digest"])
         descriptor = next(item for item in index["manifests"] if item.get("platform", {}).get("architecture") == "arm64")
         manifest, _ = get(base + "/manifests/" + descriptor["digest"], token)
@@ -64,7 +64,7 @@ def resolve(version=None, require_tip=True):
         if revision is None:
             revision = actual
         if actual != revision:
-            raise SystemExit(f"{host}:{version or 'dev'} (arm64) is at {actual}, but the source ref is {revision}. Wait for the ArchiveBox image release to finish before building the app.")
+            raise SystemExit(f"{host}:{version or 'latest'} (arm64) is at {actual}, but the source ref is {revision}. Wait for the ArchiveBox image release to finish before building the app.")
         arm_config = manifest["config"]["digest"]
     if len(set(digests)) != 1:
         raise SystemExit("Docker Hub and GHCR image digests do not match; image publication is incomplete.")
@@ -86,7 +86,7 @@ def verify(path):
         def blob(digest):
             return json.load(archive.extractfile("blobs/" + digest.replace(":", "/")))
         index = json.load(archive.extractfile("index.json"))
-        descriptor = next(item for item in index["manifests"] if item.get("annotations", {}).get("org.opencontainers.image.ref.name", "").endswith("archivebox/archivebox:dev"))
+        descriptor = next(item for item in index["manifests"] if item.get("annotations", {}).get("org.opencontainers.image.ref.name", "").endswith("archivebox/archivebox:latest"))
         manifest = blob(descriptor["digest"])
         if "manifests" in manifest:
             manifest = blob(next(item for item in manifest["manifests"] if item.get("platform", {}).get("architecture") == "arm64")["digest"])
@@ -100,7 +100,7 @@ def verify(path):
 
 os.chdir(Path(__file__).resolve().parent)
 if sys.argv[1:] == ["resolve"]:
-    resolve(version=os.environ.get("ARCHIVEBOX_VERSION"))
+    resolve(version=os.environ.get("ARCHIVEBOX_VERSION") or latest_stable_version())
 elif sys.argv[1:] == ["resolve", "--stable"]:
     resolve(version=latest_stable_version())
 elif sys.argv[1:] == ["resolve", "--published"]:

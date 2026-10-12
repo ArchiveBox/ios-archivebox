@@ -151,7 +151,7 @@ stopped before this one starts. The app does not take over someone else's runtim
 
 Settings links to the bundled image on Docker Hub and displays its version, build
 date, and bundled Linux kernel version. These values come from the actual packaged
-OCI archive and kernel, so they do not change when the remote `dev` tag moves.
+OCI archive and kernel, so they do not change when the remote `latest` tag moves.
 
 **Check for Updates** uses Sparkle 2.10.0. When a release is found, the button becomes
 **Install Newer Version v…**, opening Sparkle's standard download/install dialog.
@@ -174,7 +174,7 @@ bash build.sh   # requires uv for reading the packaged image metadata
 ```
 
 To rebuild and relaunch an existing developer installation, run
-`bash install-local.sh`. It resolves the latest published `dev` image from both
+`bash install-local.sh`. It resolves the latest published stable image from both
 registries, refreshes stale image payloads using this app's running runtime, and
 records a new build number so startup recreates the container. It signs and verifies
 a separate staged bundle, then atomically swaps it into `~/Applications` and keeps
@@ -203,8 +203,8 @@ Pinned components:
   The resolved digest keys the release payload cache; the packaged ARM64 config
   digest is checked before signing. Builds stop if image publication is behind.
   The shipped version, source revision, and digest are recorded in `Info.plist`.
-  The `archivebox/archivebox:dev` name inside the bundle is only a local alias
-  for that verified digest; it does not track the remote `dev` image.
+  The `archivebox/archivebox:latest` name inside the bundle is only a local alias
+  for that verified digest; it does not track the remote `latest` image.
 - SwiftTerm 1.19.0, MIT.
 
 Apple's and SwiftTerm's licenses are copied into the bundle. ArchiveBox and its

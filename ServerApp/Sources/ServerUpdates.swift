@@ -42,7 +42,7 @@ struct ServerUpdateView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Link("archivebox/archivebox:dev", destination: URL(string: "https://hub.docker.com/r/archivebox/archivebox/tags?name=dev")!)
+                    Link("archivebox/archivebox:latest", destination: URL(string: "https://hub.docker.com/r/archivebox/archivebox/tags?name=latest")!)
                     Text("v\(info["ArchiveBoxImageVersion"] as? String ?? "—") · Native Apple Virtualization · Linux \(info["ArchiveBoxKernelVersion"] as? String ?? "—")")
                         .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }

@@ -159,7 +159,16 @@ public struct KeychainItem: Sendable {
 
     private func check(_ status: OSStatus) throws {
         guard status == errSecSuccess else {
-            throw ArchiveBoxError.message("Could not access secure settings (\(status)). Unlock your device and try again.")
+            let detail: String
+            switch status {
+            case errSecInteractionNotAllowed:
+                detail = "Unlock your device and try again."
+            case errSecMissingEntitlement:
+                detail = "This build is missing permission to access secure settings. Reinstall ArchiveBox with correct signing."
+            default:
+                detail = SecCopyErrorMessageString(status, nil) as String? ?? "Keychain access failed."
+            }
+            throw ArchiveBoxError.message("Could not access secure settings (\(status)). \(detail)")
         }
     }
 }

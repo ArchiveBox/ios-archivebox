@@ -54,4 +54,17 @@ import Testing
     #expect(try first.load() == nil)
     #expect(try second.load() != nil)
 }
+
+@Test func keychainEntitlementFailureDoesNotAskToUnlock() throws {
+    let item = KeychainItem(service: "io.archivebox.entitlement-test", account: "read-only",
+                            accessGroup: "io.archivebox.unentitled.\(UUID())")
+    do {
+        _ = try item.load()
+        Issue.record("Reading an unentitled Keychain group must fail")
+    } catch {
+        #expect(error.localizedDescription.contains("-34018"))
+        #expect(error.localizedDescription.contains("correct signing"))
+        #expect(!error.localizedDescription.contains("Unlock"))
+    }
+}
 #endif

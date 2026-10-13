@@ -144,14 +144,35 @@ public final class ArchiveBoxClient: Sendable {
         }
         let tags = ArchiveTags.normalize(tags)
         let body = try JSONEncoder().encode(TagUpdate(tags: tags))
-        // Snapshots are created asynchronously. Updating their parent crawl also
-        // updates existing snapshots and supplies tags to ones created later.
+        // Crawl tags supply defaults for snapshots created later. Existing
+        // snapshots are updated explicitly below, scoped to this submission.
         let data = try await request(configuration.server, path: "api/v1/crawls/crawl/\(crawl_id)",
                                      body: body, token: configuration.token, method: "PATCH")
         let result = try JSONDecoder().decode(TagUpdateResponse.self, from: data)
         guard result.id == crawl_id,
               Set(ArchiveTags.normalize([result.tags_str]).map { $0.lowercased() }) == Set(tags.map { $0.lowercased() }) else {
             throw ArchiveBoxError.message("The server did not confirm the tag update.")
+        }
+        var offset = 0
+        while true {
+            let data = try await request(configuration.server, path: "api/v1/core/snapshots", token: configuration.token,
+                                         query: [URLQueryItem(name: "crawl_id", value: crawl_id),
+                                                 URLQueryItem(name: "limit", value: "100"),
+                                                 URLQueryItem(name: "offset", value: String(offset))])
+            let page = try JSONDecoder().decode(SnapshotPage.self, from: data)
+            for snapshot in page.items where snapshot.crawl_id == crawl_id && receipt.queued_urls.contains(snapshot.url.absoluteString) {
+                guard ArchiveRoute.isSnapshotID(snapshot.id) else { throw ArchiveBoxError.message("Invalid archived page identifier.") }
+                let updatedData = try await request(configuration.server, path: "api/v1/core/snapshot/\(snapshot.id)",
+                                                    body: body, token: configuration.token, method: "PATCH")
+                let updated = try JSONDecoder().decode(ArchiveSnapshot.self, from: updatedData)
+                guard updated.id == snapshot.id, updated.crawl_id == crawl_id,
+                      Set(ArchiveTags.normalize(updated.tags).map { $0.lowercased() }) == Set(tags.map { $0.lowercased() }) else {
+                    throw ArchiveBoxError.message("The server did not confirm the snapshot tag update.")
+                }
+            }
+            offset += page.items.count
+            if offset >= page.total_items { break }
+            guard !page.items.isEmpty else { throw ArchiveBoxError.message("The server returned an incomplete snapshot list.") }
         }
     }
 
@@ -260,11 +281,12 @@ private struct RemovalResponse: Decodable { let success: Bool; let crawl_id: Str
 
 public struct ArchiveSnapshot: Decodable, Sendable, Identifiable {
     public let id: String
+    public let crawl_id: String
     public let title: String?
     public let url: URL
     public let tags: [String]
 }
-private struct SnapshotPage: Decodable { let items: [ArchiveSnapshot] }
+private struct SnapshotPage: Decodable { let items: [ArchiveSnapshot]; let total_items: Int }
 
 private struct APISchema: Decodable {
     struct Info: Decodable { let title: String }

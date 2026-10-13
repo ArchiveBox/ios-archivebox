@@ -1,0 +1,19 @@
+Sources/ArchiveBoxCore/ArchiveBoxClient.swift
+  s_8dbda046044e96::t_24977283cb3223 147-148,156-176,284,289
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cdcb8be784826c5f617237882f9da25f3a84ec86",
+  "prompts": {},
+  "sessions": {
+    "s_8dbda046044e96": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a133ba-5ab0-71c3-976a-587dc300c72c",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

@@ -130,7 +130,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         assertPage("New session", app: app, type: pageTextType, screen: "agent")
         capture("agent", app: app)
         openScreen("openActivity", app: app)
-        assertPage("Downloads", app: app, type: pageTextType, screen: "activity")
+        // The live monitor renders download counts and queue state in its badge,
+        // not a Downloads heading. Check both current server telemetry fields.
+        assertPage("queued", app: app, type: pageTextType, screen: "activity")
+        assertPage("RAM", app: app, type: pageTextType, screen: "activity")
         capture("activity", app: app)
         openScreen("settings", app: app)
         XCTAssertTrue(app.textFields["serverURL"].waitForExistence(timeout: 20), app.debugDescription)
@@ -246,7 +249,8 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             capture(id, app: app)
         }
         openScreen("openActivity", app: app)
-        assertPage("Downloads", app: app, screen: "activity")
+        assertPage("queued", app: app, screen: "activity")
+        assertPage("RAM", app: app, screen: "activity")
         capture("activity", app: app)
 
         openScreen("add", app: app)

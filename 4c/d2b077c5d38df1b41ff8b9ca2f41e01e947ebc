@@ -1,0 +1,25 @@
+.github/workflows/release.yml
+  s_10bc94d001be49::t_9807052c84c976 8-11,155,159
+.github/workflows/testflight.yml
+  s_10bc94d001be49::t_ea2e71b1ebae70 6-9,21-24,41
+docs/RELEASES.md
+  s_10bc94d001be49::t_cc62bb9e6fbad3 35-36,65-67
+docs/TESTFLIGHT.md
+  s_10bc94d001be49::t_a2cfbbc5348db8 74-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4cd2b077c5d38df1b41ff8b9ca2f41e01e947ebc",
+  "prompts": {},
+  "sessions": {
+    "s_10bc94d001be49": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f62-2c55-7051-a677-585a21b42fb4",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Nick Sweeting <git@sweeting.me>"
+    }
+  }
+}

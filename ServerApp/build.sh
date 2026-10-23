@@ -34,7 +34,6 @@ cp "$assets/payload/images.tar" "$assets/payload/vmlinux" "$app/Contents/Resourc
 cp "$assets/vendor/container/LICENSE" "$app/Contents/Resources/APPLE-CONTAINER-LICENSE"
 swift build --build-system native --arch arm64 -c release -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 cp .build/release/ArchiveBoxServer "$app/Contents/MacOS/ArchiveBoxServer"
-ditto .build/release/SwiftTerm_SwiftTerm.bundle "$app/Contents/Resources/SwiftTerm_SwiftTerm.bundle"
 cp -f .build/checkouts/SwiftTerm/LICENSE "$app/Contents/Resources/SWIFTTERM-LICENSE"
 sparkle="$PWD/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 mkdir -p "$app/Contents/Frameworks"

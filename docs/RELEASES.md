@@ -32,8 +32,8 @@ macOS 26+. The optional server ZIP includes the runtime, Linux kernel and pinned
 ArchiveBox container image. The client ZIP contains none of those large assets.
 The stable `server-updates` prerelease holds only Sparkle's update feed.
 
-In parallel, the existing TestFlight workflow builds the exact reserved
-commit for iOS and macOS, assigns internal testing, and submits external beta
+Only an explicitly authorized manual run with `publish_testflight` enabled
+starts the existing TestFlight workflow. It builds the exact reserved commit for iOS and macOS, assigns internal testing, and submits external beta
 review. [Public TestFlight invitation](https://testflight.apple.com/join/wUG6DS6z).
 Apple must approve external builds; successful upload is not public availability.
 A TestFlight review failure does not unpublish the notarized Mac downloads.
@@ -62,9 +62,9 @@ the core release tag, then commits the resulting digest to
 reservation and signed release. Repeated dispatches
 for the same image reuse the existing candidate or skip an already published release.
 Core image updates rebuild the Mac downloads and Sparkle feed without resubmitting
-the unchanged iOS/macOS client to TestFlight. Main pushes select TestFlight only
-when client or shared source, assets, project configuration, or TestFlight packaging
-changed; every Mac download still goes through the normal signing and notarization.
+the unchanged iOS/macOS client to TestFlight. Main pushes never submit TestFlight builds; every Mac download still goes through
+the normal signing and notarization. The manual `publish_testflight` input defaults
+to false, including core image notifications.
 
 Developer ID export uses the imported identity and explicit profiles, not cloud
 Developer ID signing. Renew the certificate and all three profiles together.

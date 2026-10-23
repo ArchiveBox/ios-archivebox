@@ -5,6 +5,10 @@ on:
     paths-ignore: ['.github/pages/**', 'README.md', 'docs/site/**', '.github/workflows/pages.yml']
   workflow_dispatch:
     inputs:
+      publish_testflight:
+        description: Upload iOS/macOS builds to TestFlight and submit beta review
+        type: boolean
+        default: false
       archivebox_version:
         description: Core release notification; the Mac bundle selects the latest published stable image
         required: false
@@ -148,10 +152,11 @@ jobs:
         run: node scripts/release.mjs publish
   testflight:
     needs: prepare
-    if: needs.prepare.outputs.ready == 'true' && needs.prepare.outputs.client_changed == 'true'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_testflight && needs.prepare.outputs.ready == 'true' && needs.prepare.outputs.client_changed == 'true'
     uses: ./.github/workflows/testflight.yml
     secrets: inherit
     with:
+      publish_testflight: ${{ inputs.publish_testflight }}
       platform: both
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}

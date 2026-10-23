@@ -71,8 +71,10 @@ certificates or provisioning profiles.
 
 ## GitHub Actions credentials
 
-The **TestFlight** workflow supports manual runs with platform/version inputs,
-`testflight-*` tags, and reusable calls from **Release apps**. Release candidates
+The **TestFlight** workflow supports explicitly authorized manual runs with
+platform/version inputs and `publish_testflight` enabled (false by default), and
+reusable calls from an equally opted-in manual **Release apps** run. Tags and
+automatic main pushes do not submit builds. Release candidates
 use the reserved `release.json` build plus the run attempt. Standalone Actions
 runs use `100 + run_number`, plus the run attempt.
 

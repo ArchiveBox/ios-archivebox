@@ -3,6 +3,10 @@ name: TestFlight
 on:
   workflow_call:
     inputs:
+      publish_testflight:
+        description: Upload builds to TestFlight and submit beta review
+        type: boolean
+        default: false
       platform:
         type: string
         default: both
@@ -14,6 +18,10 @@ on:
         required: true
   workflow_dispatch:
     inputs:
+      publish_testflight:
+        description: Upload builds to TestFlight and submit beta review
+        type: boolean
+        default: false
       platform:
         description: Platforms to publish
         type: choice
@@ -23,8 +31,6 @@ on:
         description: App version
         default: '1.0'
         required: true
-  push:
-    tags: ['testflight-*']
 permissions:
   contents: read
 concurrency:
@@ -32,6 +38,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   release:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_testflight
     runs-on: xcode-27
     environment: testflight
     timeout-minutes: 90

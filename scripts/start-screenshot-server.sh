@@ -63,8 +63,9 @@ assert config.SEARCH_BACKEND_SONIC_ENABLED is False, "This collection uses SQLit
 abx install opencode --binproviders=env,pnpm
 # Install only the dependencies used by this gallery, through the real installer.
 abx install chrome wget title headers screenshot
+# Use the owned capture fixture; example.com rate-limits hosted screenshot runners.
 abx add --depth=0 --tag=documentation,reference \
-    --plugins=title,headers,wget,screenshot,search_backend_sqlite https://example.com https://archivebox.io
+    --plugins=title,headers,wget,screenshot,search_backend_sqlite https://archivebox.io/tests/ https://archivebox.io
 abx manage shell --no-imports -c '
 from pathlib import Path
 from archivebox.core.models import Snapshot, ArchiveResult

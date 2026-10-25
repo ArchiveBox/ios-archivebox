@@ -109,7 +109,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let crawlsMarker = "Crawls"
         #endif
         for (id, marker, type) in [("add", "Create a new Crawl", pageTextType),
-                                   ("snapshots", "Example Domain", snapshotMarkerType),
+                                   ("snapshots", "ArchiveBox Test Page", snapshotMarkerType),
                                    ("crawls", crawlsMarker, pageTextType)] {
             openScreen(id, app: app)
             assertPage(marker, app: app, type: type, screen: id)
@@ -226,7 +226,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         let screens: [(String, String)] = [
             ("add", "Create a new Crawl"), ("agent", "New session"),
             ("crawls", "Crawls"), ("schedules", "Search Scheduled Crawls"),
-            ("snapshots", "Example Domain"), ("results", "Search Archive Results"),
+            ("snapshots", "ArchiveBox Test Page"), ("results", "Search Archive Results"),
             ("tags", "All tags"), ("admin", "Recent Actions"),
             ("users", "Search users"), ("personas", "Search personas"),
             ("keys", "Search API Keys"), ("webhooks", "Search API Outbound Webhooks"),

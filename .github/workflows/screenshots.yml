@@ -236,6 +236,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-screenshot-diagnostics-${{ matrix.platform }}
+          # OpenCode's pnpm postinstall invokes npm; preserve its stage logs
+          # when backend installation fails before the app can take screenshots.
           path: |
             build/screenshots/${{ matrix.platform }}/Capture.xcresult/
             ${{ runner.temp }}/screenshot-server/server.log
@@ -243,6 +245,8 @@ jobs:
             ${{ runner.temp }}/screenshot-server/logs/worker_runner.log
             ${{ runner.temp }}/screenshot-server/logs/supervisord.log
             ${{ runner.temp }}/screenshot-server/logs/errors.log
+            ~/.npm/_logs/*.log
+          include-hidden-files: true
           retention-days: 7
 
   complete:

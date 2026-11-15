@@ -112,24 +112,28 @@ final class SettingsModel {
         guard let server = verifiedServer, verifiedToken == nil,
               tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !busy,
               let url = page.url, BrowserAuthentication.isTrustedAdminPage(url, server: server) else { return }
+        let generation = connectionGeneration
         validation?.cancel()
         busy = true
         validation = Task {
-            defer { if !Task.isCancelled { busy = false } }
+            defer { if !Task.isCancelled, connectionGeneration == generation { busy = false } }
             do {
                 guard let token = try await authentication.apiKey(from: page, server: server) else { return }
                 try Task.checkCancellation()
-                guard verifiedServer == server, verifiedToken == nil,
+                guard connectionGeneration == generation, verifiedServer == server, verifiedToken == nil,
                       tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                 tokenText = token
                 // Use the normal verification + Keychain path. A page-provided
                 // value is never saved before the configured server validates it.
                 await testToken()
-                if !Task.isCancelled, verifiedToken == token, errorMessage == nil {
+                if !Task.isCancelled, connectionGeneration == generation, verifiedServer == server,
+                   verifiedToken == token, errorMessage == nil {
                     savedMessage = "Signed in. Your API key was configured automatically."
                 }
             } catch {
-                if !Task.isCancelled { tokenError = "Couldn’t configure your API key automatically. You can still copy and paste it from the server’s API Keys page." }
+                if !Task.isCancelled, connectionGeneration == generation {
+                    tokenError = "Couldn’t configure your API key automatically. You can still copy and paste it from the server’s API Keys page."
+                }
             }
         }
     }
@@ -139,6 +143,21 @@ final class SettingsModel {
     func openAdmin(_ url: URL?) {
         guard let url else { return }
         adminDestination = url; adminNavigationID = UUID()
+    }
+
+    func getAPIKey() {
+        guard let adminURL, let apiKeysURL else { return }
+        // This explicit recovery action must forget even a formerly verified key.
+        // Otherwise browser-session creation fails before login, and useWebLogin
+        // refuses to replace the nonempty key after the user signs in.
+        tokenChanged()
+        tokenText = ""
+        do {
+            try persistConnection(clearingToken: true)
+            openAdmin(adminURL.appending(path: "login/").appending(queryItems: [
+                URLQueryItem(name: "next", value: apiKeysURL.path),
+            ]))
+        } catch { errorMessage = error.localizedDescription }
     }
 
     var server_id: String?
@@ -161,6 +180,9 @@ final class SettingsModel {
     private let client = ArchiveBoxClient()
     private var didLoad = false
     private var validation: Task<Void, Never>?
+    // Cancellation alone is insufficient for unstructured tasks or an A → B → A
+    // server switch. Only results from the current edit/recovery may update state.
+    private var connectionGeneration = UUID()
     var serverError: String?
     var serverReachable = false
     var tokenError: String?
@@ -293,6 +315,7 @@ final class SettingsModel {
     }
 
     func serverChanged() {
+        connectionGeneration = UUID()
         switchingServer = false
         serverReachable = false
         sidebarStatus = nil
@@ -308,6 +331,7 @@ final class SettingsModel {
         sidebarStatus = nil
         let preserveServerCheck = busy && verifiedServer == nil
         if !preserveServerCheck {
+            connectionGeneration = UUID()
             validation?.cancel()
             busy = false
         }
@@ -319,15 +343,19 @@ final class SettingsModel {
     }
 
     func testServer() async {
+        guard !Task.isCancelled else { return }
+        let generation = connectionGeneration
+        let input = serverText
         NSLog("ArchiveBox connection validation %@: serverCheck started", validationDiagnosticID)
         serverReachable = false
         busy = true; errorMessage = nil; savedMessage = nil; serverError = nil
         verifiedServer = nil; verifiedToken = nil; tokenMessage = nil
         personasLoaded = false; personaError = nil
-        defer { if !Task.isCancelled { busy = false } }
+        defer { if !Task.isCancelled, connectionGeneration == generation { busy = false } }
         do {
-            let server = try await client.discoverServer(serverText)
+            let server = try await client.discoverServer(input)
             try Task.checkCancellation()
+            guard connectionGeneration == generation, serverText == input else { return }
             let changed = server.absoluteString != serverText
             serverText = server.absoluteString
             verifiedServer = server
@@ -343,23 +371,25 @@ final class SettingsModel {
             let details = error as NSError
             NSLog("ArchiveBox connection validation %@: serverCheck failed domain=%@ code=%ld cancelled=%d",
                   validationDiagnosticID, details.domain, details.code, Task.isCancelled ? 1 : 0)
-            if !Task.isCancelled { serverError = error.localizedDescription }
+            if !Task.isCancelled, connectionGeneration == generation { serverError = error.localizedDescription }
         }
     }
 
     func testToken() async {
-        guard let server = verifiedServer else {
+        guard !Task.isCancelled, let server = verifiedServer else {
             NSLog("ArchiveBox connection validation %@: tokenCheck skipped serverUnverified=1", validationDiagnosticID)
             return
         }
+        let generation = connectionGeneration
+        let token = tokenText.trimmingCharacters(in: .whitespacesAndNewlines)
         NSLog("ArchiveBox connection validation %@: tokenCheck started", validationDiagnosticID)
         busy = true; errorMessage = nil; savedMessage = nil; verifiedToken = nil; tokenError = nil
-        defer { if !Task.isCancelled { busy = false } }
+        defer { if !Task.isCancelled, connectionGeneration == generation { busy = false } }
         do {
-            let token = tokenText.trimmingCharacters(in: .whitespacesAndNewlines)
             tokenText = token
             try await client.testToken(server: server, token: token)
             try Task.checkCancellation()
+            guard connectionGeneration == generation, verifiedServer == server, tokenText == token else { return }
             NSLog("ArchiveBox connection validation %@: tokenCheck accepted", validationDiagnosticID)
             verifiedToken = token
             tokenMessage = "API key verified."
@@ -372,7 +402,7 @@ final class SettingsModel {
             let details = error as NSError
             NSLog("ArchiveBox connection validation %@: tokenCheck failed domain=%@ code=%ld cancelled=%d",
                   validationDiagnosticID, details.domain, details.code, Task.isCancelled ? 1 : 0)
-            if !Task.isCancelled { tokenError = error.localizedDescription }
+            if !Task.isCancelled, connectionGeneration == generation { tokenError = error.localizedDescription }
         }
     }
 
@@ -395,24 +425,26 @@ final class SettingsModel {
     }
 
     private func fetchPersonas(server: URL, token: String) async {
+        let generation = connectionGeneration
         personaError = nil; personasLoaded = false; savedMessage = nil
         do {
             let fetched = try await client.personas(server: server, token: token)
             try Task.checkCancellation()
-            guard verifiedServer == server, verifiedToken == token else { return }
+            guard connectionGeneration == generation, verifiedServer == server, verifiedToken == token else { return }
             personas = fetched
             personasLoaded = true
         } catch {
             // A failed request says nothing about whether the saved persona exists.
             // Keep the last displayed list, but require a successful refresh before saving it.
-            if !Task.isCancelled { personaError = error.localizedDescription }
+            if !Task.isCancelled, connectionGeneration == generation { personaError = error.localizedDescription }
         }
     }
 
     func refreshPersonas() async {
         guard let server = verifiedServer, let token = verifiedToken else { return }
+        let generation = connectionGeneration
         busy = true
-        defer { if !Task.isCancelled { busy = false } }
+        defer { if !Task.isCancelled, connectionGeneration == generation { busy = false } }
         await fetchPersonas(server: server, token: token)
     }
 
@@ -425,14 +457,15 @@ final class SettingsModel {
         } catch { errorMessage = error.localizedDescription }
     }
 
-    private func persistConnection() throws {
+    private func persistConnection(clearingToken: Bool = false) throws {
         guard let server = verifiedServer else { return }
         var registry = try AppEnvironment.store.load()
         let selects_destination = server_id == nil
         let existing = registry.servers.first { $0.id == server_id }
             ?? registry.servers.first { $0.server == server }
         let configuration = ServerConfiguration(id: existing?.id ?? UUID().uuidString.lowercased(),
-            name: existing?.name ?? "", server: server, token: verifiedToken ?? existing?.token ?? "", persona: persona.isEmpty ? nil : persona)
+            name: existing?.name ?? "", server: server,
+            token: clearingToken ? "" : (verifiedToken ?? existing?.token ?? ""), persona: persona.isEmpty ? nil : persona)
         registry.upsert(configuration)
         registry.servers.removeAll { $0.id == configuration.id }
         registry.servers.insert(configuration, at: 0)
@@ -555,7 +588,7 @@ struct SettingsView: View {
                     HStack(alignment: .firstTextBaseline) {
                         if let message = model.tokenMessage { status(message).font(.subheadline) }
                         Spacer(minLength: 12)
-                        Button("Get Key") { model.openAdmin(model.apiKeysURL) }
+                        Button("Get Key") { model.getAPIKey() }
                             .buttonStyle(.borderless)
                             .disabled(model.apiKeysURL == nil).accessibilityIdentifier("getAPIKey")
                     }

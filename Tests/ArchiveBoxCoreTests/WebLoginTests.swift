@@ -2,6 +2,34 @@ import Foundation
 import Testing
 @testable import ArchiveBoxCore
 
+@Test func onlyTheExactTrustedLoginRouteSkipsTokenBootstrap() {
+    let server = URL(string: "https://api.archive.example:8443")!
+    for address in [
+        "https://api.archive.example:8443/admin/login",
+        "https://api.archive.example:8443/admin/login/?next=/admin/api/apitoken/",
+        "https://admin.archive.example:8443/admin/login/",
+    ] {
+        #expect(BrowserAuthentication.isLoginPage(URL(string: address)!, server: server))
+        #expect(!BrowserAuthentication.isTrustedAdminPage(URL(string: address)!, server: server))
+    }
+    for address in [
+        "https://api.archive.example:8443/admin/",
+        "https://api.archive.example:8443/admin/api/apitoken/",
+        "https://api.archive.example:8443/admin/login-extra/",
+        "https://api.archive.example:8443/admin/login/child/",
+        "https://api.archive.example:8443/archive/login/",
+        "https://api.archive.example:8443/admin/logout/",
+        "http://api.archive.example:8443/admin/login/",
+        "https://api.archive.example:9443/admin/login/",
+        "https://snapshot.archive.example:8443/admin/login/",
+        "https://web.archive.example:8443/admin/login/",
+        "https://archive.example.attacker.test:8443/admin/login/",
+        "https://user:password@admin.archive.example:8443/admin/login/",
+    ] {
+        #expect(!BrowserAuthentication.isLoginPage(URL(string: address)!, server: server))
+    }
+}
+
 @Test func webLoginOnlyTrustsTheConfiguredAdminOrigin() {
     let server = URL(string: "https://api.archive.example:8443")!
     for address in ["https://api.archive.example:8443/admin/", "https://admin.archive.example:8443/admin/api/apitoken/"] {

@@ -32,7 +32,7 @@ struct MainView: View {
     @State private var routeError: String?
 
     private enum Screen: String, CaseIterable {
-        case add, search, agent, activity, crawls, schedules, snapshots, results, tags, admin, users, personas, keys, webhooks
+        case add, search, agent, activity, crawls, schedules, snapshots, results, tags, importers, domains, rules, systemSettings, admin, users, personas, keys, webhooks
         case processes, machines, interfaces, binaries, plugins, workers, logs, github, docs, bugs, forum, extensionSource, settings
 
         var info: (title: String, icon: String, path: String) {
@@ -46,6 +46,11 @@ struct MainView: View {
             case .snapshots: ("Snapshots", "building.columns", "admin/core/snapshot/grid/")
             case .results: ("Archive Results", "doc.richtext", "admin/core/archiveresult/")
             case .tags: ("Tags", "tag", "admin/core/tag/")
+            case .importers: ("Importers", "square.and.arrow.down", "admin/importers/")
+            case .domains: ("Domains", "globe", "admin/domains/")
+            case .rules: ("Rules Engine", "slider.horizontal.3", "admin/webhooks/")
+            // Match the web UI's machine-settings fallback when no current machine ID is available.
+            case .systemSettings: ("System Settings", "gearshape.2", "admin/machine/machine/")
             case .admin: ("Admin", "person.crop.circle", "admin/")
             case .users: ("Users", "person.2", "admin/auth/user/")
             case .personas: ("Personas", "person.crop.rectangle.stack", "admin/personas/persona/")
@@ -260,9 +265,9 @@ struct MainView: View {
                 .id(settings.server_id)
                 .disabled(settings.verifiedServer == nil)
                 rows([.add, .agent])
-                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags]) }
+                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags, .importers, .domains, .rules]) }
                 Section {
-                    rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
+                    rows([.systemSettings, .users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
                 } header: {
                     Button { activate(.admin) } label: {
                         HStack { Text("Admin"); Image(systemName: "arrow.up.right").imageScale(.small) }

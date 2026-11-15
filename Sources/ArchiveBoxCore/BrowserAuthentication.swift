@@ -27,12 +27,22 @@ import WebKit
     /// Only the configured control origin (or its exact admin sibling) may hand
     /// credentials to the app. The broader replay/navigation boundary is not enough.
     public nonisolated static func isTrustedAdminPage(_ url: URL, server: URL) -> Bool {
+        isTrustedControlOrigin(url, server: server) &&
+            (url.path == "/admin" || url.path.hasPrefix("/admin/")) &&
+            !url.path.hasPrefix("/admin/login") && !url.path.hasPrefix("/admin/logout")
+    }
+
+    /// Only the actual login route can skip API-key session bootstrap. Protected
+    /// admin pages and replay subdomains must keep their normal authentication.
+    public nonisolated static func isLoginPage(_ url: URL, server: URL) -> Bool {
+        isTrustedControlOrigin(url, server: server) && ["/admin/login", "/admin/login/"].contains(url.path)
+    }
+
+    private nonisolated static func isTrustedControlOrigin(_ url: URL, server: URL) -> Bool {
         guard ["http", "https"].contains(server.scheme ?? ""), url.scheme == server.scheme,
               url.user == nil, url.password == nil,
               (url.port ?? (url.scheme == "https" ? 443 : 80)) == (server.port ?? (server.scheme == "https" ? 443 : 80)),
-              let host = url.host?.lowercased(), let configuredHost = server.host?.lowercased(),
-              (url.path == "/admin" || url.path.hasPrefix("/admin/")),
-              !url.path.hasPrefix("/admin/login"), !url.path.hasPrefix("/admin/logout") else { return false }
+              let host = url.host?.lowercased(), let configuredHost = server.host?.lowercased() else { return false }
         if host == configuredHost { return true }
         guard !configuredHost.contains(":"), !configuredHost.split(separator: ".").allSatisfy({ UInt8($0) != nil }) else { return false }
         let prefix = ["api.", "admin.", "web."].first { configuredHost.hasPrefix($0) }

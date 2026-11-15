@@ -62,6 +62,99 @@ final class FirstRunUITests: XCTestCase {
 /// Run against a real, disposable ArchiveBox 0.9+ server. No intercepted requests or seeded app state.
 @MainActor
 final class ArchiveBoxUITests: XCTestCase {
+    func testGetKeyClearsSavedCredentialBeforeLogin() throws {
+        continueAfterFailure = false
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
+        let app = XCUIApplication()
+        app.launch()
+        skipIntroductionIfNeeded(app)
+        connect(server: server, token: token, app: app)
+        // Save a real key first, then replace the draft with a rejected key. The
+        // recovery action must clear both, not just make the SecureField empty.
+        replace(app.secureTextFields["apiKey"], with: "invalid-recovery-key")
+        XCTAssertTrue(app.staticTexts["API key rejected"].waitForExistence(timeout: 20))
+        app.secureTextFields["apiKey"].typeText("\n")
+        app.buttons["getAPIKey"].tap()
+        XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertTrue(app.webViews.secureTextFields.firstMatch.exists, app.debugDescription)
+        XCTAssertFalse(app.staticTexts["Couldn’t open Admin"].exists)
+        openScreen("Connection Settings", app: app)
+        XCTAssertTrue(["", "Paste your API key"].contains(app.secureTextFields["apiKey"].value as? String ?? "missing field"))
+        app.terminate()
+        app.launch()
+        openScreen("Connection Settings", app: app)
+        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20))
+        XCTAssertTrue(["", "Paste your API key"].contains(app.secureTextFields["apiKey"].value as? String ?? "missing field"))
+        XCTAssertFalse(app.staticTexts["API key verified."].exists)
+    }
+
+    func testGetKeyAutomaticallyConfiguresKeyAfterWebLogin() throws {
+        continueAfterFailure = false
+        let environment = ProcessInfo.processInfo.environment
+        let server = try XCTUnwrap(environment["ARCHIVEBOX_TEST_SERVER"])
+        guard let username = environment["ARCHIVEBOX_TEST_USERNAME"],
+              let password = environment["ARCHIVEBOX_TEST_PASSWORD"], !username.isEmpty, !password.isEmpty else {
+            throw XCTSkip("Set the disposable server's ARCHIVEBOX_TEST_USERNAME and ARCHIVEBOX_TEST_PASSWORD for real web-login recovery.")
+        }
+        let app = XCUIApplication()
+        app.launch()
+        skipIntroductionIfNeeded(app)
+        openScreen("Connection Settings", app: app)
+        replace(app.textFields["serverURL"], with: server)
+        XCTAssertTrue(app.staticTexts["Server connected"].waitForExistence(timeout: 20))
+        replace(app.secureTextFields["apiKey"], with: "invalid-recovery-key")
+        // Do not wait for the token request: Get Key must cancel an in-flight
+        // check as well as a completed rejection.
+        app.secureTextFields["apiKey"].typeText("\n")
+        app.buttons["getAPIKey"].tap()
+        let user = app.webViews.textFields.firstMatch
+        XCTAssertTrue(user.waitForExistence(timeout: 20), app.debugDescription)
+        user.tap(); user.typeText(username)
+        let secret = app.webViews.secureTextFields.firstMatch
+        secret.tap(); secret.typeText(password + "\n")
+        // Returning to Settings must not replace the page-derived key with the
+        // old draft. The server still validates it before Keychain persistence.
+        openScreen("Connection Settings", app: app)
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 25), app.debugDescription)
+        app.terminate()
+        app.launch()
+        openScreen("Connection Settings", app: app)
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 25), app.debugDescription)
+    }
+
+    func testNewSidebarToolsUseServerRoutes() throws {
+        continueAfterFailure = false
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
+        let app = XCUIApplication()
+        app.launch()
+        skipIntroductionIfNeeded(app)
+        connect(server: server, token: token, app: app)
+        for (title, screen, path) in [
+            ("Importers", "importers", "admin/importers/"),
+            ("Domains", "domains", "admin/domains/"),
+            ("Rules Engine", "rules", "admin/webhooks/"),
+            ("System Settings", "systemSettings", "admin/machine/machine/"),
+        ] {
+            openScreen(title, app: app)
+            let page = app.webViews.matching(NSPredicate(format: "identifier BEGINSWITH %@ AND identifier ENDSWITH %@",
+                                                         "server-page.\(screen)-", "/" + path)).firstMatch
+            XCTAssertTrue(page.waitForExistence(timeout: 20), app.debugDescription)
+            XCTAssertTrue(page.links["Home"].firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+            XCTAssertFalse(page.secureTextFields.firstMatch.exists, app.debugDescription)
+            XCTAssertFalse(app.staticTexts["Couldn’t open \(title)"].exists)
+        }
+    }
+
+    private func connect(server: String, token: String, app: XCUIApplication) {
+        var connection = URLComponents(string: "archivebox://connect")!
+        connection.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "api_key", value: token)]
+        app.open(connection.url!)
+        if app.buttons["Use this server"].waitForExistence(timeout: 3) { app.buttons["Use this server"].tap() }
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
+    }
+
     func testNativeArchiveSearchAndDeepLinks() async throws {
         continueAfterFailure = false
         addUIInterruptionMonitor(withDescription: "Password suggestion") { alert in

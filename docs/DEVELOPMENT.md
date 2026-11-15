@@ -78,6 +78,8 @@ xcodebuild -project ArchiveBox.xcodeproj -scheme ArchiveBox \
 
 This tests Archive connection gating and the real admin login page, invalid/valid keys, the live persona picker, saved settings after relaunch, and Safari’s real system share sheet. For the Safari web extension capture path, first run `testEnableSafariExtensionThroughSettings`, enable **Save full-page screenshots locally** and **Upload to server** in the extension Configuration page, then run `testSafariCaptureWithScreenshotUpload`. It submits a unique example.com URL and requires the screenshot upload to succeed against the configured real server. The test launches ArchiveBox first so Xcode installs the current bundled extension before Safari opens it. Use an expendable key: Xcode test artifacts may contain test input. No network interception or seeded app settings.
 
+`testGetKeyClearsSavedCredentialBeforeLogin` verifies that explicit Get Key clears the selected server's saved key even when a rejected draft is present. `testGetKeyAutomaticallyConfiguresKeyAfterWebLogin` also needs `ARCHIVEBOX_TEST_USERNAME` and `ARCHIVEBOX_TEST_PASSWORD` in the test runner for the disposable server and checks automatic key validation/persistence after real login. Pass those through `TEST_RUNNER_ARCHIVEBOX_TEST_USERNAME` and `TEST_RUNNER_ARCHIVEBOX_TEST_PASSWORD` environment variables when invoking `xcodebuild`. Do not use production credentials: UI test artifacts may include typed input. `testNewSidebarToolsUseServerRoutes` requires a superuser test key and checks Importers, Domains, Rules Engine, and System Settings against the current server routes.
+
 ```sh
 ARCHIVEBOX_TEST_SERVER=http://localhost:5797 \
 ARCHIVEBOX_EXPECTED_SERVER=http://localhost:5797 \

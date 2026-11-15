@@ -67,10 +67,11 @@ import UIKit
             NSLog("ArchiveBox page navigation %@: finished", diagnosticID)
             isLoading = false
             if !owner.hasCredentials { owner.onWebLogin?(page) }
-            guard page.url?.path.contains("/login") == true else { renewedLogin = nil; return }
+            guard let url = page.url, owner.isLoginPage(url) else { renewedLogin = nil; return }
             // Renew an expired session once per login URL, including navigations
             // initiated inside a page rather than only the initial sidebar load.
-            guard self.owner.hasCredentials, renewedLogin != page.url, let destination else { return }
+            guard self.owner.hasCredentials, renewedLogin != page.url, let destination,
+                  !owner.isLoginPage(destination) else { return }
             renewedLogin = page.url
             isLoading = true
             navigation = Task {
@@ -123,7 +124,7 @@ import UIKit
         // Sidebar transitions must not cancel a load and leave a blank cached page.
         navigation = Task {
             do {
-                try await owner.authenticate()
+                try await owner.authenticate(for: url)
                 NSLog("ArchiveBox page navigation %@: authenticated", diagnosticID)
                 // A superseded load may still finish awaiting the shared login.
                 // Stop it before it can cancel the newer navigation on this page.
@@ -187,10 +188,16 @@ import UIKit
         for page in pages.values { page.reconnect() }
     }
 
-    func authenticate(force: Bool = false) async throws {
+    func isLoginPage(_ url: URL) -> Bool {
+        guard let server else { return false }
+        return BrowserAuthentication.isLoginPage(url, server: server)
+    }
+
+    func authenticate(for url: URL? = nil, force: Bool = false) async throws {
         await clearingSession?.value
         try Task.checkCancellation()
         guard let server, let token else { return }
+        if let url, isLoginPage(url) { return }
         try await authentication.authenticate(server: server, token: token, force: force)
     }
 

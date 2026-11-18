@@ -63,9 +63,16 @@ public final class ArchiveBoxClient: Sendable {
         }
         let body = try JSONEncoder().encode(TokenRequest(token: token))
         let data = try await request(server, path: "api/v1/auth/check_api_token", body: body)
+        try Self.validateTokenResponse(data)
+    }
+
+    // Only call after request() accepts the HTTP status. Missing or contradictory
+    // protocol fields must not be treated as a confirmed credential rejection.
+    static func validateTokenResponse(_ data: Data) throws {
         let result = try JSONDecoder().decode(TokenResponse.self, from: data)
-        guard result.success == true, result.user_id != nil else {
-            throw ArchiveBoxError.message("This API key is invalid or expired. Create a new key in your ArchiveBox server’s admin settings.")
+        if result.success == false, result.user_id == nil { throw APIKeyValidationError.rejected }
+        guard result.success == true, let userID = result.user_id, !userID.isEmpty else {
+            throw ArchiveBoxError.message("The server returned an incomplete API key validation response. Try again.")
         }
     }
 
@@ -294,6 +301,13 @@ private struct APISchema: Decodable {
     let info: Info
     let paths: [String: Operation]
 }
+public enum APIKeyValidationError: LocalizedError {
+    case rejected
+    public var errorDescription: String? {
+        "This API key is invalid or expired. Sign in to obtain a replacement."
+    }
+}
+
 private struct TokenRequest: Encodable { let token: String }
 private struct TokenResponse: Decodable {
     let success: Bool?

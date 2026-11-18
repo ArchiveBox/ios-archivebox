@@ -316,12 +316,12 @@ struct MainView: View {
             let screen = selection ?? .settings
             Group {
                 if screen == .settings { SettingsView(model: settings) }
-                else if !screen.isHelp && (settings.switchingServer || (settings.busy && !settings.tokenText.isEmpty && settings.verifiedToken == nil)) {
+                else if !screen.isHelp && !(screen == .admin && settings.recoveringSavedKey) && (settings.switchingServer || (settings.busy && !settings.tokenText.isEmpty && settings.verifiedToken == nil)) {
                     ProgressView("Connecting to server…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .accessibilityIdentifier("server.switching")
                 }
-                else if !screen.isHelp && !settings.tokenText.isEmpty && settings.verifiedToken == nil {
+                else if !screen.isHelp && !(screen == .admin && settings.recoveringSavedKey) && !settings.tokenText.isEmpty && settings.verifiedToken == nil {
                     ContentUnavailableView {
                         Label("Couldn’t connect", systemImage: "network")
                     } description: {

@@ -32,7 +32,7 @@ struct MainView: View {
     @State private var routeError: String?
 
     private enum Screen: String, CaseIterable {
-        case add, search, agent, activity, crawls, schedules, snapshots, results, tags, admin, users, personas, keys, webhooks
+        case add, search, agent, activity, crawls, schedules, snapshots, results, tags, domains, importers, admin, users, personas, keys, webhooks
         case processes, machines, interfaces, binaries, plugins, workers, logs, github, docs, bugs, forum, extensionSource, settings
 
         var info: (title: String, icon: String, path: String) {
@@ -46,11 +46,13 @@ struct MainView: View {
             case .snapshots: ("Snapshots", "building.columns", "admin/core/snapshot/grid/")
             case .results: ("Archive Results", "doc.richtext", "admin/core/archiveresult/")
             case .tags: ("Tags", "tag", "admin/core/tag/")
+            case .domains: ("Domains", "globe", "admin/domains/")
+            case .importers: ("Importers", "tray.and.arrow.down", "admin/importers/")
             case .admin: ("Admin", "person.crop.circle", "admin/")
             case .users: ("Users", "person.2", "admin/auth/user/")
             case .personas: ("Personas", "person.crop.rectangle.stack", "admin/personas/persona/")
             case .keys: ("API Keys", "key", "admin/api/apitoken/")
-            case .webhooks: ("Webhooks", "arrow.triangle.branch", "admin/api/outboundwebhook/")
+            case .webhooks: ("Rules Engine", "arrow.triangle.branch", "admin/rules/")
             case .processes: ("Processes", "cpu", "admin/machine/process/")
             case .machines: ("Machines", "desktopcomputer", "admin/machine/machine/")
             case .interfaces: ("Network Interfaces", "network", "admin/machine/networkinterface/")
@@ -260,7 +262,7 @@ struct MainView: View {
                 .id(settings.server_id)
                 .disabled(settings.verifiedServer == nil)
                 rows([.add, .agent])
-                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags]) }
+                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags, .domains, .importers]) }
                 Section {
                     rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
                 } header: {

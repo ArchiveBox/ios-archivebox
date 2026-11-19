@@ -229,7 +229,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             ("snapshots", "ArchiveBox Test Page"), ("results", "Search Archive Results"),
             ("tags", "All tags"), ("admin", "Recent Actions"),
             ("users", "Search users"), ("personas", "Search personas"),
-            ("keys", "Search API Keys"), ("webhooks", "Search API Outbound Webhooks"),
+            ("keys", "Search API Keys"), ("webhooks", "Find a rule"),
             ("processes", "Search Processes"), ("machines", "Search machines"),
             ("interfaces", "Search network interfaces"), ("binaries", "Search Binaries"),
             ("plugins", "Hooks"), ("workers", "Exit Status"), ("logs", "Most Recent Lines")
@@ -247,6 +247,10 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             assertPage(marker, app: app, screen: id)
 
             capture(id, app: app)
+        }
+        for (id, marker) in [("domains", "clone the entire site"), ("importers", "Collect from your sources")] {
+            openScreen(id, app: app)
+            assertPage(marker, app: app, screen: id)
         }
         openScreen("openActivity", app: app)
         assertPage("queued", app: app, screen: "activity")

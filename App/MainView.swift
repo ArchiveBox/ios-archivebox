@@ -399,6 +399,7 @@ struct MainView: View {
             .overlay(alignment: .topLeading) {
                 if screen != .settings && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
                     SidebarBackButton {
+                        settings.preserveExplicitNavigation()
                         NSLog("ArchiveBox sidebar navigation tap: screen=%@ compact=%@ visibility=%@",
                               screen.rawValue, String(describing: compactColumn), String(describing: columnVisibility))
                         withAnimation {
@@ -449,6 +450,7 @@ struct MainView: View {
     }
 
     private func activate(_ screen: Screen) {
+        settings.preserveExplicitNavigation()
         if screen.isHelp, let url = URL(string: screen.info.path) { openURL(url); return }
         // Only an explicit repeat click resets the page. Switching away and back
         // retains the cached page, including its current URL and form contents.
@@ -469,6 +471,7 @@ struct MainView: View {
     }
 
     private func openSnapshot(_ url: URL) {
+        settings.preserveExplicitNavigation()
         snapshotDestination = url
         reloadIDs[.snapshots] = UUID()
         selection = .snapshots

@@ -10,6 +10,7 @@ import Testing
         }
     }
     for body in [#"{}"#, #"{"success":true}"#, #"{"success":true,"user_id":""}"#,
+                 #"{"success":true,"user_id":"  \n\t"}"#,
                  #"{"success":false}"#, #"{"success":false,"username":null}"#,
                  #"{"success":false,"user_id":"fixture-user"}"#, #"{"success":false,"user_id":null,"username":"fixture-user"}"#,
                  #"{"success":"false"}"#, "<html>Bad Gateway</html>"] {

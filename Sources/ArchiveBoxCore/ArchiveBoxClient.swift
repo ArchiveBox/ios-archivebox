@@ -73,7 +73,7 @@ public final class ArchiveBoxClient: Sendable {
         if result.success == false, result.user_id == nil, result.username == nil {
             throw APIKeyValidationError.rejected
         }
-        guard result.success == true, let userID = result.user_id, !userID.isEmpty else {
+        guard result.success == true, let userID = result.user_id, !userID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ArchiveBoxError.message("The server returned an incomplete API key validation response. Try again.")
         }
     }

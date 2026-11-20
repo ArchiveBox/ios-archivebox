@@ -109,6 +109,7 @@ final class SettingsModel {
     }
 
     private var recoveryAttempted = false
+    private var allowsAutomaticRecoveryNavigation = true
     private var rejectedSavedKey: String?
     private var recoveryServer: URL?
     var recoveringSavedKey: Bool { rejectedSavedKey != nil && recoveryServer == verifiedServer }
@@ -146,8 +147,18 @@ final class SettingsModel {
 
     var adminDestination: URL?
     var adminNavigationID = UUID()
-    func openAdmin(_ url: URL?) {
+    func preserveExplicitNavigation() {
+        allowsAutomaticRecoveryNavigation = false
+    }
+
+    func openAdmin(_ url: URL?, forAutomaticRecovery: Bool = false) {
         guard let url else { return }
+        if forAutomaticRecovery {
+            // A slow saved-key check must not pull users off a screen they chose.
+            guard allowsAutomaticRecoveryNavigation else { return }
+        } else {
+            preserveExplicitNavigation()
+        }
         adminDestination = url; adminNavigationID = UUID()
     }
 
@@ -305,6 +316,7 @@ final class SettingsModel {
     func serverChanged() {
         switchingServer = false
         recoveryAttempted = false; rejectedSavedKey = nil; recoveryServer = nil
+        allowsAutomaticRecoveryNavigation = true
         serverReachable = false
         sidebarStatus = nil
         validation?.cancel(); busy = false; serverError = nil; tokenError = nil
@@ -400,7 +412,7 @@ final class SettingsModel {
                     rejectedSavedKey = tokenText; recoveryServer = server
                     var login = URLComponents(url: server.appending(path: "admin/login/"), resolvingAgainstBaseURL: false)
                     login?.queryItems = [URLQueryItem(name: "next", value: "/admin/api/apitoken/")]
-                    openAdmin(login?.url)
+                    openAdmin(login?.url, forAutomaticRecovery: true)
                 }
             }
         }

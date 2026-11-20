@@ -4,13 +4,15 @@ import Testing
 
 @Test func tokenValidationRequiresUnambiguousSemanticRejection() throws {
     try ArchiveBoxClient.validateTokenResponse(Data(#"{"success":true,"user_id":"fixture-user"}"#.utf8))
-    for body in [#"{"success":false}"#, #"{"success":false,"user_id":null}"#] {
+    for body in [#"{"success":false,"user_id":null}"#, #"{"success":false,"user_id":null,"username":null}"#] {
         #expect(throws: APIKeyValidationError.self) {
             try ArchiveBoxClient.validateTokenResponse(Data(body.utf8))
         }
     }
     for body in [#"{}"#, #"{"success":true}"#, #"{"success":true,"user_id":""}"#,
-                 #"{"success":false,"user_id":"fixture-user"}"#, #"{"success":"false"}"#, "not JSON"] {
+                 #"{"success":false}"#, #"{"success":false,"username":null}"#,
+                 #"{"success":false,"user_id":"fixture-user"}"#, #"{"success":false,"user_id":null,"username":"fixture-user"}"#,
+                 #"{"success":"false"}"#, "<html>Bad Gateway</html>"] {
         do {
             try ArchiveBoxClient.validateTokenResponse(Data(body.utf8))
             Issue.record("Incomplete or contradictory validation must fail")

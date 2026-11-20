@@ -108,9 +108,20 @@ final class SettingsModel {
         }
     }
 
+    private var recoveryAttempted = false
+    private var allowsAutomaticRecoveryNavigation = true
+    private var rejectedSavedKey: String?
+    private var recoveryServer: URL?
+    var recoveringSavedKey: Bool { rejectedSavedKey != nil && recoveryServer == verifiedServer }
+
+    private var canImportLoginKey: Bool {
+        tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            (recoveringSavedKey && tokenText == rejectedSavedKey)
+    }
+
     func useWebLogin(_ page: WKWebView, authentication: BrowserAuthentication) {
         guard let server = verifiedServer, verifiedToken == nil,
-              tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !busy,
+              canImportLoginKey, !busy,
               let url = page.url, BrowserAuthentication.isTrustedAdminPage(url, server: server) else { return }
         validation?.cancel()
         busy = true
@@ -120,7 +131,7 @@ final class SettingsModel {
                 guard let token = try await authentication.apiKey(from: page, server: server) else { return }
                 try Task.checkCancellation()
                 guard verifiedServer == server, verifiedToken == nil,
-                      tokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                      canImportLoginKey, token != rejectedSavedKey else { return }
                 tokenText = token
                 // Use the normal verification + Keychain path. A page-provided
                 // value is never saved before the configured server validates it.
@@ -136,8 +147,18 @@ final class SettingsModel {
 
     var adminDestination: URL?
     var adminNavigationID = UUID()
-    func openAdmin(_ url: URL?) {
+    func preserveExplicitNavigation() {
+        allowsAutomaticRecoveryNavigation = false
+    }
+
+    func openAdmin(_ url: URL?, forAutomaticRecovery: Bool = false) {
         guard let url else { return }
+        if forAutomaticRecovery {
+            // A slow saved-key check must not pull users off a screen they chose.
+            guard allowsAutomaticRecoveryNavigation else { return }
+        } else {
+            preserveExplicitNavigation()
+        }
         adminDestination = url; adminNavigationID = UUID()
     }
 
@@ -294,6 +315,8 @@ final class SettingsModel {
 
     func serverChanged() {
         switchingServer = false
+        recoveryAttempted = false; rejectedSavedKey = nil; recoveryServer = nil
+        allowsAutomaticRecoveryNavigation = true
         serverReachable = false
         sidebarStatus = nil
         validation?.cancel(); busy = false; serverError = nil; tokenError = nil
@@ -361,18 +384,37 @@ final class SettingsModel {
             try await client.testToken(server: server, token: token)
             try Task.checkCancellation()
             NSLog("ArchiveBox connection validation %@: tokenCheck accepted", validationDiagnosticID)
+            // Publish a usable connection only after its key is durable. Otherwise
+            // this session works but a cold launch restores the previous saved key.
+            do { try persistConnection(acceptedToken: token) }
+            catch {
+                tokenError = "The server accepted this API key, but it could not be saved securely. Try again."
+                errorMessage = error.localizedDescription
+                return
+            }
+            rejectedSavedKey = nil; recoveryServer = nil
             verifiedToken = token
             tokenMessage = "API key verified."
-            // Persist before fetching personas: an unavailable persona endpoint
-            // must not lose a valid key when the app closes or is rebuilt.
-            do { try persistConnection() }
-            catch { errorMessage = error.localizedDescription; return }
             await fetchPersonas(server: server, token: token)
         } catch {
             let details = error as NSError
             NSLog("ArchiveBox connection validation %@: tokenCheck failed domain=%@ code=%ld cancelled=%d",
                   validationDiagnosticID, details.domain, details.code, Task.isCancelled ? 1 : 0)
-            if !Task.isCancelled { tokenError = error.localizedDescription }
+            if !Task.isCancelled {
+                tokenError = error.localizedDescription
+                // Only a semantic rejection of this saved key starts one login
+                // recovery. Transport/status/decoding errors never navigate.
+                if error is APIKeyValidationError, !recoveryAttempted,
+                   verifiedServer == server,
+                   let saved = rememberedServers.first(where: { $0.id == server_id }),
+                   saved.server == server, saved.token == tokenText {
+                    recoveryAttempted = true
+                    rejectedSavedKey = tokenText; recoveryServer = server
+                    var login = URLComponents(url: server.appending(path: "admin/login/"), resolvingAgainstBaseURL: false)
+                    login?.queryItems = [URLQueryItem(name: "next", value: "/admin/api/apitoken/")]
+                    openAdmin(login?.url, forAutomaticRecovery: true)
+                }
+            }
         }
     }
 
@@ -425,14 +467,14 @@ final class SettingsModel {
         } catch { errorMessage = error.localizedDescription }
     }
 
-    private func persistConnection() throws {
+    private func persistConnection(acceptedToken: String? = nil) throws {
         guard let server = verifiedServer else { return }
         var registry = try AppEnvironment.store.load()
         let selects_destination = server_id == nil
         let existing = registry.servers.first { $0.id == server_id }
             ?? registry.servers.first { $0.server == server }
         let configuration = ServerConfiguration(id: existing?.id ?? UUID().uuidString.lowercased(),
-            name: existing?.name ?? "", server: server, token: verifiedToken ?? existing?.token ?? "", persona: persona.isEmpty ? nil : persona)
+            name: existing?.name ?? "", server: server, token: acceptedToken ?? verifiedToken ?? existing?.token ?? "", persona: persona.isEmpty ? nil : persona)
         registry.upsert(configuration)
         registry.servers.removeAll { $0.id == configuration.id }
         registry.servers.insert(configuration, at: 0)
@@ -559,7 +601,12 @@ struct SettingsView: View {
                             .buttonStyle(.borderless)
                             .disabled(model.apiKeysURL == nil).accessibilityIdentifier("getAPIKey")
                     }
-                    if let error = model.tokenError { Text(error).foregroundStyle(.red) }
+                    if let error = model.tokenError {
+                        Text(error).foregroundStyle(.red)
+                        Button("Retry verification and save") { model.scheduleValidation() }
+                            .disabled(model.busy || model.verifiedServer == nil || model.tokenText.isEmpty)
+                            .accessibilityIdentifier("retryAPIKey")
+                    }
                 } header: { Text("API key") } footer: {
                     Text("Choose Get Key and sign in to your server. Your API key is configured automatically after login. You can also paste a key here.")
                 }

@@ -318,12 +318,12 @@ struct MainView: View {
             let screen = selection ?? .settings
             Group {
                 if screen == .settings { SettingsView(model: settings) }
-                else if !screen.isHelp && (settings.switchingServer || (settings.busy && !settings.tokenText.isEmpty && settings.verifiedToken == nil)) {
+                else if !screen.isHelp && !(screen == .admin && settings.recoveringSavedKey) && (settings.switchingServer || (settings.busy && !settings.tokenText.isEmpty && settings.verifiedToken == nil)) {
                     ProgressView("Connecting to server…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .accessibilityIdentifier("server.switching")
                 }
-                else if !screen.isHelp && !settings.tokenText.isEmpty && settings.verifiedToken == nil {
+                else if !screen.isHelp && !(screen == .admin && settings.recoveringSavedKey) && !settings.tokenText.isEmpty && settings.verifiedToken == nil {
                     ContentUnavailableView {
                         Label("Couldn’t connect", systemImage: "network")
                     } description: {
@@ -401,6 +401,7 @@ struct MainView: View {
             .overlay(alignment: .topLeading) {
                 if screen != .settings && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
                     SidebarBackButton {
+                        settings.preserveExplicitNavigation()
                         NSLog("ArchiveBox sidebar navigation tap: screen=%@ compact=%@ visibility=%@",
                               screen.rawValue, String(describing: compactColumn), String(describing: columnVisibility))
                         withAnimation {
@@ -451,6 +452,7 @@ struct MainView: View {
     }
 
     private func activate(_ screen: Screen) {
+        settings.preserveExplicitNavigation()
         if screen.isHelp, let url = URL(string: screen.info.path) { openURL(url); return }
         // Only an explicit repeat click resets the page. Switching away and back
         // retains the cached page, including its current URL and form contents.
@@ -471,6 +473,7 @@ struct MainView: View {
     }
 
     private func openSnapshot(_ url: URL) {
+        settings.preserveExplicitNavigation()
         snapshotDestination = url
         reloadIDs[.snapshots] = UUID()
         selection = .snapshots

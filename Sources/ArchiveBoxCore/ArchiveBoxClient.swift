@@ -63,9 +63,18 @@ public final class ArchiveBoxClient: Sendable {
         }
         let body = try JSONEncoder().encode(TokenRequest(token: token))
         let data = try await request(server, path: "api/v1/auth/check_api_token", body: body)
+        try Self.validateTokenResponse(data)
+    }
+
+    // Only call after request() accepts the HTTP status. Missing or contradictory
+    // protocol fields must not be treated as a confirmed credential rejection.
+    static func validateTokenResponse(_ data: Data) throws {
         let result = try JSONDecoder().decode(TokenResponse.self, from: data)
-        guard result.success == true, result.user_id != nil else {
-            throw ArchiveBoxError.message("This API key is invalid or expired. Create a new key in your ArchiveBox server’s admin settings.")
+        if result.success == false, result.user_id == nil, result.username == nil {
+            throw APIKeyValidationError.rejected
+        }
+        guard result.success == true, let userID = result.user_id, !userID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ArchiveBoxError.message("The server returned an incomplete API key validation response. Try again.")
         }
     }
 
@@ -294,10 +303,28 @@ private struct APISchema: Decodable {
     let info: Info
     let paths: [String: Operation]
 }
+public enum APIKeyValidationError: LocalizedError {
+    case rejected
+    public var errorDescription: String? {
+        "This API key is invalid or expired. Sign in to obtain a replacement."
+    }
+}
+
 private struct TokenRequest: Encodable { let token: String }
 private struct TokenResponse: Decodable {
+    private enum CodingKeys: String, CodingKey { case success, user_id, username }
     let success: Bool?
     let user_id: String?
+    let username: String?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        success = try container.decodeIfPresent(Bool.self, forKey: .success)
+        // A genuine rejection explicitly returns null. An absent key is an
+        // incomplete response; older servers omit only username.
+        user_id = try container.decode(Optional<String>.self, forKey: .user_id)
+        username = try container.decodeIfPresent(String.self, forKey: .username)
+    }
 }
 public struct ServerPersona: Decodable, Sendable, Identifiable {
     public let id: String

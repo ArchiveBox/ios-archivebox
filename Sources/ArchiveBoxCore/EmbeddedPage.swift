@@ -3,8 +3,9 @@ import WebKit
 /// Shared presentation for native embedded pages. Server scripts still own polling
 /// and navigation; these main-frame overrides only change the surrounding layout.
 @MainActor public enum EmbeddedPage {
-    public static func script(activity: Bool) -> WKUserScript {
-        WKUserScript(source: activity ? activitySource : navigationSource,
+    public static func script(activity: Bool, nativePhoneHeader: Bool = false) -> WKUserScript {
+        let phoneHeader = nativePhoneHeader ? "\n" + nativePhoneHeaderSource : ""
+        return WKUserScript(source: activity ? activitySource : navigationSource + phoneHeader,
                      injectionTime: .atDocumentEnd, forMainFrameOnly: true)
     }
 
@@ -21,6 +22,13 @@ import WebKit
                 document.body.replaceChildren(monitor);
                 if (csrf) document.body.append(csrf);
             }
+            """#
+
+    // The native row owns the brand on iPhone. Keep the server's existing
+    // breadcrumb links and controls; never measure or move a page's geometry.
+    private static let nativePhoneHeaderSource = #"""
+            document.querySelector('#header.archivebox-app-header #branding')
+                ?.style.setProperty('display', 'none', 'important');
             """#
 
     private static let navigationSource = #"""

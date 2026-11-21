@@ -205,7 +205,14 @@ import UIKit
         // Match the companion's standalone monitor without stripping the admin
         // chrome from other screens or altering its server-owned polling code.
         configuration.websiteDataStore = authentication.dataStore
-        configuration.userContentController.addUserScript(EmbeddedPage.script(activity: key.hasPrefix("activity-")))
+        #if os(iOS)
+        let nativePhoneHeader = UIDevice.current.userInterfaceIdiom == .phone
+        #else
+        let nativePhoneHeader = false
+        #endif
+        configuration.userContentController.addUserScript(
+            EmbeddedPage.script(activity: key.hasPrefix("activity-"), nativePhoneHeader: nativePhoneHeader)
+        )
         // Each page keeps the routing boundary of its configured connection.
         let routing = BrowserNavigation(baseURL: baseURL)
         // WKWebView exposes authenticated download and blob completion callbacks;

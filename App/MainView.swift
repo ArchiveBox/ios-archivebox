@@ -307,42 +307,48 @@ struct MainView: View {
             .toolbar(screen == .settings ? .visible : .hidden, for: .navigationBar)
             .background {
                 if screen != .settings {
-                    Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)
+                    detailHeaderColor
                         .ignoresSafeArea(.container, edges: .top)
                 }
             }
             .safeAreaInset(edge: .top, spacing: 0) {
                 if screen == .activity {
-                    // Activity strips the server header, so reserve a native bar
-                    // for the menu button instead of covering the live status text.
-                    Text(screen.info.title)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 64)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 60)
-                        .background(Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255))
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityIdentifier("navigation.activity.title")
+                    // Activity renders without the server header.
+                    ZStack(alignment: .leading) {
+                        Text(screen.info.title)
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 64)
+                            .frame(maxWidth: .infinity)
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityIdentifier("navigation.activity.title")
+                        if showsDetailBack {
+                            detailBackButton.padding(.leading, 8)
+                        }
+                    }
+                    .frame(height: 60)
+                    .background(detailHeaderColor)
+                } else if screen != .settings && usesNativePhoneDetailHeader {
+                    HStack(spacing: 8) {
+                        if showsDetailBack { detailBackButton }
+                        phoneHomeBrand
+                            .foregroundStyle(.white)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("navigation.brand")
+                    }
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .background(detailHeaderColor)
                 }
             }
             .overlay(alignment: .topLeading) {
-                if screen != .settings && (horizontalSizeClass == .compact || columnVisibility == .detailOnly) {
-                    SidebarBackButton {
-                        settings.preserveExplicitNavigation()
-                        NSLog("ArchiveBox sidebar navigation tap: screen=%@ compact=%@ visibility=%@",
-                              screen.rawValue, String(describing: compactColumn), String(describing: columnVisibility))
-                        withAnimation {
-                            compactColumn = .sidebar
-                            columnVisibility = .all
-                        }
-                        NSLog("ArchiveBox sidebar navigation requested: compact=%@ visibility=%@",
-                              String(describing: compactColumn), String(describing: columnVisibility))
-                    }
-                    .frame(width: 44, height: 44)
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
-                    .offset(y: -5)
+                // Preserve the existing tablet layout. On iPhone and Activity
+                // the button owns a row; WebKit cannot scroll content under it.
+                if screen != .settings && screen != .activity && !usesNativePhoneDetailHeader && showsDetailBack {
+                    detailBackButton
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 8)
+                        .offset(y: -5)
                 }
             }
             #endif
@@ -508,6 +514,33 @@ struct MainView: View {
     }
 
     #if os(iOS)
+    private var detailHeaderColor: Color {
+        Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)
+    }
+
+    private var usesNativePhoneDetailHeader: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
+
+    private var showsDetailBack: Bool {
+        horizontalSizeClass == .compact || columnVisibility == .detailOnly
+    }
+
+    private var detailBackButton: some View {
+        SidebarBackButton {
+            settings.preserveExplicitNavigation()
+            NSLog("ArchiveBox sidebar navigation tap: screen=%@ compact=%@ visibility=%@",
+                  selection?.rawValue ?? "", String(describing: compactColumn), String(describing: columnVisibility))
+            withAnimation {
+                compactColumn = .sidebar
+                columnVisibility = .all
+            }
+            NSLog("ArchiveBox sidebar navigation requested: compact=%@ visibility=%@",
+                  String(describing: compactColumn), String(describing: columnVisibility))
+        }
+        .frame(width: 44, height: 44)
+    }
+
     private var phoneHomeBrand: some View {
         HStack(spacing: 8) {
             Image("BrandLogo")

@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 // Run on a fresh, disposable simulator. All preferences are changed through UI.
 @MainActor
@@ -583,7 +584,7 @@ final class ArchiveBoxUITests: XCTestCase {
             openScreen("Users", app: app)
             XCTAssertTrue(app.webViews.links.matching(NSPredicate(format: "label ==[c] 'Add user'")).firstMatch.waitForExistence(timeout: 20), app.debugDescription)
             XCTAssertFalse(app.webViews.secureTextFields.firstMatch.exists)
-            XCTAssertTrue(app.webViews.firstMatch.frame.contains(app.buttons["navigation.sidebar"].frame))
+            assertBackPlacement(app)
             openScreen("AI Agent", app: app)
             XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
             XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'New session'")).firstMatch.waitForExistence(timeout: 45), app.debugDescription)
@@ -606,6 +607,7 @@ final class ArchiveBoxUITests: XCTestCase {
             XCTAssertTrue(app.buttons["navigation.sidebar"].isHittable)
         }
         XCTAssertTrue(app.webViews.links["Home"].firstMatch.waitForExistence(timeout: 30))
+        assertBackPlacement(app)
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["Loading Add URLs…"])
         waitForExpectations(timeout: 30)
         XCTAssertEqual(app.scrollViews["add.content"].frame.maxY, app.frame.maxY, accuracy: 1)
@@ -636,7 +638,7 @@ final class ArchiveBoxUITests: XCTestCase {
             }
             XCTAssertEqual(app.webViews.firstMatch.frame.maxY, app.frame.maxY, accuracy: 1)
             XCTAssertFalse(app.staticTexts["navigation.activity.title"].exists)
-            XCTAssertTrue(app.webViews.firstMatch.frame.contains(app.buttons["navigation.sidebar"].frame))
+            assertBackPlacement(app)
             attach("\(screen) fills bottom safe area", app: app)
             app.buttons["navigation.sidebar"].tap()
         }
@@ -718,7 +720,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(app.buttons["sidebar.snapshots"].isHittable)
     }
 
-    func testWebPageBackButtonOverlaysHeader() {
+    func testWebPageBackButtonKeepsClearOfContent() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
@@ -727,17 +729,25 @@ final class ArchiveBoxUITests: XCTestCase {
             openScreen(screen, app: app)
             let back = app.buttons["navigation.sidebar"]
             XCTAssertTrue(back.waitForExistence(timeout: 10), app.debugDescription)
-            XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 30), app.debugDescription)
+            if screen == "Users" {
+                let addUser = app.webViews.links.matching(NSPredicate(format: "label ==[c] 'Add user'")).firstMatch
+                XCTAssertTrue(addUser.waitForExistence(timeout: 20), app.debugDescription)
+            } else {
+                let search = app.webViews.otherElements.matching(NSPredicate(format: "label ==[c] 'Search snapshots, search'")).firstMatch.textFields.firstMatch
+                XCTAssertTrue(search.waitForExistence(timeout: 20), app.debugDescription)
+            }
+            XCTAssertFalse(app.webViews.staticTexts["First-time server setup"].exists)
             XCTAssertFalse(app.navigationBars[screen].exists)
-            XCTAssertTrue(app.webViews.firstMatch.frame.contains(back.frame))
-            attach("\(screen) with back over web header", app: app)
+            assertBackPlacement(app)
+            attach("\(screen) with menu button and brand", app: app)
             let page = app.webViews.firstMatch
             page.swipeDown()
             attach("\(screen) after pulling down at top", app: app)
             if screen == "Snapshots" {
                 page.swipeUp()
                 XCTAssertTrue(back.isHittable)
-                attach("Back over scrolled white content", app: app)
+                assertBackPlacement(app)
+                attach("Back after scrolling content", app: app)
             }
             back.tap()
             XCTAssertTrue(app.buttons["sidebar.snapshots"].isHittable)
@@ -745,6 +755,24 @@ final class ArchiveBoxUITests: XCTestCase {
         openScreen("Connection Settings", app: app)
         XCTAssertTrue(app.navigationBars["Connection Settings"].exists)
         XCTAssertFalse(app.buttons["navigation.sidebar"].exists)
+    }
+
+    private func assertBackPlacement(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        let back = app.buttons["navigation.sidebar"]
+        let page = app.webViews.firstMatch
+        XCTAssertTrue(back.isHittable, file: file, line: line)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            let brand = app.staticTexts["navigation.brand"]
+            XCTAssertTrue(brand.exists, file: file, line: line)
+            XCTAssertGreaterThanOrEqual(back.frame.width, 44, file: file, line: line)
+            XCTAssertGreaterThanOrEqual(back.frame.height, 44, file: file, line: line)
+            XCTAssertLessThanOrEqual(back.frame.maxX, brand.frame.minX, file: file, line: line)
+            XCTAssertLessThanOrEqual(back.frame.maxY, page.frame.minY, file: file, line: line)
+            XCTAssertLessThanOrEqual(brand.frame.maxY, page.frame.minY, file: file, line: line)
+            XCTAssertTrue(page.links["Home"].exists, file: file, line: line)
+        } else {
+            XCTAssertTrue(page.frame.contains(back.frame), file: file, line: line)
+        }
     }
 
     private func skipIntroductionIfNeeded(_ app: XCUIApplication) {

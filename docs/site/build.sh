@@ -47,7 +47,7 @@ if manifest_path.exists():
     captures = [c for c in captures if c['platform'] not in platforms] + current
     shutil.copytree(generated, stage / 'screenshots', dirs_exist_ok=True)
 # Alternate Mac and iPhone views in both the gallery and the hero strip.
-priority = ['snapshots', 'library-mac', 'home-iphone', 'add', 'agent', 'activity', 'connection-connected']
+priority = ['home', 'snapshots', 'library-mac', 'home-iphone', 'add', 'agent', 'activity', 'connection-connected']
 def order(capture):
     return priority.index(capture['id']) if capture['id'] in priority else len(priority)
 clients = [sorted([c for c in captures if c['platform'] == platform], key=order) for platform in ('macos', 'iphone')]

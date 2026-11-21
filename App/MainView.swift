@@ -41,7 +41,7 @@ struct MainView: View {
             case .search: ("Search Archive", "magnifyingglass", "admin/core/snapshot/")
             case .agent: ("AI Agent", "sparkles", "admin/agent/")
             case .activity: ("Activity", "arrow.down.circle", "admin/")
-            case .crawls: ("Crawls", "point.3.connected.trianglepath.dotted", "admin/crawls/crawl/")
+            case .crawls: ("Crawl Jobs", "point.3.connected.trianglepath.dotted", "admin/crawls/crawl/")
             case .schedules: ("Scheduled Crawls", "calendar.badge.clock", "admin/crawls/crawlschedule/")
             case .snapshots: ("Snapshots", "building.columns", "admin/core/snapshot/grid/")
             case .results: ("Archive Results", "doc.richtext", "admin/core/archiveresult/")
@@ -229,61 +229,19 @@ struct MainView: View {
         }
     }
 
+    private var usesPhoneHome: Bool {
+        #if os(iOS)
+        // A narrow iPad window still uses the sidebar layout. The full-screen
+        // iPhone menu alone puts its actions within thumb reach.
+        UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .compact
+        #else
+        false
+        #endif
+    }
+
     private func mainNavigation(visibility: Binding<NavigationSplitViewVisibility>) -> some View {
         NavigationSplitView(columnVisibility: visibility, preferredCompactColumn: $compactColumn) {
-            List {
-                #if os(iOS)
-                SidebarSummary(settings: settings, authentication: pages.authentication, sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                Section("Collection") { rows([.crawls, .snapshots, .tags, .schedules, .results, .domains, .importers, .agent]) }
-                #else
-                serverSwitcher
-                sidebarSearch
-                rows([.add, .agent])
-                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags, .domains, .importers]) }
-                #endif
-                Section {
-                    rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
-                } header: {
-                    Button { activate(.admin) } label: {
-                        HStack { Text("Admin"); Image(systemName: "arrow.up.right").imageScale(.small) }
-                    }
-                    .buttonStyle(.plain).disabled(settings.verifiedServer == nil)
-                    .accessibilityLabel("Admin home").accessibilityIdentifier("sidebar.admin")
-                }
-                Section("Help") { rows([.github, .docs, .bugs, .forum, .extensionSource]) }
-                Section { rows([.settings]) }
-            }
-            .listStyle(.sidebar)
-            .accessibilityIdentifier("sidebar")
-            .navigationTitle("ArchiveBox")
-            #if os(iOS)
-            // The sidebar is the phone's home menu. Its chrome is outside the
-            // scrolling rows and follows the keyboard's bottom safe area.
-            .toolbar(.hidden, for: .navigationBar)
-            .safeAreaInset(edge: .top, spacing: 0) { phoneHomeHeader }
-            .safeAreaInset(edge: .bottom, spacing: 0) { phoneHomeActions }
-            #else
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                SidebarSummary(settings: settings, authentication: pages.authentication, sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
-            }
-            #endif
-            #if os(macOS)
-            .toolbar {
-                if selection == nil || selection == .settings {
-                ToolbarItem(placement: .navigation) {
-                    Image("BrandLogo")
-                        .resizable().scaledToFit().frame(width: 24, height: 24)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .accessibilityLabel("ArchiveBox")
-                }
-                .sharedBackgroundVisibility(.hidden)
-                }
-            }
-            .toolbar(removing: .sidebarToggle)
-            #endif
-            .navigationSplitViewColumnWidth(min: 210, ideal: 240)
+            sidebarColumn
         } detail: {
             let screen = selection ?? .settings
             Group {
@@ -405,6 +363,108 @@ struct MainView: View {
         #endif
     }
 
+    private var isTabletSidebar: Bool {
+        #if os(iOS)
+        UIDevice.current.userInterfaceIdiom == .pad
+        #else
+        false
+        #endif
+    }
+
+    private var sidebarRailInsets: EdgeInsets? {
+        isTabletSidebar ? EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6) : nil
+    }
+
+    private var sidebarColumn: some View {
+        Group {
+            #if os(iOS)
+            if usesPhoneHome {
+                sidebarList
+                    .contentMargins(.top, 0, for: .scrollContent)
+                    .listSectionSpacing(.compact)
+                    .safeAreaInset(edge: .top, spacing: 0) { phoneHomeHeader }
+                    .safeAreaInset(edge: .bottom, spacing: 0) { phoneHomeActions }
+            } else {
+                // The rail owns its footer; the scrolling viewport ends above it.
+                VStack(spacing: 0) {
+                    sidebarList
+                        .contentMargins(.horizontal, isTabletSidebar ? 4 : nil, for: .scrollContent)
+                    Divider()
+                    sidebarSummary().background(Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom))
+                }
+            }
+            #else
+            sidebarList.safeAreaInset(edge: .bottom, spacing: 0) { sidebarSummary() }
+            #endif
+        }
+        #if os(iOS)
+        .navigationTitle(isTabletSidebar ? "" : "ArchiveBox")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(usesPhoneHome ? .hidden : .automatic, for: .navigationBar)
+        .toolbar {
+            if isTabletSidebar {
+                ToolbarItem(placement: .principal) {
+                    Text("ArchiveBox").font(.headline)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("sidebar.title")
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
+        }
+        #endif
+        #if os(macOS)
+        .navigationTitle("ArchiveBox")
+        .toolbar {
+            if selection == nil || selection == .settings {
+            ToolbarItem(placement: .navigation) {
+                Image("BrandLogo")
+                    .resizable().scaledToFit().frame(width: 24, height: 24)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .accessibilityLabel("ArchiveBox")
+            }
+            .sharedBackgroundVisibility(.hidden)
+            }
+        }
+        .toolbar(removing: .sidebarToggle)
+        #endif
+        .navigationSplitViewColumnWidth(min: 210, ideal: 240)
+    }
+
+    private var sidebarList: some View {
+        List {
+            if usesPhoneHome {
+                sidebarSummary(compactHome: true)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                Section("Collection") { rows([.crawls, .snapshots, .tags, .schedules, .results, .domains, .importers, .agent]) }
+            } else {
+                serverSwitcher.listRowInsets(sidebarRailInsets)
+                sidebarSearch.listRowInsets(sidebarRailInsets)
+                rows([.add, .agent])
+                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags, .domains, .importers]) }
+            }
+            Section {
+                rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
+            } header: {
+                Button { activate(.admin) } label: {
+                    HStack { Text("Admin"); Image(systemName: "arrow.up.right").imageScale(.small) }
+                }
+                .buttonStyle(.plain).disabled(settings.verifiedServer == nil)
+                .accessibilityLabel("Admin home").accessibilityIdentifier("sidebar.admin")
+            }
+            Section("Help") { rows([.github, .docs, .bugs, .forum, .extensionSource]) }
+            Section { rows([.settings]) }
+        }
+        .listStyle(.sidebar)
+        .accessibilityIdentifier("sidebar")
+    }
+
+    private func sidebarSummary(compactHome: Bool = false) -> some View {
+        SidebarSummary(settings: settings, authentication: pages.authentication,
+                       sidebarVisible: columnVisibility != .detailOnly, compactHome: compactHome) { activate(.activity) }
+    }
+
     @ViewBuilder private var serverSwitcher: some View {
         if settings.quickSwitchServers.count > 1 {
             Menu {
@@ -438,7 +498,7 @@ struct MainView: View {
     }
 
     private var sidebarSearch: some View {
-        SidebarSearchField(query: searchQuery, modes: searchModes) { query, mode in
+        SidebarSearchField(query: searchQuery, modes: searchModes, compactRail: !usesPhoneHome) { query, mode in
             searchQuery = query
             submittedSearchMode = mode
             activate(.search)
@@ -448,7 +508,7 @@ struct MainView: View {
     }
 
     #if os(iOS)
-    private var phoneHomeHeader: some View {
+    private var phoneHomeBrand: some View {
         HStack(spacing: 8) {
             Image("BrandLogo")
                 .resizable().scaledToFit().frame(width: 28, height: 28)
@@ -458,10 +518,18 @@ struct MainView: View {
                 .font(.headline.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
                 .layoutPriority(1)
-            Spacer(minLength: 8)
-            serverSwitcher
-                .font(.subheadline)
         }
+    }
+
+    private var phoneHomeHeader: some View {
+        HStack(spacing: 8) {
+            phoneHomeBrand
+            if settings.quickSwitchServers.count > 1 {
+                Spacer(minLength: 8)
+                serverSwitcher.font(.subheadline)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: settings.quickSwitchServers.count > 1 ? .leading : .center)
         .foregroundStyle(.white)
         .tint(.white)
         .padding(.horizontal, 16)
@@ -490,24 +558,22 @@ struct MainView: View {
             .accessibilityIdentifier("sidebar.add")
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
         .background(.regularMaterial)
     }
     #endif
 
     @ViewBuilder private func rows(_ screens: [Screen]) -> some View {
         ForEach(screens, id: \.self) { screen in
-            #if os(iOS)
-            let title = screen == .crawls ? "Crawl Jobs" : screen.info.title
-            #else
             let title = screen.info.title
-            #endif
             Button { activate(screen) } label: {
                 Label(title, systemImage: screen.info.icon)
                     .fontWeight(screen == .snapshots ? .semibold : .regular)
                     .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }
                 .buttonStyle(.plain)
+                .listRowInsets(sidebarRailInsets)
                 .listRowBackground(selection == screen ? Color.accentColor.opacity(0.18) : Color.clear)
                 .accessibilityAddTraits(selection == screen ? .isSelected : [])
                 .accessibilityIdentifier("sidebar.\(screen.rawValue)")
@@ -594,6 +660,7 @@ private struct SidebarBackButton: UIViewRepresentable {
 private struct SidebarSearchField: View {
     let query: String
     let modes: [String]
+    let compactRail: Bool
     let submit: (String, String) -> Void
     @State private var text = ""
     @State private var mode = ""
@@ -628,7 +695,9 @@ private struct SidebarSearchField: View {
             }
             .accessibilityIdentifier("sidebar.searchField")
             #else
-            TextField("Search archive", text: $text)
+            TextField("Search archive", text: $text,
+                      prompt: compactRail ? Text("Search").foregroundColor(.primary.opacity(0.78)) : nil)
+                .accessibilityLabel("Search archive")
                 .textFieldStyle(.plain)
                 .focused($focused)
                 .submitLabel(.search)
@@ -650,7 +719,7 @@ private struct SidebarSearchField: View {
             }
         }
         #if os(iOS)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, compactRail ? 8 : 12)
         .frame(minHeight: 44)
         .background(.quaternary, in: Capsule())
         #else

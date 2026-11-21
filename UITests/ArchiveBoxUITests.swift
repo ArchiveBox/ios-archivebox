@@ -642,6 +642,63 @@ final class ArchiveBoxUITests: XCTestCase {
         }
     }
 
+    func testPhoneHomeMenuAnchorsActionsWhileScrollingAndTyping() throws {
+        continueAfterFailure = false
+        let environment = ProcessInfo.processInfo.environment
+        let server = try XCTUnwrap(environment["ARCHIVEBOX_TEST_SERVER"])
+        let token = try XCTUnwrap(environment["ARCHIVEBOX_TEST_TOKEN"])
+        let app = XCUIApplication()
+        app.launch()
+        skipIntroductionIfNeeded(app)
+        openScreen("Connection Settings", app: app)
+        // Start with exactly the connection installed by this test.
+        let reset = app.buttons["setup.reset"]
+        for _ in 0..<5 where !reset.isHittable { app.swipeUp() }
+        XCTAssertTrue(reset.isHittable, app.debugDescription)
+        reset.tap()
+        app.buttons["Reset setup"].tap()
+        var connection = URLComponents(string: "archivebox://connect")!
+        connection.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "api_key", value: token)]
+        app.open(connection.url!)
+        if app.buttons["Use this server"].waitForExistence(timeout: 3) { app.buttons["Use this server"].tap() }
+        if app.buttons["Allow"].exists { app.buttons["Allow"].tap() }
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
+        app.terminate()
+        app.launch()
+        let notificationPrompt = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
+        if notificationPrompt.waitForExistence(timeout: 3),
+           notificationPrompt.label.contains("Would Like to Send You Notifications") {
+            notificationPrompt.buttons.firstMatch.tap()
+        }
+        let search = app.textFields["sidebar.searchField"]
+        let add = app.buttons["sidebar.add"]
+        let progress = app.buttons["sidebar.openActivity"]
+        let sidebar = app.collectionViews["sidebar"]
+        XCTAssertTrue(search.waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertTrue(add.isHittable)
+        XCTAssertTrue(progress.isHittable)
+        XCTAssertFalse(app.buttons["sidebar.serverSwitcher"].exists)
+        let crawls = app.buttons["sidebar.crawls"], snapshots = app.buttons["sidebar.snapshots"], tags = app.buttons["sidebar.tags"]
+        XCTAssertEqual(crawls.label, "Crawl Jobs")
+        XCTAssertLessThan(progress.frame.maxY, crawls.frame.minY)
+        XCTAssertLessThan(crawls.frame.minY, snapshots.frame.minY)
+        XCTAssertLessThan(snapshots.frame.minY, tags.frame.minY)
+        attach("iPhone home menu", app: app)
+        let bottom = add.frame.maxY
+        sidebar.swipeUp()
+        XCTAssertTrue(add.isHittable)
+        XCTAssertEqual(add.frame.maxY, bottom, accuracy: 1)
+        search.tap()
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertLessThanOrEqual(add.frame.maxY, keyboard.frame.minY + 1)
+        attach("iPhone home sticky actions above keyboard", app: app)
+        search.typeText("archive test\n")
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertFalse(progress.isHittable)
+        XCTAssertFalse(add.isHittable)
+    }
+
     func testActivityHeaderSeparatesBackButtonFromWebContent() {
         continueAfterFailure = false
         let app = XCUIApplication()

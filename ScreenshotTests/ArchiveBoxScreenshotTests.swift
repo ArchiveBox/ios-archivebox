@@ -502,12 +502,12 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     private func openScreen(_ id: String, app: XCUIApplication) {
         showSidebar(app)
         let item = app.buttons["sidebar." + id]
+        #if os(macOS)
         if id == "openActivity" {
-            // The activity summary is a fixed footer outside the scrollable list.
+            // The Mac activity summary is a fixed footer.
             press(item)
             return
         }
-        #if os(macOS)
         let list = app.outlines.firstMatch
         for _ in 0..<6 {
             if item.isHittable { break }
@@ -520,23 +520,27 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         #else
         let surface = app.collectionViews["sidebar"]
         let visibleTop = app.staticTexts["ArchiveBox"].frame.maxY
-        let visibleBottom = app.buttons["sidebar.openActivity"].frame.minY
+        let visibleBottom = app.buttons["sidebar.add"].frame.minY
         let visible = {
             // Passwords can present after returning from Settings. Scrolling
             // cannot uncover the list while that system sheet intercepts input.
             self.declinePasswordPrompt()
             guard item.exists, item.isHittable else { return false }
+            // Add is pinned below the scrollable menu rows.
+            if id == "add" { return true }
             let frame = item.frame
             return frame.minY >= visibleTop && frame.maxY <= visibleBottom
         }
         // Scroll the actual sidebar surface in both compact and regular split views.
-        for _ in 0..<6 {
-            if visible() { break }
-            surface.swipeDown()
-        }
-        for _ in 0..<10 {
-            if visible() { break }
-            surface.swipeUp()
+        if id != "add" {
+            for _ in 0..<6 {
+                if visible() { break }
+                surface.swipeDown()
+            }
+            for _ in 0..<10 {
+                if visible() { break }
+                surface.swipeUp()
+            }
         }
         XCTAssertTrue(visible(), "Sidebar item is outside the visible list: \(item.debugDescription)")
         #endif

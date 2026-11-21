@@ -229,20 +229,30 @@ struct MainView: View {
         }
     }
 
+    private var usesPhoneHome: Bool {
+        #if os(iOS)
+        // A narrow iPad window still uses the sidebar layout. The full-screen
+        // iPhone menu alone puts its actions within thumb reach.
+        UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .compact
+        #else
+        false
+        #endif
+    }
+
     private func mainNavigation(visibility: Binding<NavigationSplitViewVisibility>) -> some View {
         NavigationSplitView(columnVisibility: visibility, preferredCompactColumn: $compactColumn) {
             List {
-                #if os(iOS)
-                SidebarSummary(settings: settings, authentication: pages.authentication, sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                Section("Collection") { rows([.crawls, .snapshots, .tags, .schedules, .results, .domains, .importers, .agent]) }
-                #else
-                serverSwitcher
-                sidebarSearch
-                rows([.add, .agent])
-                Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags, .domains, .importers]) }
-                #endif
+                if usesPhoneHome {
+                    sidebarSummary
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                    Section("Collection") { rows([.crawls, .snapshots, .tags, .schedules, .results, .domains, .importers, .agent]) }
+                } else {
+                    serverSwitcher
+                    sidebarSearch
+                    rows([.add, .agent])
+                    Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags, .domains, .importers]) }
+                }
                 Section {
                     rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
                 } header: {
@@ -259,16 +269,18 @@ struct MainView: View {
             .accessibilityIdentifier("sidebar")
             .navigationTitle("ArchiveBox")
             #if os(iOS)
-            // The sidebar is the phone's home menu. Its chrome is outside the
-            // scrolling rows and follows the keyboard's bottom safe area.
-            .toolbar(.hidden, for: .navigationBar)
-            .safeAreaInset(edge: .top, spacing: 0) { phoneHomeHeader }
-            .safeAreaInset(edge: .bottom, spacing: 0) { phoneHomeActions }
-            #else
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                SidebarSummary(settings: settings, authentication: pages.authentication, sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
+            .toolbar(usesPhoneHome ? .hidden : .automatic, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if usesPhoneHome { phoneHomeHeader }
             }
             #endif
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                #if os(iOS)
+                if usesPhoneHome { phoneHomeActions } else { sidebarSummary }
+                #else
+                sidebarSummary
+                #endif
+            }
             #if os(macOS)
             .toolbar {
                 if selection == nil || selection == .settings {
@@ -403,6 +415,11 @@ struct MainView: View {
         // but let web content fill the transparent titlebar in the detail column.
         .toolbarBackgroundVisibility(selection == nil || selection == .settings ? .automatic : .hidden, for: .windowToolbar)
         #endif
+    }
+
+    private var sidebarSummary: some View {
+        SidebarSummary(settings: settings, authentication: pages.authentication,
+                       sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
     }
 
     @ViewBuilder private var serverSwitcher: some View {

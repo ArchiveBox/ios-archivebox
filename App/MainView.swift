@@ -41,7 +41,7 @@ struct MainView: View {
             case .search: ("Search Archive", "magnifyingglass", "admin/core/snapshot/")
             case .agent: ("AI Agent", "sparkles", "admin/agent/")
             case .activity: ("Activity", "arrow.down.circle", "admin/")
-            case .crawls: ("Crawls", "point.3.connected.trianglepath.dotted", "admin/crawls/crawl/")
+            case .crawls: ("Crawl Jobs", "point.3.connected.trianglepath.dotted", "admin/crawls/crawl/")
             case .schedules: ("Scheduled Crawls", "calendar.badge.clock", "admin/crawls/crawlschedule/")
             case .snapshots: ("Snapshots", "building.columns", "admin/core/snapshot/grid/")
             case .results: ("Archive Results", "doc.richtext", "admin/core/archiveresult/")
@@ -372,7 +372,7 @@ struct MainView: View {
     }
 
     private var sidebarRailInsets: EdgeInsets? {
-        isTabletSidebar ? EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8) : nil
+        isTabletSidebar ? EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6) : nil
     }
 
     private var sidebarColumn: some View {
@@ -380,18 +380,21 @@ struct MainView: View {
             #if os(iOS)
             if usesPhoneHome {
                 sidebarList
+                    .contentMargins(.top, 0, for: .scrollContent)
+                    .listSectionSpacing(.compact)
                     .safeAreaInset(edge: .top, spacing: 0) { phoneHomeHeader }
                     .safeAreaInset(edge: .bottom, spacing: 0) { phoneHomeActions }
             } else {
                 // The rail owns its footer; the scrolling viewport ends above it.
                 VStack(spacing: 0) {
                     sidebarList
+                        .contentMargins(.horizontal, isTabletSidebar ? 4 : nil, for: .scrollContent)
                     Divider()
-                    sidebarSummary.background(Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom))
+                    sidebarSummary().background(Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom))
                 }
             }
             #else
-            sidebarList.safeAreaInset(edge: .bottom, spacing: 0) { sidebarSummary }
+            sidebarList.safeAreaInset(edge: .bottom, spacing: 0) { sidebarSummary() }
             #endif
         }
         #if os(iOS)
@@ -400,7 +403,7 @@ struct MainView: View {
         .toolbar(usesPhoneHome ? .hidden : .automatic, for: .navigationBar)
         .toolbar {
             if isTabletSidebar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .principal) {
                     Text("ArchiveBox").font(.headline)
                         .fixedSize(horizontal: true, vertical: false)
                         .accessibilityAddTraits(.isHeader)
@@ -431,7 +434,7 @@ struct MainView: View {
     private var sidebarList: some View {
         List {
             if usesPhoneHome {
-                sidebarSummary
+                sidebarSummary(compactHome: true)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                 Section("Collection") { rows([.crawls, .snapshots, .tags, .schedules, .results, .domains, .importers, .agent]) }
@@ -457,9 +460,9 @@ struct MainView: View {
         .accessibilityIdentifier("sidebar")
     }
 
-    private var sidebarSummary: some View {
+    private func sidebarSummary(compactHome: Bool = false) -> some View {
         SidebarSummary(settings: settings, authentication: pages.authentication,
-                       sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
+                       sidebarVisible: columnVisibility != .detailOnly, compactHome: compactHome) { activate(.activity) }
     }
 
     @ViewBuilder private var serverSwitcher: some View {
@@ -505,7 +508,7 @@ struct MainView: View {
     }
 
     #if os(iOS)
-    private var phoneHomeHeader: some View {
+    private var phoneHomeBrand: some View {
         HStack(spacing: 8) {
             Image("BrandLogo")
                 .resizable().scaledToFit().frame(width: 28, height: 28)
@@ -515,10 +518,18 @@ struct MainView: View {
                 .font(.headline.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
                 .layoutPriority(1)
-            Spacer(minLength: 8)
-            serverSwitcher
-                .font(.subheadline)
         }
+    }
+
+    private var phoneHomeHeader: some View {
+        HStack(spacing: 8) {
+            phoneHomeBrand
+            if settings.quickSwitchServers.count > 1 {
+                Spacer(minLength: 8)
+                serverSwitcher.font(.subheadline)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: settings.quickSwitchServers.count > 1 ? .leading : .center)
         .foregroundStyle(.white)
         .tint(.white)
         .padding(.horizontal, 16)
@@ -547,18 +558,15 @@ struct MainView: View {
             .accessibilityIdentifier("sidebar.add")
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
         .background(.regularMaterial)
     }
     #endif
 
     @ViewBuilder private func rows(_ screens: [Screen]) -> some View {
         ForEach(screens, id: \.self) { screen in
-            #if os(iOS)
-            let title = screen == .crawls ? "Crawl Jobs" : screen.info.title
-            #else
             let title = screen.info.title
-            #endif
             Button { activate(screen) } label: {
                 Label(title, systemImage: screen.info.icon)
                     .fontWeight(screen == .snapshots ? .semibold : .regular)

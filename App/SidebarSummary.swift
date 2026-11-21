@@ -5,6 +5,7 @@ struct SidebarSummary: View {
     let settings: SettingsModel
     let authentication: BrowserAuthentication
     let sidebarVisible: Bool
+    var compactHome = false
     let openActivity: () -> Void
     @State private var hoveringActivity = false
     @Environment(\.scenePhase) private var scenePhase
@@ -65,7 +66,8 @@ struct SidebarSummary: View {
                 #endif
             }
             .font(.caption).monospacedDigit().frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, compactHome ? 5 : 12)
             .contentShape(Rectangle())
             .accessibilityElement(children: .combine).accessibilityIdentifier("sidebar.summary")
         }

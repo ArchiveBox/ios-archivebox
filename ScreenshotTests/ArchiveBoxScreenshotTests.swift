@@ -518,11 +518,6 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             list.scroll(byDeltaX: 0, deltaY: -450)
         }
         #else
-        if id == "add" {
-            // The iOS action bar is pinned below the menu rows.
-            press(item)
-            return
-        }
         let surface = app.collectionViews["sidebar"]
         let visibleTop = app.staticTexts["ArchiveBox"].frame.maxY
         let visibleBottom = app.buttons["sidebar.add"].frame.minY
@@ -531,17 +526,21 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             // cannot uncover the list while that system sheet intercepts input.
             self.declinePasswordPrompt()
             guard item.exists, item.isHittable else { return false }
+            // Add is pinned below the scrollable menu rows.
+            if id == "add" { return true }
             let frame = item.frame
             return frame.minY >= visibleTop && frame.maxY <= visibleBottom
         }
         // Scroll the actual sidebar surface in both compact and regular split views.
-        for _ in 0..<6 {
-            if visible() { break }
-            surface.swipeDown()
-        }
-        for _ in 0..<10 {
-            if visible() { break }
-            surface.swipeUp()
+        if id != "add" {
+            for _ in 0..<6 {
+                if visible() { break }
+                surface.swipeDown()
+            }
+            for _ in 0..<10 {
+                if visible() { break }
+                surface.swipeUp()
+            }
         }
         XCTAssertTrue(visible(), "Sidebar item is outside the visible list: \(item.debugDescription)")
         #endif

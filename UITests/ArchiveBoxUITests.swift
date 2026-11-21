@@ -650,6 +650,13 @@ final class ArchiveBoxUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         skipIntroductionIfNeeded(app)
+        openScreen("Connection Settings", app: app)
+        // Start with exactly the connection installed by this test.
+        let reset = app.buttons["setup.reset"]
+        for _ in 0..<5 where !reset.isHittable { app.swipeUp() }
+        XCTAssertTrue(reset.isHittable, app.debugDescription)
+        reset.tap()
+        app.buttons["Reset setup"].tap()
         var connection = URLComponents(string: "archivebox://connect")!
         connection.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "api_key", value: token)]
         app.open(connection.url!)

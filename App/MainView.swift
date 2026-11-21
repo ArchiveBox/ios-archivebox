@@ -497,12 +497,12 @@ struct MainView: View {
 
     @ViewBuilder private func rows(_ screens: [Screen]) -> some View {
         ForEach(screens, id: \.self) { screen in
+            #if os(iOS)
+            let title = screen == .crawls ? "Crawl Jobs" : screen.info.title
+            #else
+            let title = screen.info.title
+            #endif
             Button { activate(screen) } label: {
-                #if os(iOS)
-                let title = screen == .crawls ? "Crawl Jobs" : screen.info.title
-                #else
-                let title = screen.info.title
-                #endif
                 Label(title, systemImage: screen.info.icon)
                     .fontWeight(screen == .snapshots ? .semibold : .regular)
                     .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
@@ -511,7 +511,7 @@ struct MainView: View {
                 .listRowBackground(selection == screen ? Color.accentColor.opacity(0.18) : Color.clear)
                 .accessibilityAddTraits(selection == screen ? .isSelected : [])
                 .accessibilityIdentifier("sidebar.\(screen.rawValue)")
-                .accessibilityHint(screen.isHelp ? "Opens in your browser" : "Shows \(screen.info.title)")
+                .accessibilityHint(screen.isHelp ? "Opens in your browser" : "Shows \(title)")
                 .disabled(screen != .add && screen != .settings && !screen.isHelp && settings.verifiedServer == nil)
         }
     }

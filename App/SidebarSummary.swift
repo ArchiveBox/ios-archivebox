@@ -131,8 +131,8 @@ struct SidebarSummary: View {
         let online = connected == true
         // A reachable server can deny collection status (e.g. non-staff keys).
         // Keep this separate from losing the connection itself.
-        let offline = configured && !checking && !settings.serverReachable
-        let unavailable = configured && !offline && connected == false
+        let offline = !checking && !settings.serverReachable && (settings.verifiedServer != nil || settings.serverError != nil)
+        let unavailable = settings.serverReachable && connected == false
         return ViewThatFits(in: .horizontal) {
             HStack(spacing: 6) {
                 phoneConnectionLabel(online: online, offline: offline, checking: checking, unavailable: unavailable)

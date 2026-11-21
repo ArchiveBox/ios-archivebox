@@ -89,8 +89,10 @@ struct SidebarSummary: View {
             if loginKey != credentials {
                 initialConnection = nil; failure = nil
                 loginKey = credentials
+                lastRequest = .distantPast
             }
-            guard polling, let server = settings.verifiedServer else { return }
+            guard polling, let server = settings.verifiedServer,
+                  let token = settings.verifiedToken else { return }
             let requestedCredentials = credentials
             // A single cancellable loop avoids overlapping requests. Keep the last
             // request time across focus changes so toggling windows cannot burst-poll.
@@ -103,9 +105,6 @@ struct SidebarSummary: View {
                     lastRequest = Date()
                     // Use the same in-memory session as the embedded pages, bound
                     // to this verified server/key pair. Credentials never follow redirects.
-                    guard let token = settings.verifiedToken else {
-                        throw ArchiveBoxError.message("Add an API key to see collection activity.")
-                    }
                     let start = ContinuousClock.now
                     let value = try await authentication.sidebarProgress(server: server, token: token)
                     try Task.checkCancellation()

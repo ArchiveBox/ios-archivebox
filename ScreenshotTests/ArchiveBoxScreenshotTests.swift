@@ -502,12 +502,12 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
     private func openScreen(_ id: String, app: XCUIApplication) {
         showSidebar(app)
         let item = app.buttons["sidebar." + id]
+        #if os(macOS)
         if id == "openActivity" {
-            // The activity summary is a fixed footer outside the scrollable list.
+            // The Mac activity summary is a fixed footer.
             press(item)
             return
         }
-        #if os(macOS)
         let list = app.outlines.firstMatch
         for _ in 0..<6 {
             if item.isHittable { break }
@@ -518,9 +518,14 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             list.scroll(byDeltaX: 0, deltaY: -450)
         }
         #else
+        if id == "add" {
+            // The iOS action bar is pinned below the menu rows.
+            press(item)
+            return
+        }
         let surface = app.collectionViews["sidebar"]
         let visibleTop = app.staticTexts["ArchiveBox"].frame.maxY
-        let visibleBottom = app.buttons["sidebar.openActivity"].frame.minY
+        let visibleBottom = app.buttons["sidebar.add"].frame.minY
         let visible = {
             // Passwords can present after returning from Settings. Scrolling
             // cannot uncover the list while that system sheet intercepts input.

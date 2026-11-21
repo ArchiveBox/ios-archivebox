@@ -232,37 +232,17 @@ struct MainView: View {
     private func mainNavigation(visibility: Binding<NavigationSplitViewVisibility>) -> some View {
         NavigationSplitView(columnVisibility: visibility, preferredCompactColumn: $compactColumn) {
             List {
-                if settings.quickSwitchServers.count > 1 {
-                    Menu {
-                        ForEach(settings.quickSwitchServers) { server in
-                            Button {
-                                guard server.id != settings.server_id else { return }
-                                settings.useRememberedServer(server)
-                            } label: {
-                                Label(server.server.absoluteString,
-                                      systemImage: server.id == settings.server_id ? "checkmark.circle.fill" : "server.rack")
-                            }
-                            .accessibilityIdentifier("sidebar.switchServer.\(server.id)")
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: "server.rack")
-                            Text(settings.displayedBaseURL?.host() ?? "Choose server")
-                                .lineLimit(1).truncationMode(.middle)
-                            Spacer()
-                        }
-                    }
-                    .accessibilityIdentifier("sidebar.serverSwitcher")
-                }
-                SidebarSearchField(query: searchQuery, modes: searchModes) { query, mode in
-                    searchQuery = query
-                    submittedSearchMode = mode
-                    activate(.search)
-                }
-                .id(settings.server_id)
-                .disabled(settings.verifiedServer == nil)
+                #if os(iOS)
+                SidebarSummary(settings: settings, authentication: pages.authentication, sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                Section("Collection") { rows([.crawls, .snapshots, .tags, .schedules, .results, .domains, .importers, .agent]) }
+                #else
+                serverSwitcher
+                sidebarSearch
                 rows([.add, .agent])
                 Section("Collection") { rows([.snapshots, .crawls, .schedules, .results, .tags, .domains, .importers]) }
+                #endif
                 Section {
                     rows([.users, .personas, .keys, .webhooks, .processes, .machines, .interfaces, .binaries, .plugins, .workers, .logs])
                 } header: {
@@ -277,26 +257,16 @@ struct MainView: View {
             }
             .listStyle(.sidebar)
             .accessibilityIdentifier("sidebar")
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                SidebarSummary(settings: settings, authentication: pages.authentication, sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
-            }
             .navigationTitle("ArchiveBox")
             #if os(iOS)
-            // Split-view sidebars can ignore navigation-bar backgrounds. Own the
-            // header's backdrop so branding stays readable in every size class.
+            // The sidebar is the phone's home menu. Its chrome is outside the
+            // scrolling rows and follows the keyboard's bottom safe area.
             .toolbar(.hidden, for: .navigationBar)
-            .safeAreaInset(edge: .top, spacing: 0) {
-                HStack(spacing: 8) {
-                    Image("BrandLogo")
-                        .resizable().scaledToFit().frame(width: 28, height: 28)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .accessibilityHidden(true)
-                    Text("ArchiveBox").font(.headline.weight(.semibold)).foregroundStyle(.white)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color.accentColor.ignoresSafeArea(edges: .top))
-                .accessibilityAddTraits(.isHeader)
+            .safeAreaInset(edge: .top, spacing: 0) { phoneHomeHeader }
+            .safeAreaInset(edge: .bottom, spacing: 0) { phoneHomeActions }
+            #else
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                SidebarSummary(settings: settings, authentication: pages.authentication, sidebarVisible: columnVisibility != .detailOnly) { activate(.activity) }
             }
             #endif
             #if os(macOS)
@@ -435,10 +405,105 @@ struct MainView: View {
         #endif
     }
 
+    @ViewBuilder private var serverSwitcher: some View {
+        if settings.quickSwitchServers.count > 1 {
+            Menu {
+                ForEach(settings.quickSwitchServers) { server in
+                    Button {
+                        guard server.id != settings.server_id else { return }
+                        settings.useRememberedServer(server)
+                    } label: {
+                        Label(server.server.absoluteString,
+                              systemImage: server.id == settings.server_id ? "checkmark.circle.fill" : "server.rack")
+                    }
+                    .accessibilityIdentifier("sidebar.switchServer.\(server.id)")
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "server.rack")
+                    #if os(iOS)
+                    let name = settings.quickSwitchServers.first { $0.id == settings.server_id }?.name
+                    Text(name.flatMap { $0.isEmpty ? nil : $0 } ?? settings.displayedBaseURL?.host() ?? "Choose server")
+                        .lineLimit(1).truncationMode(.middle)
+                    Image(systemName: "chevron.down").imageScale(.small)
+                    #else
+                    Text(settings.displayedBaseURL?.host() ?? "Choose server")
+                        .lineLimit(1).truncationMode(.middle)
+                    Spacer()
+                    #endif
+                }
+            }
+            .accessibilityIdentifier("sidebar.serverSwitcher")
+        }
+    }
+
+    private var sidebarSearch: some View {
+        SidebarSearchField(query: searchQuery, modes: searchModes) { query, mode in
+            searchQuery = query
+            submittedSearchMode = mode
+            activate(.search)
+        }
+        .id(settings.server_id)
+        .disabled(settings.verifiedServer == nil)
+    }
+
+    #if os(iOS)
+    private var phoneHomeHeader: some View {
+        HStack(spacing: 8) {
+            Image("BrandLogo")
+                .resizable().scaledToFit().frame(width: 28, height: 28)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .accessibilityHidden(true)
+            Text("ArchiveBox")
+                .font(.headline.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+                .layoutPriority(1)
+            Spacer(minLength: 8)
+            serverSwitcher
+                .font(.subheadline)
+        }
+        .foregroundStyle(.white)
+        .tint(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.accentColor.ignoresSafeArea(edges: .top))
+    }
+
+    private var phoneHomeActions: some View {
+        HStack(spacing: 10) {
+            sidebarSearch
+            Button { activate(.add) } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "plus")
+                    Text("Add")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 12)
+                .frame(minWidth: 44, minHeight: 44)
+                .background(Color.accentColor, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add URLs")
+            .accessibilityIdentifier("sidebar.add")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.regularMaterial)
+    }
+    #endif
+
     @ViewBuilder private func rows(_ screens: [Screen]) -> some View {
         ForEach(screens, id: \.self) { screen in
             Button { activate(screen) } label: {
-                Label(screen.info.title, systemImage: screen.info.icon)
+                #if os(iOS)
+                let title = screen == .crawls ? "Crawl Jobs" : screen.info.title
+                #else
+                let title = screen.info.title
+                #endif
+                Label(title, systemImage: screen.info.icon)
                     .fontWeight(screen == .snapshots ? .semibold : .regular)
                     .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }
@@ -546,7 +611,13 @@ private struct SidebarSearchField: View {
                 }
                 .pickerStyle(.inline)
             } label: {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "magnifyingglass")
+                    #if os(iOS)
+                    Image(systemName: "chevron.down").imageScale(.small)
+                    #endif
+                }
+                .foregroundStyle(.secondary)
             }
             .menuStyle(.borderlessButton).fixedSize()
             .accessibilityLabel("Search mode")
@@ -578,8 +649,14 @@ private struct SidebarSearchField: View {
                 .buttonStyle(.plain).accessibilityLabel("Clear search")
             }
         }
+        #if os(iOS)
+        .padding(.horizontal, 12)
+        .frame(minHeight: 44)
+        .background(.quaternary, in: Capsule())
+        #else
         .padding(.horizontal, 8).padding(.vertical, 6)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+        #endif
         .onChange(of: query, initial: true) { _, value in text = value }
     }
 }

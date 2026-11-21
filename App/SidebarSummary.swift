@@ -53,12 +53,16 @@ struct SidebarSummary: View {
                         "\($0.snapshots) snapshots · \(ByteCountFormatter.string(fromByteCount: $0.bytes, countStyle: .file))"
                     } ?? "Collection size unavailable")
                 }
+                #if os(iOS)
+                phoneConnection
+                #else
                 HStack(spacing: 6) {
                     Circle().fill(connected == nil ? Color.secondary : connected == true ? .green : .red).frame(width: 7, height: 7).padding(.leading, 3).frame(width: 16, alignment: .leading)
                     Text(connected == nil ? "Not checked" : connected == true ? "Connected" : "Unavailable")
                     Spacer(minLength: 0)
                     if let latency { Text("\(latency) ms").foregroundStyle(.secondary) }
                 }
+                #endif
             }
             .font(.caption).monospacedDigit().frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
@@ -67,11 +71,13 @@ struct SidebarSummary: View {
         }
         .buttonStyle(.plain)
         .disabled(settings.verifiedServer == nil)
+        #if os(macOS)
         // Keep the backdrop opaque when the button's disabled style dims its label.
         .background(Color("SidebarStatusBackground").ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .top) {
             Rectangle().fill(.primary.opacity(0.12)).frame(height: 2)
         }
+        #endif
         .onHover { hoveringActivity = $0 }
         .help(failure ?? "Open live progress. Updates every five seconds while this sidebar is active. Collection size is based on stored archive files.")
         .accessibilityHint("Open live progress")
@@ -83,6 +89,7 @@ struct SidebarSummary: View {
                 loginKey = credentials
             }
             guard polling, let server = settings.verifiedServer else { return }
+            let requestedCredentials = credentials
             // A single cancellable loop avoids overlapping requests. Keep the last
             // request time across focus changes so toggling windows cannot burst-poll.
             while !Task.isCancelled {
@@ -90,6 +97,7 @@ struct SidebarSummary: View {
                     let delay = max(0, 5 - Date().timeIntervalSince(lastRequest))
                     if delay > 0 { try await Task.sleep(for: .seconds(delay)) }
                     try Task.checkCancellation()
+                    guard credentials == requestedCredentials else { return }
                     lastRequest = Date()
                     // Use the same in-memory session as the embedded pages, bound
                     // to this verified server/key pair. Credentials never follow redirects.
@@ -99,13 +107,14 @@ struct SidebarSummary: View {
                     let start = ContinuousClock.now
                     let value = try await authentication.sidebarProgress(server: server, token: token)
                     try Task.checkCancellation()
+                    guard credentials == requestedCredentials else { return }
                     let elapsed = start.duration(to: .now).components
-                    settings.sidebarStatus = (value, Int(elapsed.seconds * 1000 + elapsed.attoseconds / 1_000_000_000_000_000))
+                    settings.sidebarStatus = (value, Int(elapsed.seconds * 1000 + elapsed.attoseconds / 1_000_000_000_000_000), Date())
                     initialConnection = true; failure = nil
                 } catch {
                     // Losing focus can suspend networking before task cancellation
                     // arrives. Keep the last valid sample until an active refresh succeeds.
-                    guard !Task.isCancelled, polling else { return }
+                    guard !Task.isCancelled, polling, credentials == requestedCredentials else { return }
                     initialConnection = false
                     failure = settings.sidebarStatus == nil ? error.localizedDescription
                         : "Showing the last successful status. Refresh failed: \(error.localizedDescription)"
@@ -114,4 +123,56 @@ struct SidebarSummary: View {
             }
         }
     }
+
+    #if os(iOS)
+    private var phoneConnection: some View {
+        let configured = !settings.serverText.isEmpty
+        let checking = configured && settings.busy && settings.sidebarStatus == nil
+        let online = connected == true
+        // A reachable server can deny collection status (e.g. non-staff keys).
+        // Keep this separate from losing the connection itself.
+        let offline = configured && !checking && !settings.serverReachable
+        let unavailable = configured && !offline && connected == false
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) {
+                phoneConnectionLabel(online: online, offline: offline, checking: checking, unavailable: unavailable)
+                Spacer(minLength: 4)
+                phoneConnectionDetail(offline: offline, online: online)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                phoneConnectionLabel(online: online, offline: offline, checking: checking, unavailable: unavailable)
+                phoneConnectionDetail(offline: offline, online: online)
+                    .padding(.leading, 22)
+            }
+        }
+    }
+
+    private func phoneConnectionLabel(online: Bool, offline: Bool, checking: Bool, unavailable: Bool) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(online ? Color.green : offline ? .red : .secondary)
+                .frame(width: 7, height: 7)
+                .padding(.leading, 3).frame(width: 16, alignment: .leading)
+            Text(online ? "Connected" : offline ? "Offline" : checking ? "Connecting…" : unavailable ? "Status unavailable" : "Not checked")
+                .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+
+    @ViewBuilder private func phoneConnectionDetail(offline: Bool, online: Bool) -> some View {
+        if offline {
+            if let refreshedAt = settings.sidebarStatus?.refreshedAt {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    let seconds = max(0, Int(context.date.timeIntervalSince(refreshedAt)))
+                    Text("Last refreshed \(seconds)s ago")
+                }
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("sidebar.lastRefreshed")
+            } else {
+                Text("Not refreshed yet").foregroundStyle(.secondary)
+            }
+        } else if online, let latency {
+            Text("\(latency) ms").foregroundStyle(.secondary)
+        }
+    }
+    #endif
+
 }

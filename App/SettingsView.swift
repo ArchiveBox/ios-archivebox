@@ -178,7 +178,7 @@ final class SettingsModel {
     var busy = false
     // Keep the last successful sample beyond the sidebar view's lifetime. Sleep,
     // background cancellation and temporary network failures do not erase it.
-    var sidebarStatus: (progress: SidebarProgress, latency: Int)?
+    var sidebarStatus: (progress: SidebarProgress, latency: Int, refreshedAt: Date)?
     private let client = ArchiveBoxClient()
     private var didLoad = false
     private var validation: Task<Void, Never>?

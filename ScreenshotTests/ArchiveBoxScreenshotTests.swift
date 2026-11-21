@@ -114,15 +114,13 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         capture("home", app: app)
         let snapshotMarkerType = XCUIElement.ElementType.link
         let pageTextType = XCUIElement.ElementType.staticText
-        // The real screenshot collection creates two crawls. Check its stable
-        // page heading instead of a count that changes with the collection.
-        let crawlsMarker = "Crawls"
         #else
         // macOS WebKit exposes the card title through its text value, not a Link.
         let snapshotMarkerType = XCUIElement.ElementType.any
         let pageTextType = XCUIElement.ElementType.any
-        let crawlsMarker = "Crawls"
         #endif
+        // Match the committed web heading, not a count that varies with the collection.
+        let crawlsMarker = "Crawl Jobs"
         for (id, marker, type) in [("add", "Create a new Crawl", pageTextType),
                                    ("snapshots", "ArchiveBox Test Page", snapshotMarkerType),
                                    ("crawls", crawlsMarker, pageTextType)] {
@@ -240,7 +238,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
 
         let screens: [(String, String)] = [
             ("add", "Create a new Crawl"), ("agent", "New session"),
-            ("crawls", "Crawls"), ("schedules", "Search Scheduled Crawls"),
+            ("crawls", "Crawl Jobs"), ("schedules", "Search Scheduled Crawls"),
             ("snapshots", "ArchiveBox Test Page"), ("results", "Search Archive Results"),
             ("tags", "All tags"), ("admin", "Recent Actions"),
             ("users", "Search users"), ("personas", "Search personas"),

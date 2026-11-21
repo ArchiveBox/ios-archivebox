@@ -11,7 +11,7 @@ import struct
 
 CLIENT = "onboarding setup-choices setup-mac setup-docker connection-disconnected connection-connected add snapshots crawls agent-welcome agent activity tailscale discovery".split()
 SERVER = "startup onboarding create-admin client-setup network tailscale-guide https certificate-options clients add-user shell admin activity collection choose-collection".split()
-EXPECTED = {'iphone': CLIENT, 'macos': CLIENT, 'server': SERVER}
+EXPECTED = {'iphone': ['home', *CLIENT], 'macos': CLIENT, 'server': SERVER}
 LABELS = {'iphone': 'iPhone', 'macos': 'Mac', 'server': 'ArchiveBox Server for Mac'}
 
 

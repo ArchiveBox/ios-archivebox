@@ -97,6 +97,21 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Testing connection…"].waitForNonExistence(timeout: 20), app.debugDescription)
         capture("connection-connected", app: app)
         #if os(iOS)
+        showSidebar(app)
+        let homeHeader = app.staticTexts["ArchiveBox"].firstMatch
+        let homeProgress = app.buttons["sidebar.openActivity"]
+        let homeSearch = app.textFields["sidebar.searchField"]
+        let homeAdd = app.buttons["sidebar.add"]
+        let homeReady = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            homeHeader.isHittable && homeProgress.isHittable && homeProgress.label.contains("active crawls")
+                && homeSearch.isHittable && homeAdd.isHittable
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [homeReady], timeout: 20), .completed, "Connected Home must show live activity, Search and Add")
+        XCTAssertLessThan(homeHeader.frame.midY, homeProgress.frame.minY)
+        XCTAssertLessThan(homeProgress.frame.maxY, app.buttons["sidebar.crawls"].frame.midY)
+        XCTAssertGreaterThan(homeSearch.frame.midY, app.frame.minY + app.frame.height * 0.75)
+        XCTAssertGreaterThan(homeAdd.frame.midY, app.frame.minY + app.frame.height * 0.75)
+        capture("home", app: app)
         let snapshotMarkerType = XCUIElement.ElementType.link
         let pageTextType = XCUIElement.ElementType.staticText
         // The real screenshot collection creates two crawls. Check its stable

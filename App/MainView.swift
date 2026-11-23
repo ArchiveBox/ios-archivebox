@@ -26,7 +26,8 @@ struct MainView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     @State private var archiveNavigation = ArchiveNavigation.shared
     @State private var searchQuery = ""
-    @State private var focusSearch = false
+    @State private var focusSearch: Screen?
+    @State private var displayedPage: (screen: Screen, session: PageSession)?
     @State private var snapshotDestination: URL?
     @State private var routeError: String?
 
@@ -183,7 +184,7 @@ struct MainView: View {
             switch route {
             case .search(let query):
                 searchQuery = query
-                focusSearch = query.isEmpty
+                focusSearch = query.isEmpty ? .search : nil
                 activate(.search)
             case .add: activate(.add)
             case .snapshot(let server, let id):
@@ -226,7 +227,8 @@ struct MainView: View {
         .onChange(of: settings.verifiedServer) { old, new in
             if old != nil && old != new {
                 snapshotDestination = nil; searchQuery = ""
-                focusSearch = false
+                focusSearch = nil
+                displayedPage = nil
             }
         }
     }
@@ -274,10 +276,11 @@ struct MainView: View {
                             ServerWebView(url: url, title: screen.info.title, session: session,
                                           reloadID: screen == .admin ? settings.adminNavigationID : reloadIDs[screen])
                                 .onChange(of: ObjectIdentifier(session), initial: true) {
+                                    displayedPage = (screen, session)
                                     session.routing.openSnapshot = screen == .search ? { openSnapshot($0) } : nil
                                 }
-                                .task(id: screen == .search && focusSearch && !session.isLoading && !session.navigationLoading) {
-                                    guard screen == .search, focusSearch, !session.isLoading,
+                                .task(id: focusSearch == screen && !session.isLoading && !session.navigationLoading) {
+                                    guard focusSearch == screen, !session.isLoading,
                                           !session.navigationLoading, session.errorMessage == nil else { return }
                                     // The authenticated server page owns autocomplete, editing and live
                                     // results. Older servers expose the plain Django input on this same form.
@@ -291,7 +294,7 @@ struct MainView: View {
                                         })()
                                         """) as? Bool
                                     guard !Task.isCancelled else { return }
-                                    if didFocus == true { focusSearch = false }
+                                    if didFocus == true { focusSearch = nil }
                                 }
                         } else {
                             ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Choose Connection Settings to get started."))
@@ -522,8 +525,18 @@ struct MainView: View {
 
     private var sidebarSearch: some View {
         Button {
-            focusSearch = true
-            activate(.search, reloadIfSelected: false)
+            // Keep the server's current form and its folder, tag, domain, and
+            // filter-panel selections when the user returns to the sidebar.
+            let screen: Screen
+            if let displayedPage, displayedPage.screen == selection,
+               let path = displayedPage.session.page.url?.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")),
+               [Screen.search, .snapshots].contains(where: { ("/" + path + "/").hasSuffix("/" + $0.info.path) }) {
+                screen = displayedPage.screen
+            } else {
+                screen = .search
+            }
+            focusSearch = screen
+            activate(screen, reloadIfSelected: false)
         } label: {
             Label("Search archive", systemImage: "magnifyingglass")
                 .font(.subheadline)

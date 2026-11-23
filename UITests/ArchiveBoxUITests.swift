@@ -800,6 +800,8 @@ final class ArchiveBoxUITests: XCTestCase {
     private func submitSearch(_ query: String, app: XCUIApplication, capture: Bool = false) {
         let editor = app.webViews.otherElements.matching(NSPredicate(format: "label == %@", "Search snapshots")).firstMatch
         XCTAssertTrue(editor.waitForExistence(timeout: 15), app.debugDescription)
+        let keyboardTip = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Speed up your typing")).firstMatch
+        if keyboardTip.exists { app.buttons["Continue"].tap() }
         // WebKit exposes a contenteditable ARIA combobox as an AXOther. Use the
         // system Paste action and return key, which work with its real keyboard.
         UIPasteboard.general.string = query
@@ -809,6 +811,9 @@ final class ArchiveBoxUITests: XCTestCase {
         paste.tap()
         if capture { attach("iPhone server search editor", app: app) }
         app.keyboards.buttons["Search"].tap()
+        // The unfiltered page can already contain the expected result. Wait
+        // for the submitted search to replace the editor before checking rows.
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 20), app.debugDescription)
     }
 
     private func connectForSearch(_ app: XCUIApplication, server: String, token: String) {

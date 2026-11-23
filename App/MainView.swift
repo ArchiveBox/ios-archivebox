@@ -224,6 +224,9 @@ struct MainView: View {
             columnVisibility = .detailOnly
             #endif
         }
+        .onChange(of: selection) { _, screen in
+            if focusSearch != screen { focusSearch = nil }
+        }
         .onChange(of: settings.verifiedServer) { old, new in
             if old != nil && old != new {
                 snapshotDestination = nil; searchQuery = ""
@@ -280,21 +283,20 @@ struct MainView: View {
                                     session.routing.openSnapshot = screen == .search ? { openSnapshot($0) } : nil
                                 }
                                 .task(id: focusSearch == screen && !session.isLoading && !session.navigationLoading) {
-                                    guard focusSearch == screen, !session.isLoading,
-                                          !session.navigationLoading, session.errorMessage == nil else { return }
+                                    guard focusSearch == screen, !session.isLoading, !session.navigationLoading else { return }
+                                    // Whether focus succeeds or the field is unavailable, consume this
+                                    // tap. A later tap must be able to try again on a recovered page.
+                                    defer { if !Task.isCancelled { focusSearch = nil } }
+                                    guard session.errorMessage == nil else { return }
                                     // The authenticated server page owns autocomplete, editing and live
                                     // results. Older servers expose the plain Django input on this same form.
-                                    let didFocus = try? await session.page.evaluateJavaScript("""
+                                    _ = try? await session.page.evaluateJavaScript("""
                                         (() => {
                                             const form = document.querySelector('#changelist-search');
                                             const editor = form?.querySelector('[role="combobox"]') ?? form?.querySelector('#searchbar');
-                                            if (!editor) return false;
-                                            editor.focus();
-                                            return document.activeElement === editor;
+                                            editor?.focus();
                                         })()
-                                        """) as? Bool
-                                    guard !Task.isCancelled else { return }
-                                    if didFocus == true { focusSearch = nil }
+                                        """)
                                 }
                         } else {
                             ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Choose Connection Settings to get started."))

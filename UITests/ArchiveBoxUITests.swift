@@ -126,7 +126,7 @@ final class ArchiveBoxUITests: XCTestCase {
         attach("Share archived snapshot link", app: app)
         copy.tap()
         result.tap()
-        let sourceLink = app.webViews.links[original].firstMatch
+        let sourceLink = app.webViews.links.matching(NSPredicate(format: "label CONTAINS %@", original)).firstMatch
         XCTAssertTrue(sourceLink.waitForExistence(timeout: 20), app.debugDescription)
 
         search.queryItems = [URLQueryItem(name: "q", value: "title:archivebox-no-match-" + UUID().uuidString)]

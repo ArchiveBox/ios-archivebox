@@ -100,7 +100,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         showSidebar(app)
         let homeHeader = app.staticTexts["ArchiveBox"].firstMatch
         let homeProgress = app.buttons["sidebar.openActivity"]
-        let homeSearch = app.textFields["sidebar.searchField"]
+        let homeSearch = app.buttons["sidebar.search"]
         let homeAdd = app.buttons["sidebar.add"]
         let homeReady = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             homeHeader.isHittable && homeProgress.isHittable && homeProgress.label.contains("active crawls")

@@ -644,7 +644,7 @@ final class ArchiveBoxUITests: XCTestCase {
         }
     }
 
-    func testPhoneHomeMenuAnchorsActionsWhileScrollingAndTyping() throws {
+    func testPhoneHomeMenuOpensServerSearchAfterScrolling() async throws {
         continueAfterFailure = false
         let environment = ProcessInfo.processInfo.environment
         let server = try XCTUnwrap(environment["ARCHIVEBOX_TEST_SERVER"])
@@ -672,7 +672,7 @@ final class ArchiveBoxUITests: XCTestCase {
            notificationPrompt.label.contains("Would Like to Send You Notifications") {
             notificationPrompt.buttons.firstMatch.tap()
         }
-        let search = app.textFields["sidebar.searchField"]
+        let search = app.buttons["sidebar.search"]
         let add = app.buttons["sidebar.add"]
         let progress = app.buttons["sidebar.openActivity"]
         let sidebar = app.collectionViews["sidebar"]
@@ -691,14 +691,44 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(add.isHittable)
         XCTAssertEqual(add.frame.maxY, bottom, accuracy: 1)
         search.tap()
-        let keyboard = app.keyboards.firstMatch
-        XCTAssertTrue(keyboard.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertLessThanOrEqual(add.frame.maxY, keyboard.frame.minY + 1)
-        attach("iPhone home sticky actions above keyboard", app: app)
-        search.typeText("archive test\n")
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 20), "Search must focus the actual server editor on the first tap")
         XCTAssertFalse(progress.isHittable)
         XCTAssertFalse(add.isHittable)
+        // Type into the focused WKWebView as a user would. The server owns
+        // the editor and suggestions, including the plain input on older servers.
+        var request = URLRequest(url: try XCTUnwrap(URL(string: server + "/api/v1/core/snapshots?limit=1")))
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let snapshot = try XCTUnwrap((json["items"] as? [[String: Any]])?.first)
+        let original = try XCTUnwrap(snapshot["url"] as? String)
+        let host = try XCTUnwrap(URL(string: original)?.host())
+        let title = (snapshot["title"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        // Derive a satisfiable query from the real collection so this can run
+        // on any test server. Its returned row must survive form submission.
+        func quoted(_ value: String) -> String {
+            "\"" + value.replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        }
+        var terms: [String] = []
+        if let tag = (snapshot["tags"] as? [String])?.first { terms.append("tags:" + quoted(tag)) }
+        terms.append(title.map { "title:" + quoted($0) } ?? "domain:" + quoted(host))
+        let query = terms.joined(separator: " AND ")
+        let editor = app.webViews.otherElements.matching(NSPredicate(format: "label == %@", "Search snapshots")).firstMatch
+        XCTAssertTrue(editor.exists)
+        // WebKit exposes a contenteditable ARIA combobox as an AXOther. Use the
+        // system Paste action and return key, which work with its real keyboard.
+        UIPasteboard.general.string = query
+        editor.press(forDuration: 0.8)
+        let paste = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Paste")).firstMatch
+        XCTAssertTrue(paste.waitForExistence(timeout: 5), app.debugDescription)
+        paste.tap()
+        attach("iPhone server search editor", app: app)
+        app.keyboards.buttons["Search"].tap()
+        XCTAssertTrue(app.webViews.links.matching(NSPredicate(format: "label CONTAINS[c] %@", title ?? host)).firstMatch.waitForExistence(timeout: 20))
+        attach("iPhone server search results", app: app)
     }
 
     func testActivityHeaderSeparatesBackButtonFromWebContent() {

@@ -26,8 +26,8 @@ struct MainView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     @State private var archiveNavigation = ArchiveNavigation.shared
     @State private var searchQuery = ""
-    @State private var submittedSearchMode = ""
-    @State private var searchModes = ["meta", "contents", "deep"]
+    @State private var focusSearch: Screen?
+    @State private var displayedPage: (screen: Screen, session: PageSession)?
     @State private var snapshotDestination: URL?
     @State private var routeError: String?
 
@@ -182,7 +182,10 @@ struct MainView: View {
         .task(id: archiveNavigation.requestID) {
             guard let route = archiveNavigation.route else { return }
             switch route {
-            case .search(let query): searchQuery = query; activate(.search)
+            case .search(let query):
+                searchQuery = query
+                focusSearch = query.isEmpty ? .search : nil
+                activate(.search)
             case .add: activate(.add)
             case .snapshot(let server, let id):
                 do {
@@ -221,10 +224,14 @@ struct MainView: View {
             columnVisibility = .detailOnly
             #endif
         }
+        .onChange(of: selection) { _, screen in
+            if focusSearch != screen { focusSearch = nil }
+        }
         .onChange(of: settings.verifiedServer) { old, new in
             if old != nil && old != new {
                 snapshotDestination = nil; searchQuery = ""
-                submittedSearchMode = ""; searchModes = ["meta", "contents", "deep"]
+                focusSearch = nil
+                displayedPage = nil
             }
         }
     }
@@ -272,17 +279,24 @@ struct MainView: View {
                             ServerWebView(url: url, title: screen.info.title, session: session,
                                           reloadID: screen == .admin ? settings.adminNavigationID : reloadIDs[screen])
                                 .onChange(of: ObjectIdentifier(session), initial: true) {
+                                    displayedPage = (screen, session)
                                     session.routing.openSnapshot = screen == .search ? { openSnapshot($0) } : nil
                                 }
-                                .task(id: session.isLoading) {
-                                    guard screen == .search, !session.isLoading else { return }
-                                    // Read the server's actual providers instead of assuming
-                                    // every collection has the same search engines installed.
-                                    if let modes = try? await session.page.evaluateJavaScript(
-                                        "Array.from(document.querySelectorAll('select[name=search_mode] option'), option => option.value)"
-                                    ) as? [String], !modes.isEmpty {
-                                        searchModes = modes
-                                    }
+                                .task(id: focusSearch == screen && !session.isLoading && !session.navigationLoading) {
+                                    guard focusSearch == screen, !session.isLoading, !session.navigationLoading else { return }
+                                    // Whether focus succeeds or the field is unavailable, consume this
+                                    // tap. A later tap must be able to try again on a recovered page.
+                                    defer { if !Task.isCancelled { focusSearch = nil } }
+                                    guard session.errorMessage == nil else { return }
+                                    // The authenticated server page owns autocomplete, editing and live
+                                    // results. Older servers expose the plain Django input on this same form.
+                                    _ = try? await session.page.evaluateJavaScript("""
+                                        (() => {
+                                            const form = document.querySelector('#changelist-search');
+                                            const editor = form?.querySelector('[role="combobox"]') ?? form?.querySelector('#searchbar');
+                                            editor?.focus();
+                                        })()
+                                        """)
                                 }
                         } else {
                             ContentUnavailableView("Connect your server", systemImage: "network", description: Text("Choose Connection Settings to get started."))
@@ -512,12 +526,37 @@ struct MainView: View {
     }
 
     private var sidebarSearch: some View {
-        SidebarSearchField(query: searchQuery, modes: searchModes, compactRail: !usesPhoneHome) { query, mode in
-            searchQuery = query
-            submittedSearchMode = mode
-            activate(.search)
+        Button {
+            // Keep the server's current form and its folder, tag, domain, and
+            // filter-panel selections when the user returns to the sidebar.
+            let screen: Screen
+            if let displayedPage, displayedPage.screen == selection,
+               let path = displayedPage.session.page.url?.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")),
+               [Screen.search, .snapshots].contains(where: { ("/" + path + "/").hasSuffix("/" + $0.info.path) }) {
+                screen = displayedPage.screen
+            } else {
+                screen = .search
+            }
+            focusSearch = screen
+            activate(screen, reloadIfSelected: false)
+        } label: {
+            Label("Search archive", systemImage: "magnifyingglass")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                #if os(iOS)
+                .frame(minHeight: 44)
+                .background(.quaternary, in: Capsule())
+                #else
+                .padding(.vertical, 6)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                #endif
+                .contentShape(Rectangle())
         }
-        .id(settings.server_id)
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("sidebar.search")
         .disabled(settings.verifiedServer == nil)
     }
 
@@ -640,12 +679,12 @@ struct MainView: View {
         }
     }
 
-    private func activate(_ screen: Screen) {
+    private func activate(_ screen: Screen, reloadIfSelected: Bool = true) {
         settings.preserveExplicitNavigation()
         if screen.isHelp, let url = URL(string: screen.info.path) { openURL(url); return }
         // Only an explicit repeat click resets the page. Switching away and back
         // retains the cached page, including its current URL and form contents.
-        if selection == screen {
+        if selection == screen && reloadIfSelected {
             if screen == .admin { settings.openAdmin(settings.adminURL) }
             else {
                 if screen == .snapshots { snapshotDestination = nil }
@@ -675,8 +714,7 @@ struct MainView: View {
     private func destination(_ screen: Screen) -> URL? {
         if screen == .snapshots, let snapshotDestination { return snapshotDestination }
         if screen == .search, let server = settings.verifiedServer {
-            var items = searchQuery.isEmpty ? [] : [URLQueryItem(name: "q", value: searchQuery)]
-            if !submittedSearchMode.isEmpty { items.append(URLQueryItem(name: "search_mode", value: submittedSearchMode)) }
+            let items = searchQuery.isEmpty ? [] : [URLQueryItem(name: "q", value: searchQuery)]
             return server.appending(path: screen.info.path).appending(queryItems: items)
         }
         if screen.isHelp { return nil }
@@ -685,7 +723,6 @@ struct MainView: View {
     }
 }
 
-// Keep draft edits local: typing must not rebuild navigation and the active web page.
 #if os(iOS)
 // A plain SwiftUI overlay hit-tests to the WKWebView below it. Its scroll
 // gestures can consume Back taps even when accessibility says the button is
@@ -711,131 +748,6 @@ private struct SidebarBackButton: UIViewRepresentable {
         let identifier = UIAction.Identifier("showSidebar")
         button.removeAction(identifiedBy: identifier, for: .touchUpInside)
         button.addAction(UIAction(identifier: identifier) { _ in action() }, for: .touchUpInside)
-    }
-}
-#endif
-
-private struct SidebarSearchField: View {
-    let query: String
-    let modes: [String]
-    let compactRail: Bool
-    let submit: (String, String) -> Void
-    @State private var text = ""
-    @State private var mode = ""
-    @FocusState private var focused: Bool
-    @State private var focusRequest: UUID?
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Menu {
-                Picker("Search mode", selection: $mode) {
-                    Text("Server default").tag("")
-                    ForEach(modes, id: \.self) { value in
-                        Text(value == "meta" ? "Metadata" : value == "contents" ? "Full text" : value).tag(value)
-                    }
-                }
-                .pickerStyle(.inline)
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "magnifyingglass")
-                    #if os(iOS)
-                    Image(systemName: "chevron.down").imageScale(.small)
-                    #endif
-                }
-                .foregroundStyle(.secondary)
-            }
-            .menuStyle(.borderlessButton).fixedSize()
-            .accessibilityLabel("Search mode")
-            .accessibilityIdentifier("sidebar.searchMode")
-            #if os(macOS)
-            SidebarSearchInput(text: $text, focusRequest: focusRequest) {
-                submit(text.trimmingCharacters(in: .whitespacesAndNewlines), mode)
-            }
-            .accessibilityIdentifier("sidebar.searchField")
-            #else
-            TextField("Search archive", text: $text,
-                      prompt: compactRail ? Text("Search").foregroundColor(.primary.opacity(0.78)) : nil)
-                .accessibilityLabel("Search archive")
-                .textFieldStyle(.plain)
-                .focused($focused)
-                .submitLabel(.search)
-                .onSubmit {
-                    focused = false
-                    submit(text.trimmingCharacters(in: .whitespacesAndNewlines), mode)
-                }
-                .accessibilityIdentifier("sidebar.searchField")
-            #endif
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                    focused = true
-                    focusRequest = UUID()
-                } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain).accessibilityLabel("Clear search")
-            }
-        }
-        #if os(iOS)
-        .padding(.horizontal, compactRail ? 8 : 12)
-        .frame(minHeight: 44)
-        .background(.quaternary, in: Capsule())
-        #else
-        .padding(.horizontal, 8).padding(.vertical, 6)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
-        #endif
-        .onChange(of: query, initial: true) { _, value in text = value }
-    }
-}
-
-#if os(macOS)
-// A native field avoids List treating SwiftUI's submit action as a row click.
-private final class SearchTextField: NSTextField {
-    override func accessibilityPerformPress() -> Bool {
-        window?.makeFirstResponder(self) ?? false
-    }
-}
-
-private struct SidebarSearchInput: NSViewRepresentable {
-    @Binding var text: String
-    let focusRequest: UUID?
-    let submit: () -> Void
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-    func makeNSView(context: Context) -> NSTextField {
-        let field = SearchTextField()
-        field.placeholderString = "Search archive"
-        field.isBordered = false
-        field.drawsBackground = false
-        field.focusRingType = .none
-        field.font = .preferredFont(forTextStyle: .body)
-        field.delegate = context.coordinator
-        field.setAccessibilityIdentifier("sidebar.searchField")
-        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        return field
-    }
-    func updateNSView(_ field: NSTextField, context: Context) {
-        context.coordinator.parent = self
-        if field.stringValue != text { field.stringValue = text }
-        if context.coordinator.focusRequest != focusRequest {
-            context.coordinator.focusRequest = focusRequest
-            field.window?.makeFirstResponder(field)
-        }
-    }
-    final class Coordinator: NSObject, NSTextFieldDelegate {
-        var parent: SidebarSearchInput
-        var focusRequest: UUID?
-        init(_ parent: SidebarSearchInput) { self.parent = parent }
-        func controlTextDidChange(_ notification: Notification) {
-            guard let field = notification.object as? NSTextField else { return }
-            parent.text = field.stringValue
-        }
-        func control(_ control: NSControl, textView: NSTextView, doCommandBy command: Selector) -> Bool {
-            guard command == #selector(NSResponder.insertNewline(_:)) else { return false }
-            parent.text = textView.string
-            parent.submit()
-            return true
-        }
     }
 }
 #endif

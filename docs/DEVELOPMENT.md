@@ -41,7 +41,7 @@ Both platform apps use `io.archivebox.ArchiveBox`, with `.Share`, `.Safari`, and
 
 - `Sources/ArchiveBoxCore`: shared API discovery/submission, browser authentication/presentation, Keychain storage, process execution, links, and app information.
 - `App`: client navigation (`MainView`), connection settings, Add URLs, sidebar status, and cached embedded pages (`EmbeddedBrowser`). Uses system forms, adaptive sidebar, glass controls, and native WebKit APIs.
-- `App/ArchiveSearchView.swift`: native search through `ArchiveBoxClient`; opens results with the existing authenticated `PageSession`. `ArchiveRoute` is the credential-free link format shared by Siri, Spotlight, and Handoff. App entities resolve through the server, without a second bookmark database.
+- `App/MainView.swift`: the sidebar opens the server’s Snapshot search in the authenticated `PageSession`. The server supplies the editor, suggestions, and streamed results. `ArchiveRoute` is the credential-free link format shared by Siri, Spotlight, and Handoff. App entities resolve through the server, without a second bookmark database.
 - `Widgets`: launcher widget and Search/Add controls. `OpenArchiveDestinationIntent` is compiled into the app and both WidgetKit extensions; foreground execution uses the same app navigation as the menu.
 - `MacLocalUI`: client-only companion discovery/download UI.
 - `ServerApp`: the independent menu-bar companion; runtime/management/inspection are separate from settings state and views. Both apps compile in Swift 6 mode.

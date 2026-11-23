@@ -114,7 +114,6 @@ public final class ArchiveBoxClient: Sendable {
         guard (1...500).contains(limit) else { throw ArchiveBoxError.message("Choose between 1 and 500 results.") }
         let data = try await request(configuration.server, path: "api/v1/core/snapshots", token: configuration.token,
                                      query: [URLQueryItem(name: "search", value: query),
-                                             URLQueryItem(name: "search_mode", value: "meta"),
                                              URLQueryItem(name: "limit", value: String(limit))])
         return try JSONDecoder().decode(SnapshotPage.self, from: data).items
     }

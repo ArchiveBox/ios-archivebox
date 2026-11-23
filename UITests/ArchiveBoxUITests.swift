@@ -63,12 +63,38 @@ final class FirstRunUITests: XCTestCase {
 /// Run against a real, disposable ArchiveBox 0.9+ server. No intercepted requests or seeded app state.
 @MainActor
 final class ArchiveBoxUITests: XCTestCase {
-    func testNativeArchiveSearchAndDeepLinks() async throws {
+    func testSidebarSearchKeepsSelectedTag() async throws {
         continueAfterFailure = false
-        addUIInterruptionMonitor(withDescription: "Password suggestion") { alert in
-            if alert.buttons["Not Now"].exists { alert.buttons["Not Now"].tap(); return true }
-            return false
-        }
+        let environment = ProcessInfo.processInfo.environment
+        let server = try XCTUnwrap(environment["ARCHIVEBOX_TEST_SERVER"])
+        let token = try XCTUnwrap(environment["ARCHIVEBOX_TEST_TOKEN"])
+        var request = URLRequest(url: try XCTUnwrap(URL(string: server + "/api/v1/core/snapshots?limit=50")))
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        let page = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let snapshots = try XCTUnwrap(page["items"] as? [[String: Any]])
+        let tag = try XCTUnwrap(snapshots.compactMap { ($0["tags"] as? [String])?.first }.first)
+        let outside = try XCTUnwrap(snapshots.first { !(($0["tags"] as? [String]) ?? []).contains(tag) })
+        let outsideURL = try XCTUnwrap(outside["url"] as? String)
+        let app = XCUIApplication()
+        connectForSearch(app, server: server, token: token)
+        openScreen("Snapshots", app: app)
+        let tagLink = app.webViews.links[tag].firstMatch
+        XCTAssertTrue(tagLink.waitForExistence(timeout: 20), app.debugDescription)
+        tagLink.tap()
+        // The grid link opens a tag-filtered list inside the Snapshots webview.
+        // Search from the native sidebar must resume that same page and form.
+        XCTAssertTrue(app.webViews.buttons["Switch to grid view"].firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        app.buttons["navigation.sidebar"].tap()
+        app.buttons["sidebar.search"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        submitSearch("meta:" + quoted(outsideURL), app: app)
+        XCTAssertTrue(app.webViews.staticTexts["No snapshots here yet"].firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+    }
+
+    func testServerSearchAndSnapshotDeepLinks() async throws {
+        continueAfterFailure = false
         let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
         let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
         var request = URLRequest(url: URL(string: server + "/api/v1/core/snapshots?limit=1")!)
@@ -81,39 +107,31 @@ final class ArchiveBoxUITests: XCTestCase {
         let original = try XCTUnwrap(record["url"] as? String)
 
         let app = XCUIApplication()
-        app.launch()
-        skipIntroductionIfNeeded(app)
-        // Use the same public connection link that the companion's QR code
-        // opens. Credentials still go through the app's real validation flow.
-        var connection = URLComponents(string: "archivebox://connect")!
-        connection.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "api_key", value: token)]
-        app.open(connection.url!)
-        if app.buttons["Use this server"].waitForExistence(timeout: 3) { app.buttons["Use this server"].tap() }
-        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20))
-        openScreen("Search Archive", app: app)
-        let search = app.searchFields.firstMatch
-        XCTAssertTrue(search.waitForExistence(timeout: 10), app.debugDescription)
-        search.tap()
-        let passwordSuggestion = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Not Now"]
-        if passwordSuggestion.waitForExistence(timeout: 3) { passwordSuggestion.tap() }
-        search.tap()
-        search.typeText(original + "\n")
-        let result = app.buttons["archive.result." + id]
+        connectForSearch(app, server: server, token: token)
+        var search = URLComponents(string: "archivebox://search")!
+        search.queryItems = [URLQueryItem(name: "q", value: "meta:" + quoted(original))]
+        app.open(search.url!)
+        let url = try XCTUnwrap(URL(string: original))
+        let fallback = url.lastPathComponent.isEmpty || url.lastPathComponent == "/" ? url.host() : url.lastPathComponent.removingPercentEncoding
+        let result = app.webViews.links.matching(NSPredicate(format: "label IN %@", [record["title"] as? String, fallback].compactMap { $0 })).firstMatch
         XCTAssertTrue(result.waitForExistence(timeout: 20), app.debugDescription)
-        XCTAssertTrue(result.label.contains(original))
-        attach("Native archive search", app: app)
+        attach("Server archive search", app: app)
+        // Archive links use WebKit’s native link menu and system share sheet.
+        result.press(forDuration: 1)
+        let share = app.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Share")).firstMatch
+        XCTAssertTrue(share.waitForExistence(timeout: 10), app.debugDescription)
+        share.tap()
+        let copy = app.cells["Copy"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 10), app.debugDescription)
+        attach("Share archived snapshot link", app: app)
+        copy.tap()
         result.tap()
-        XCTAssertTrue(app.buttons["Share Archive URL"].waitForExistence(timeout: 15), app.debugDescription)
-        XCTAssertTrue(app.webViews.links.containing(NSPredicate(format: "label CONTAINS %@", original)).firstMatch.waitForExistence(timeout: 20), app.debugDescription)
-        app.buttons["Share Archive URL"].tap()
-        XCTAssertTrue(app.cells["Copy"].waitForExistence(timeout: 5), app.debugDescription)
-        attach("Native archive sharing", app: app)
-        app.cells["Copy"].tap()
-        app.buttons["Done"].tap()
+        let sourceLink = app.webViews.links.matching(NSPredicate(format: "label CONTAINS %@", original)).firstMatch
+        XCTAssertTrue(sourceLink.waitForExistence(timeout: 20), app.debugDescription)
 
-        let missingQuery = "archivebox-no-match-" + UUID().uuidString
-        app.open(URL(string: "archivebox://search?q=" + missingQuery)!)
-        XCTAssertTrue(app.staticTexts["No Results for “\(missingQuery)”"].waitForExistence(timeout: 20), app.debugDescription)
+        search.queryItems = [URLQueryItem(name: "q", value: "title:archivebox-no-match-" + UUID().uuidString)]
+        app.open(search.url!)
+        XCTAssertTrue(app.webViews.staticTexts["No snapshots here yet"].firstMatch.waitForExistence(timeout: 20), app.debugDescription)
         var link = URLComponents(string: "archivebox://snapshot")!
         link.queryItems = [URLQueryItem(name: "server", value: "https://different.example"), URLQueryItem(name: "id", value: id)]
         app.open(link.url!)
@@ -122,8 +140,7 @@ final class ArchiveBoxUITests: XCTestCase {
         link.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "id", value: id)]
         app.terminate()
         app.open(link.url!)
-        XCTAssertTrue(app.buttons["Share Archive URL"].waitForExistence(timeout: 20), app.debugDescription)
-        XCTAssertTrue(app.webViews.links.containing(NSPredicate(format: "label CONTAINS %@", original)).firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertTrue(sourceLink.waitForExistence(timeout: 20), app.debugDescription)
         attach("Cold launch archived page", app: app)
     }
 
@@ -644,35 +661,14 @@ final class ArchiveBoxUITests: XCTestCase {
         }
     }
 
-    func testPhoneHomeMenuAnchorsActionsWhileScrollingAndTyping() throws {
+    func testPhoneHomeMenuOpensServerSearchAfterScrolling() async throws {
         continueAfterFailure = false
         let environment = ProcessInfo.processInfo.environment
         let server = try XCTUnwrap(environment["ARCHIVEBOX_TEST_SERVER"])
         let token = try XCTUnwrap(environment["ARCHIVEBOX_TEST_TOKEN"])
         let app = XCUIApplication()
-        app.launch()
-        skipIntroductionIfNeeded(app)
-        openScreen("Connection Settings", app: app)
-        // Start with exactly the connection installed by this test.
-        let reset = app.buttons["setup.reset"]
-        for _ in 0..<5 where !reset.isHittable { app.swipeUp() }
-        XCTAssertTrue(reset.isHittable, app.debugDescription)
-        reset.tap()
-        app.buttons["Reset setup"].tap()
-        var connection = URLComponents(string: "archivebox://connect")!
-        connection.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "api_key", value: token)]
-        app.open(connection.url!)
-        if app.buttons["Use this server"].waitForExistence(timeout: 3) { app.buttons["Use this server"].tap() }
-        if app.buttons["Allow"].exists { app.buttons["Allow"].tap() }
-        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
-        app.terminate()
-        app.launch()
-        let notificationPrompt = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
-        if notificationPrompt.waitForExistence(timeout: 3),
-           notificationPrompt.label.contains("Would Like to Send You Notifications") {
-            notificationPrompt.buttons.firstMatch.tap()
-        }
-        let search = app.textFields["sidebar.searchField"]
+        connectForSearch(app, server: server, token: token)
+        let search = app.buttons["sidebar.search"]
         let add = app.buttons["sidebar.add"]
         let progress = app.buttons["sidebar.openActivity"]
         let sidebar = app.collectionViews["sidebar"]
@@ -691,14 +687,30 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(add.isHittable)
         XCTAssertEqual(add.frame.maxY, bottom, accuracy: 1)
         search.tap()
-        let keyboard = app.keyboards.firstMatch
-        XCTAssertTrue(keyboard.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertLessThanOrEqual(add.frame.maxY, keyboard.frame.minY + 1)
-        attach("iPhone home sticky actions above keyboard", app: app)
-        search.typeText("archive test\n")
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 20), "Search must focus the actual server editor on the first tap")
         XCTAssertFalse(progress.isHittable)
         XCTAssertFalse(add.isHittable)
+        // Type into the focused WKWebView as a user would. The server owns
+        // the editor and suggestions, including the plain input on older servers.
+        var request = URLRequest(url: try XCTUnwrap(URL(string: server + "/api/v1/core/snapshots?limit=1")))
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let snapshot = try XCTUnwrap((json["items"] as? [[String: Any]])?.first)
+        let original = try XCTUnwrap(snapshot["url"] as? String)
+        let host = try XCTUnwrap(URL(string: original)?.host())
+        let title = (snapshot["title"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        // Derive a satisfiable query from the real collection so this can run
+        // on any test server. Its returned row must survive form submission.
+        var terms: [String] = []
+        if let tag = (snapshot["tags"] as? [String])?.first { terms.append("tags:" + quoted(tag)) }
+        terms.append(title.map { "title:" + quoted($0) } ?? "domain:" + quoted(host))
+        let query = terms.joined(separator: " AND ")
+        submitSearch(query, app: app, capture: true)
+        XCTAssertTrue(app.webViews.links.matching(NSPredicate(format: "label CONTAINS[c] %@", title ?? host)).firstMatch.waitForExistence(timeout: 20))
+        attach("iPhone server search results", app: app)
     }
 
     func testActivityHeaderSeparatesBackButtonFromWebContent() {
@@ -778,6 +790,55 @@ final class ArchiveBoxUITests: XCTestCase {
     private func skipIntroductionIfNeeded(_ app: XCUIApplication) {
         let skip = app.buttons["setup.skip"]
         if skip.waitForExistence(timeout: 2) { skip.tap() }
+    }
+
+    private func quoted(_ value: String) -> String {
+        "\"" + value.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    }
+
+    private func submitSearch(_ query: String, app: XCUIApplication, capture: Bool = false) {
+        let editor = app.webViews.otherElements.matching(NSPredicate(format: "label == %@", "Search snapshots")).firstMatch
+        XCTAssertTrue(editor.waitForExistence(timeout: 15), app.debugDescription)
+        let keyboardTip = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Speed up your typing")).firstMatch
+        if keyboardTip.exists { app.buttons["Continue"].tap() }
+        // WebKit exposes a contenteditable ARIA combobox as an AXOther. Use the
+        // system Paste action and return key, which work with its real keyboard.
+        UIPasteboard.general.string = query
+        editor.press(forDuration: 0.8)
+        let paste = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Paste")).firstMatch
+        XCTAssertTrue(paste.waitForExistence(timeout: 5), app.debugDescription)
+        paste.tap()
+        if capture { attach("iPhone server search editor", app: app) }
+        app.keyboards.buttons["Search"].tap()
+        // The unfiltered page can already contain the expected result. Wait
+        // for the submitted search to replace the editor before checking rows.
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 20), app.debugDescription)
+    }
+
+    private func connectForSearch(_ app: XCUIApplication, server: String, token: String) {
+        app.launch()
+        skipIntroductionIfNeeded(app)
+        openScreen("Connection Settings", app: app)
+        // Start with exactly the connection installed by this test.
+        let reset = app.buttons["setup.reset"]
+        for _ in 0..<5 where !reset.isHittable { app.swipeUp() }
+        XCTAssertTrue(reset.isHittable, app.debugDescription)
+        reset.tap()
+        app.buttons["Reset setup"].tap()
+        var connection = URLComponents(string: "archivebox://connect")!
+        connection.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "api_key", value: token)]
+        app.open(connection.url!)
+        if app.buttons["Use this server"].waitForExistence(timeout: 3) { app.buttons["Use this server"].tap() }
+        if app.buttons["Allow"].exists { app.buttons["Allow"].tap() }
+        XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 20), app.debugDescription)
+        app.terminate()
+        app.launch()
+        let notificationPrompt = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
+        if notificationPrompt.waitForExistence(timeout: 3),
+           notificationPrompt.label.contains("Would Like to Send You Notifications") {
+            notificationPrompt.buttons.firstMatch.tap()
+        }
     }
 
     private func openScreen(_ name: String, app: XCUIApplication) {

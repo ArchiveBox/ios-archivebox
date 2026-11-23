@@ -406,14 +406,22 @@ struct MainView: View {
         #if os(iOS)
         .navigationTitle(isTabletSidebar ? "" : "ArchiveBox")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(usesPhoneHome ? .hidden : .automatic, for: .navigationBar)
+        .toolbar(usesPhoneHome || alignsTabletWebHeader ? .hidden : .automatic, for: .navigationBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if alignsTabletWebHeader {
+                // One-line embedded admin headers use a 44px border box.
+                tabletSidebarTitle
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(detailHeaderColor.ignoresSafeArea(edges: .top))
+            }
+        }
         .toolbar {
-            if isTabletSidebar {
+            if isTabletSidebar && !alignsTabletWebHeader {
                 ToolbarItem(placement: .principal) {
-                    Text("ArchiveBox").font(.headline)
+                    tabletSidebarTitle
                         .fixedSize(horizontal: true, vertical: false)
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityIdentifier("sidebar.title")
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
@@ -514,6 +522,23 @@ struct MainView: View {
     }
 
     #if os(iOS)
+    private var alignsTabletWebHeader: Bool {
+        // Only a persistent iPad rail sits beside the embedded admin header.
+        // Settings, Activity and the dedicated replay header retain their own chrome.
+        isTabletSidebar && horizontalSizeClass == .regular && columnVisibility != .detailOnly
+            && selection != nil && selection != .settings && selection != .activity
+            && !(selection == .snapshots && snapshotDestination != nil)
+    }
+
+    private var tabletSidebarTitle: some View {
+        Text("ArchiveBox")
+            .font(.headline)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier("sidebar.title")
+    }
+
     private var detailHeaderColor: Color {
         Color(red: 165.0 / 255, green: 28.0 / 255, blue: 80.0 / 255)
     }

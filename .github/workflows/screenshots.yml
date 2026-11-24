@@ -89,6 +89,9 @@ jobs:
 
   capture:
     needs: [changes, build-macos]
+    # The signed build owns the TestFlight environment. Keeping signing
+    # credentials out of capture also lets it use the main-branch OIDC subject.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/testflight-')
     env:
       SOURCE_SHA: ${{ needs.build-macos.outputs.source_sha }}
       BACKEND_REVISION: ${{ needs.changes.outputs.backend }}
@@ -98,6 +101,7 @@ jobs:
     permissions:
       contents: read
       actions: write
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -108,9 +112,20 @@ jobs:
     # 37185900511 and 37186470168 with stock Simulator services and no swap.
     # Keep Mac WebKit on stable macOS26 (macOS27 fails IOSurface creation).
     runs-on: ${{ matrix.platform == 'iphone' && 'macos-26-xlarge' || 'macos-26' }}
-    environment: testflight
     timeout-minutes: 45
     steps:
+      - name: Set up Squid
+        if: >-
+          github.repository == 'ArchiveBox/ios-archivebox' && github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        uses: ArchiveBox/monorepo/.github/actions/setup-squid@20721aa85ba01c3d6713c4c9a3dfee9854c4b42c
+        with:
+          proxy: ${{ vars.SQUID_TAILNET_URL }}
+          ca: ${{ vars.SQUID_CA }}
+          tailscale-client-id: ${{ vars.SQUID_TAILSCALE_CLIENT_ID }}
+          tailscale-audience: ${{ vars.SQUID_TAILSCALE_AUDIENCE }}
+          browser: 'true'
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.build-macos.outputs.source_sha }}

@@ -753,7 +753,7 @@ final class ArchiveBoxUITests: XCTestCase {
         checkHeader("Snapshot replay with the web-owned logo and Back")
 
         app.buttons["sidebar.openActivity"].tap()
-        XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'CRAWLS'")).firstMatch.waitForExistence(timeout: 30))
+        XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'queued' OR label CONTAINS[c] 'RAM'")).firstMatch.waitForExistence(timeout: 30))
         checkHeader("Standalone server Activity and Back")
     }
 
@@ -765,10 +765,12 @@ final class ArchiveBoxUITests: XCTestCase {
         waitForExpectations(timeout: 25)
         app.buttons["sidebar.openActivity"].tap()
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
-        XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'CRAWLS'")).firstMatch.waitForExistence(timeout: 30))
+        XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'queued' OR label CONTAINS[c] 'RAM'")).firstMatch.waitForExistence(timeout: 30))
         XCTAssertFalse(app.staticTexts["navigation.activity.title"].exists)
-        let back = embeddedBack(app)
+        let back = app.webViews.links["Back"].firstMatch
+        XCTAssertTrue(back.waitForExistence(timeout: 10))
         XCTAssertTrue(back.isHittable)
+        XCTAssertFalse(app.buttons["navigation.sidebar"].exists)
         attach("Activity on the server-owned page", app: app)
         back.tap()
         XCTAssertTrue(app.buttons["sidebar.snapshots"].isHittable)

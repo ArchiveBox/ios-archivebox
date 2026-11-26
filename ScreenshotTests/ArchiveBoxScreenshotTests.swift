@@ -482,13 +482,19 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         #endif
     }
 
+    private func embeddedBack(_ app: XCUIApplication) -> XCUIElement {
+        let webBack = app.webViews.links["Back"].firstMatch
+        return webBack.exists ? webBack : app.buttons["navigation.sidebar"]
+    }
+
     private func showSidebar(_ app: XCUIApplication) {
         #if os(iOS)
         declinePasswordPrompt()
         let sidebar = app.collectionViews["sidebar"]
         if !sidebar.isHittable {
             let leavingConnectionSettings = app.secureTextFields["apiKey"].exists
-            let back = app.buttons["navigation.sidebar"].exists ? app.buttons["navigation.sidebar"] : app.navigationBars.buttons.firstMatch
+            let embedded = embeddedBack(app)
+            let back = embedded.exists ? embedded : app.navigationBars.buttons.firstMatch
             XCTAssertTrue(back.exists, app.debugDescription)
             press(back)
             // The sidebar can become hittable before Passwords finishes
@@ -591,7 +597,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
             #else
             // swipeUp() on a one-line label travels only within that short
             // frame. Drag between real elements to scroll the outer guide.
-            anchor?.press(forDuration: 0.05, thenDragTo: app.buttons["navigation.sidebar"])
+            anchor?.press(forDuration: 0.05, thenDragTo: embeddedBack(app))
             #endif
         }
         XCTAssertTrue(element.isHittable, app.debugDescription)

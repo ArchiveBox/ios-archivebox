@@ -3,9 +3,8 @@ import WebKit
 /// Shared presentation for native embedded pages. Server scripts still own polling
 /// and navigation; these main-frame overrides only change the surrounding layout.
 @MainActor public enum EmbeddedPage {
-    public static func script(activity: Bool, nativePhoneHeader: Bool = false) -> WKUserScript {
-        let phoneHeader = nativePhoneHeader ? "\n" + nativePhoneHeaderSource : ""
-        return WKUserScript(source: activity ? activitySource : navigationSource + phoneHeader,
+    public static func script(activity: Bool) -> WKUserScript {
+        WKUserScript(source: activity ? activitySource : navigationSource,
                      injectionTime: .atDocumentEnd, forMainFrameOnly: true)
     }
 
@@ -24,21 +23,8 @@ import WebKit
             }
             """#
 
-    // The native row owns the brand on iPhone. Keep the server's existing
-    // breadcrumb links and controls; never measure or move a page's geometry.
-    private static let nativePhoneHeaderSource = #"""
-            document.querySelector('#header.archivebox-app-header #branding')
-                ?.style.setProperty('display', 'none', 'important');
-            """#
-
     private static let navigationSource = #"""
-            const isIOS = /iP(?:ad|hone|od)/.test(navigator.userAgent)
-                || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             document.documentElement.classList.add('archivebox-native-app');
-            if (isIOS) {
-                document.documentElement.classList.add('archivebox-ios-app');
-                if (screen.width <= 600) document.documentElement.classList.add('archivebox-ios-phone');
-            }
             // Move the existing breadcrumb nodes to retain their links and labels.
             // Keep one header while preserving the server's mobile stacking.
             const header = document.querySelector('#header');

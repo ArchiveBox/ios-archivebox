@@ -86,7 +86,7 @@ final class ArchiveBoxUITests: XCTestCase {
         // The grid link opens a tag-filtered list inside the Snapshots webview.
         // Search from the native sidebar must resume that same page and form.
         XCTAssertTrue(app.webViews.buttons["Switch to grid view"].firstMatch.waitForExistence(timeout: 20), app.debugDescription)
-        app.buttons["navigation.sidebar"].tap()
+        embeddedBack(app).tap()
         app.buttons["sidebar.search"].tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 20), app.debugDescription)
         submitSearch("meta:" + quoted(outsideURL), app: app)
@@ -128,6 +128,10 @@ final class ArchiveBoxUITests: XCTestCase {
         result.tap()
         let sourceLink = app.webViews.links.matching(NSPredicate(format: "label CONTAINS %@", original)).firstMatch
         XCTAssertTrue(sourceLink.waitForExistence(timeout: 20), app.debugDescription)
+        assertBackPlacement(app)
+        attach("Snapshot replay with one server-owned header", app: app)
+        embeddedBack(app).tap()
+        XCTAssertTrue(app.buttons["sidebar.snapshots"].isHittable)
 
         search.queryItems = [URLQueryItem(name: "q", value: "title:archivebox-no-match-" + UUID().uuidString)]
         app.open(search.url!)
@@ -393,7 +397,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["API key rejected"].waitForExistence(timeout: 20))
         app.secureTextFields["apiKey"].typeText("\n")
         app.buttons["getAPIKey"].tap()
-        XCTAssertTrue(app.buttons["navigation.sidebar"].waitForExistence(timeout: 5))
+        XCTAssertTrue(embeddedBack(app).waitForExistence(timeout: 5))
         XCTAssertFalse(app.navigationBars["Admin"].exists)
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
         openScreen("Add URLs", app: app)
@@ -454,7 +458,7 @@ final class ArchiveBoxUITests: XCTestCase {
         for _ in 0..<10 where !picker.isHittable {
             let anchor = content.staticTexts.allElementsBoundByIndex.first { $0.isHittable }
             XCTAssertNotNil(anchor, app.debugDescription)
-            anchor?.press(forDuration: 0.05, thenDragTo: app.buttons["navigation.sidebar"])
+            anchor?.press(forDuration: 0.05, thenDragTo: embeddedBack(app))
         }
         XCTAssertTrue(picker.isHittable, app.debugDescription)
         picker.tap()
@@ -593,7 +597,7 @@ final class ArchiveBoxUITests: XCTestCase {
             openScreen("Connection Settings", app: app)
             XCTAssertTrue(app.staticTexts["API key verified."].waitForExistence(timeout: 25), app.debugDescription)
             openScreen("Snapshots", app: app)
-            XCTAssertTrue(app.buttons["navigation.sidebar"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(embeddedBack(app).waitForExistence(timeout: 5), app.debugDescription)
             XCTAssertFalse(app.navigationBars["Snapshots"].exists)
             XCTAssertTrue(app.webViews.textFields.firstMatch.waitForExistence(timeout: 30), app.debugDescription)
             // The compact header intentionally hides Logout. Verify a protected
@@ -621,7 +625,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertEqual(app.scrollViews["add.content"].frame.maxY, app.frame.maxY, accuracy: 1)
         if app.staticTexts["Loading Add URLs…"].exists {
             attach("Add URLs loading", app: app)
-            XCTAssertTrue(app.buttons["navigation.sidebar"].isHittable)
+            XCTAssertTrue(embeddedBack(app).isHittable)
         }
         XCTAssertTrue(app.webViews.links["Home"].firstMatch.waitForExistence(timeout: 30))
         assertBackPlacement(app)
@@ -631,7 +635,7 @@ final class ArchiveBoxUITests: XCTestCase {
         XCTAssertGreaterThan(app.staticTexts["More ways to add"].frame.minY, app.webViews.firstMatch.frame.maxY)
         XCTAssertTrue(app.staticTexts["More ways to add"].isHittable)
         attach("Add URLs form and inline help fill viewport", app: app)
-        app.staticTexts["More ways to add"].press(forDuration: 0.05, thenDragTo: app.buttons["navigation.sidebar"])
+        app.staticTexts["More ways to add"].press(forDuration: 0.05, thenDragTo: embeddedBack(app))
         attach("Add URLs help on neutral background", app: app)
         let guide = app.images["iPhone share sheet with ArchiveBox available in the Apps list"]
         XCTAssertTrue(guide.exists)
@@ -657,7 +661,7 @@ final class ArchiveBoxUITests: XCTestCase {
             XCTAssertFalse(app.staticTexts["navigation.activity.title"].exists)
             assertBackPlacement(app)
             attach("\(screen) fills bottom safe area", app: app)
-            app.buttons["navigation.sidebar"].tap()
+            embeddedBack(app).tap()
         }
     }
 
@@ -713,7 +717,46 @@ final class ArchiveBoxUITests: XCTestCase {
         attach("iPhone server search results", app: app)
     }
 
-    func testActivityHeaderSeparatesBackButtonFromWebContent() {
+    func testNativeHeadersAcrossDomainsReplayAndActivity() async throws {
+        continueAfterFailure = false
+        let server = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_SERVER"])
+        let token = try XCTUnwrap(ProcessInfo.processInfo.environment["ARCHIVEBOX_TEST_TOKEN"])
+        var request = URLRequest(url: try XCTUnwrap(URL(string: server + "/api/v1/core/snapshots?limit=1")))
+        request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let snapshot = try XCTUnwrap((json["items"] as? [[String: Any]])?.first)
+        let id = try XCTUnwrap(snapshot["id"] as? String)
+        let app = XCUIApplication()
+        connectForSearch(app, server: server, token: token)
+
+        func checkHeader(_ name: String) {
+            let page = app.webViews.firstMatch
+            let back = page.links["Back"].firstMatch
+            XCTAssertTrue(back.waitForExistence(timeout: 20), app.debugDescription)
+            XCTAssertTrue(back.isHittable)
+            XCTAssertFalse(app.buttons["navigation.sidebar"].exists)
+            XCTAssertFalse(app.staticTexts["navigation.brand"].exists)
+            XCTAssertTrue(page.frame.contains(back.frame))
+            attach(name, app: app)
+            back.tap()
+            XCTAssertTrue(app.collectionViews["sidebar"].isHittable)
+        }
+
+        openScreen("Domains", app: app)
+        checkHeader("Domains with the web-owned logo and Back")
+
+        var link = URLComponents(string: "archivebox://snapshot")!
+        link.queryItems = [URLQueryItem(name: "server", value: server), URLQueryItem(name: "id", value: id)]
+        app.open(try XCTUnwrap(link.url))
+        checkHeader("Snapshot replay with the web-owned logo and Back")
+
+        app.buttons["sidebar.openActivity"].tap()
+        XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'CRAWLS'")).firstMatch.waitForExistence(timeout: 30))
+        checkHeader("Standalone server Activity and Back")
+    }
+
+    func testActivityUsesTheServerOwnedPage() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
@@ -722,31 +765,31 @@ final class ArchiveBoxUITests: XCTestCase {
         app.buttons["sidebar.openActivity"].tap()
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15))
         XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'CRAWLS'")).firstMatch.waitForExistence(timeout: 30))
-        XCTAssertTrue(app.staticTexts["navigation.activity.title"].waitForExistence(timeout: 5))
-        let back = app.buttons["navigation.sidebar"]
+        XCTAssertFalse(app.staticTexts["navigation.activity.title"].exists)
+        let back = embeddedBack(app)
         XCTAssertTrue(back.isHittable)
-        XCTAssertLessThanOrEqual(back.frame.maxY, app.webViews.firstMatch.frame.minY)
-        XCTAssertEqual(app.webViews.firstMatch.frame.maxY, app.frame.maxY, accuracy: 1)
-        attach("Activity with native header and full height webview", app: app)
+        attach("Activity on the server-owned page", app: app)
         back.tap()
         XCTAssertTrue(app.buttons["sidebar.snapshots"].isHittable)
     }
 
-    func testWebPageBackButtonKeepsClearOfContent() {
+    func testWebPageBackUsesOneServerHeader() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
         skipIntroductionIfNeeded(app)
-        for screen in ["Snapshots", "Users"] {
+        for screen in ["Snapshots", "Domains", "Users"] {
             openScreen(screen, app: app)
-            let back = app.buttons["navigation.sidebar"]
+            let back = embeddedBack(app)
             XCTAssertTrue(back.waitForExistence(timeout: 10), app.debugDescription)
             if screen == "Users" {
                 let addUser = app.webViews.links.matching(NSPredicate(format: "label ==[c] 'Add user'")).firstMatch
                 XCTAssertTrue(addUser.waitForExistence(timeout: 20), app.debugDescription)
-            } else {
+            } else if screen == "Snapshots" {
                 let search = app.webViews.otherElements.matching(NSPredicate(format: "label ==[c] 'Search snapshots, search'")).firstMatch.textFields.firstMatch
                 XCTAssertTrue(search.waitForExistence(timeout: 20), app.debugDescription)
+            } else {
+                XCTAssertTrue(app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "Domains")).firstMatch.waitForExistence(timeout: 20))
             }
             XCTAssertFalse(app.webViews.staticTexts["First-time server setup"].exists)
             XCTAssertFalse(app.navigationBars[screen].exists)
@@ -766,25 +809,20 @@ final class ArchiveBoxUITests: XCTestCase {
         }
         openScreen("Connection Settings", app: app)
         XCTAssertTrue(app.navigationBars["Connection Settings"].exists)
-        XCTAssertFalse(app.buttons["navigation.sidebar"].exists)
+        XCTAssertFalse(embeddedBack(app).exists)
+    }
+
+    private func embeddedBack(_ app: XCUIApplication) -> XCUIElement {
+        let webBack = app.webViews.links["Back"].firstMatch
+        return webBack.exists ? webBack : app.buttons["navigation.sidebar"]
     }
 
     private func assertBackPlacement(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
-        let back = app.buttons["navigation.sidebar"]
+        let back = embeddedBack(app)
         let page = app.webViews.firstMatch
         XCTAssertTrue(back.isHittable, file: file, line: line)
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            let brand = app.staticTexts["navigation.brand"]
-            XCTAssertTrue(brand.exists, file: file, line: line)
-            XCTAssertGreaterThanOrEqual(back.frame.width, 44, file: file, line: line)
-            XCTAssertGreaterThanOrEqual(back.frame.height, 44, file: file, line: line)
-            XCTAssertLessThanOrEqual(back.frame.maxX, brand.frame.minX, file: file, line: line)
-            XCTAssertLessThanOrEqual(back.frame.maxY, page.frame.minY, file: file, line: line)
-            XCTAssertLessThanOrEqual(brand.frame.maxY, page.frame.minY, file: file, line: line)
-            XCTAssertTrue(page.links["Home"].exists, file: file, line: line)
-        } else {
-            XCTAssertTrue(page.frame.contains(back.frame), file: file, line: line)
-        }
+        XCTAssertTrue(page.frame.intersects(back.frame), file: file, line: line)
+        XCTAssertFalse(app.staticTexts["navigation.brand"].exists, file: file, line: line)
     }
 
     private func skipIntroductionIfNeeded(_ app: XCUIApplication) {
@@ -842,11 +880,11 @@ final class ArchiveBoxUITests: XCTestCase {
     }
 
     private func openScreen(_ name: String, app: XCUIApplication) {
-        let identifiers = ["Search Archive": "search", "Add URLs": "add", "AI Agent": "agent", "Snapshots": "snapshots", "Admin": "admin", "Users": "users", "Connection Settings": "settings"]
+        let identifiers = ["Search Archive": "search", "Add URLs": "add", "AI Agent": "agent", "Snapshots": "snapshots", "Domains": "domains", "Admin": "admin", "Users": "users", "Connection Settings": "settings"]
         let item = app.buttons["sidebar." + identifiers[name]!]
         let sidebar = app.collectionViews.firstMatch
         if !sidebar.isHittable {
-            let back = app.buttons["navigation.sidebar"].exists ? app.buttons["navigation.sidebar"] : app.navigationBars.buttons.firstMatch
+            let back = embeddedBack(app).exists ? embeddedBack(app) : app.navigationBars.buttons.firstMatch
             if back.isHittable { back.tap() }
         }
         // The connected app starts on its menu; returning from a detail keeps

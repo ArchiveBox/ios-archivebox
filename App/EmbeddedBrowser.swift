@@ -13,6 +13,7 @@ import UIKit
     var errorMessage: String?
     var isLoading = true
     var navigationLoading = false
+    var nativeHeaderReady = false
     var loadingProgress = 0.0
     @ObservationIgnored private var loadingObservations: [NSKeyValueObservation] = []
     private var started = false
@@ -43,6 +44,7 @@ import UIKit
         // subframes may keep loading long after the main page is usable.
         routing.didStartProvisional = { [weak self] _ in
             guard let self else { return }
+            nativeHeaderReady = false
             NSLog("ArchiveBox page navigation %@: provisional navigation started", diagnosticID)
         }
         routing.didCommit = { [weak self] page in
@@ -56,12 +58,14 @@ import UIKit
         }
         routing.didFail = { [weak self] error in
             guard let self else { return }
+            nativeHeaderReady = false
             let details = error as NSError
             NSLog("ArchiveBox page navigation %@: failed domain=%@ code=%ld",
                   diagnosticID, details.domain, details.code)
             isLoading = false
             errorMessage = error.localizedDescription
         }
+        routing.nativeHeaderReady = { [weak self] in self?.nativeHeaderReady = true }
         routing.didFinish = { [weak self] page in
             guard let self, page.url?.scheme != "about" else { return }
             NSLog("ArchiveBox page navigation %@: finished", diagnosticID)
@@ -160,6 +164,7 @@ import UIKit
     private var clearingSession: Task<Void, Never>?
     var hasCredentials: Bool { server != nil && token != nil }
     var onWebLogin: ((WKWebView) -> Void)?
+    var onWebBack: (() -> Void)?
 
     func reconnectFailedPages() {
         for page in pages.values where page.errorMessage != nil { page.reconnect() }
@@ -205,16 +210,18 @@ import UIKit
         // Match the companion's standalone monitor without stripping the admin
         // chrome from other screens or altering its server-owned polling code.
         configuration.websiteDataStore = authentication.dataStore
-        #if os(iOS)
-        let nativePhoneHeader = UIDevice.current.userInterfaceIdiom == .phone
-        #else
-        let nativePhoneHeader = false
-        #endif
-        configuration.userContentController.addUserScript(
-            EmbeddedPage.script(activity: key.hasPrefix("activity-"), nativePhoneHeader: nativePhoneHeader)
-        )
         // Each page keeps the routing boundary of its configured connection.
         let routing = BrowserNavigation(baseURL: baseURL)
+        #if os(iOS)
+        configuration.applicationNameForUserAgent = "ArchiveBoxNative/iOS"
+        routing.configuredOrigin = server
+        routing.openNativeBack = { [weak self] in self?.onWebBack?() }
+        configuration.userContentController.add(routing, name: "archiveBoxNativeHeader")
+        #else
+        configuration.userContentController.addUserScript(
+            EmbeddedPage.script(activity: key.hasPrefix("activity-"))
+        )
+        #endif
         // WKWebView exposes authenticated download and blob completion callbacks;
         // SwiftUI's WebPage currently does not. Keep the surrounding UI in SwiftUI.
         let webPage = WKWebView(frame: .zero, configuration: configuration)

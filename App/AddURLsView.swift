@@ -5,6 +5,7 @@ struct AddURLsView: View {
     @Bindable var model: SettingsModel
     let pages: WebPages
     var reloadID: UUID?
+    var onSession: ((PageSession) -> Void)? = nil
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
@@ -26,6 +27,9 @@ struct AddURLsView: View {
                                             .accessibilityIdentifier("add.loading")
                                     }
                                 }
+                            }
+                            .onChange(of: ObjectIdentifier(session), initial: true) {
+                                onSession?(session)
                             }
                             .id(server).frame(maxWidth: .infinity)
                             .frame(height: geometry.size.height * (session.isLoading && session.errorMessage == nil ? 1 : 0.8))

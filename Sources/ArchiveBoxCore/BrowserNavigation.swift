@@ -6,11 +6,14 @@ import UIKit
 #endif
 
 /// One boundary for the SwiftUI client and the companion's WKWebViews.
-@MainActor public final class BrowserNavigation: NSObject, WKNavigationDelegate, WKUIDelegate {
+@MainActor public final class BrowserNavigation: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
     public var baseURL: URL?
     /// Exact admin origin returned by the authenticated session endpoint.
     public var authenticatedOrigin: URL?
     public var openSnapshot: ((URL) -> Void)?
+    public var configuredOrigin: URL?
+    public var openNativeBack: (() -> Void)?
+    public var nativeHeaderReady: (() -> Void)?
     public var didStartProvisional: ((WKWebView) -> Void)?
     public var didCommit: ((WKWebView) -> Void)?
     public var didFinish: ((WKWebView) -> Void)?
@@ -55,11 +58,65 @@ import UIKit
         return true
     }
 
+    public nonisolated static func isNativeBack(_ url: URL) -> Bool {
+        url.absoluteString == "archivebox://back"
+    }
+
+    public nonisolated static func isTrustedNativeHeaderPage(
+        _ url: URL, configured: URL?, admin: URL?, base: URL?
+    ) -> Bool {
+        func sameOrigin(_ a: URL, _ b: URL?) -> Bool {
+            guard let b, let scheme = a.scheme, scheme == "https" || scheme == "http",
+                  scheme == b.scheme, let host = a.host, let targetHost = b.host,
+                  host.caseInsensitiveCompare(targetHost) == .orderedSame,
+                  a.user == nil, a.password == nil else { return false }
+            let defaultPort = scheme == "https" ? 443 : 80
+            return (a.port ?? defaultPort) == (b.port ?? defaultPort)
+        }
+        let isControl = sameOrigin(url, configured) || sameOrigin(url, admin)
+        if isControl && (url.path == "/add" || url.path == "/admin" || url.path.hasPrefix("/admin/")) {
+            return true
+        }
+        let webOrigin = base.flatMap { base -> URL? in
+            guard var parts = URLComponents(url: base, resolvingAgainstBaseURL: false),
+                  let host = parts.host else { return nil }
+            parts.host = "web." + host
+            return parts.url
+        }
+        // Raw replay on snap-* origins may contain arbitrary retrieved HTML.
+        // Only the collection's own replay shell can control app navigation.
+        return BrowserNavigation.isSnapshotDetail(url)
+            && (isControl || sameOrigin(url, base) || sameOrigin(url, webOrigin))
+    }
+
+    private func isCurrentNativeHeaderPage(_ frame: WKFrameInfo, webView: WKWebView?) -> Bool {
+        guard frame.isMainFrame, let source = frame.request.url, let current = webView?.url,
+              source.scheme == current.scheme, source.host == current.host,
+              source.port == current.port, source.path == current.path else { return false }
+        return Self.isTrustedNativeHeaderPage(source, configured: configuredOrigin, admin: authenticatedOrigin, base: baseURL)
+    }
+
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "archiveBoxNativeHeader", message.body as? String == "ready",
+              isCurrentNativeHeaderPage(message.frameInfo, webView: message.webView) else { return }
+        nativeHeaderReady?()
+    }
+
     public func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                         decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
         let isMainFrame = action.targetFrame?.isMainFrame != false
         guard let url = action.request.url else {
             if isMainFrame { NSLog("ArchiveBox navigation policy: cancel missing URL") }
+            decisionHandler(.cancel)
+            return
+        }
+        // Never hand a fake Back link to the OS or let archived frames run it.
+        if url.scheme == "archivebox", url.host == "back" {
+            if Self.isNativeBack(url), action.navigationType == .linkActivated,
+               action.targetFrame?.isMainFrame == true,
+               isCurrentNativeHeaderPage(action.sourceFrame, webView: webView) {
+                openNativeBack?()
+            }
             decisionHandler(.cancel)
             return
         }

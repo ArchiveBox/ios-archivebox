@@ -188,6 +188,13 @@ jobs:
         run: |
           echo "BACKEND_REVISION=$(git -C backend rev-parse HEAD)" >> "$GITHUB_ENV"
           uv sync --frozen --project backend
+      # Both capture lanes resolve the same pinned Chrome. Cache only the
+      # provider's browser files; abx install still runs on every runner.
+      - name: Reuse the pinned screenshot browser
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/Library/Application Support/abx/lib/puppeteer/cache/chrome
+          key: native-gallery-chrome-v1-${{ runner.os }}-26-${{ runner.arch }}-${{ hashFiles('backend/uv.lock') }}
       - name: Populate and start a disposable archive
         run: bash scripts/start-screenshot-server.sh "$GITHUB_WORKSPACE/backend" "$RUNNER_TEMP/screenshot-server"
       - name: Record capture provenance

@@ -734,7 +734,8 @@ final class ArchiveBoxUITests: XCTestCase {
             let page = app.webViews.firstMatch
             let back = page.links["Back"].firstMatch
             XCTAssertTrue(back.waitForExistence(timeout: 20), app.debugDescription)
-            XCTAssertTrue(back.isHittable)
+            let visible = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: back)
+            XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 15), .completed, app.debugDescription)
             XCTAssertFalse(app.buttons["navigation.sidebar"].exists)
             XCTAssertFalse(app.staticTexts["navigation.brand"].exists)
             XCTAssertTrue(page.frame.contains(back.frame))

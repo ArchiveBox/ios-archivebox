@@ -111,7 +111,7 @@ import UIKit
             return
         }
         // Never hand a fake Back link to the OS or let archived frames run it.
-        if url.scheme == "archivebox", url.host == "back" {
+        if url.scheme?.lowercased() == "archivebox", url.host?.lowercased() == "back" {
             if Self.isNativeBack(url), action.navigationType == .linkActivated,
                action.targetFrame?.isMainFrame == true,
                isCurrentNativeHeaderPage(action.sourceFrame, webView: webView) {

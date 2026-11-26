@@ -152,11 +152,11 @@ jobs:
         run: node scripts/release.mjs publish
   testflight:
     needs: prepare
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_testflight && needs.prepare.outputs.ready == 'true' && needs.prepare.outputs.client_changed == 'true'
+    if: needs.prepare.outputs.ready == 'true' && needs.prepare.outputs.client_changed == 'true' && (github.event_name == 'push' || inputs.publish_testflight)
     uses: ./.github/workflows/testflight.yml
     secrets: inherit
     with:
-      publish_testflight: ${{ inputs.publish_testflight }}
+      publish_testflight: true
       platform: both
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}

@@ -38,7 +38,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_testflight
+    if: inputs.publish_testflight
     runs-on: xcode-27
     environment: testflight
     timeout-minutes: 90

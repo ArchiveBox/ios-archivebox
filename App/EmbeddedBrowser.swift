@@ -22,6 +22,9 @@ import UIKit
     private unowned let owner: WebPages
     private var destination: URL?
     private var renewedLogin: URL?
+    #if os(iOS)
+    private var didFallbackActivity = false
+    #endif
     private let diagnosticID = String(UUID().uuidString.prefix(8))
     init(_ page: WKWebView, routing: BrowserNavigation, owner: WebPages) {
         self.page = page; self.routing = routing; self.owner = owner
@@ -66,6 +69,18 @@ import UIKit
             errorMessage = error.localizedDescription
         }
         routing.nativeHeaderReady = { [weak self] in self?.nativeHeaderReady = true }
+        #if os(iOS)
+        routing.legacyActivityFallback = { [weak self] response in
+            // Older Core versions put the monitor in the normal admin page.
+            // Only the missing standalone route falls back, not login or errors.
+            guard let self, owner.hasCredentials, !didFallbackActivity, let destination,
+                  let legacyURL = BrowserNavigation.legacyActivityURL(
+                    for: response, expected: owner.authentication.authenticatedPageURL(destination)
+                  ) else { return nil }
+            didFallbackActivity = true
+            return legacyURL
+        }
+        #endif
         routing.didFinish = { [weak self] page in
             guard let self, page.url?.scheme != "about" else { return }
             NSLog("ArchiveBox page navigation %@: finished", diagnosticID)
@@ -117,6 +132,9 @@ import UIKit
         guard force || !started || self.requestID != requestID else { return }
         NSLog("ArchiveBox page navigation %@: requested", diagnosticID)
         destination = url
+        #if os(iOS)
+        didFallbackActivity = false
+        #endif
         loadingProgress = 0
         started = true
         self.requestID = requestID

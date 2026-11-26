@@ -51,3 +51,23 @@ import Testing
         #expect(!BrowserNavigation.isTrustedNativeHeaderPage(url, configured: server, admin: admin, base: base))
     }
 }
+
+@Test func legacyActivityRequiresAnExactMissingRouteOnTheAuthenticatedServer() throws {
+    let expected = try #require(URL(string: "https://admin.archive.example:8443/admin/activity/"))
+    func response(_ status: Int, at url: URL) throws -> HTTPURLResponse {
+        try #require(HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil))
+    }
+    #expect(BrowserNavigation.legacyActivityURL(for: try response(404, at: expected), expected: expected)?.absoluteString
+            == "https://admin.archive.example:8443/admin/#progress-monitor")
+    for status in [200, 302, 401, 403, 410, 500, 502] {
+        #expect(BrowserNavigation.legacyActivityURL(for: try response(status, at: expected), expected: expected) == nil)
+    }
+    for text in ["https://other.example:8443/admin/activity/",
+                 "http://admin.archive.example:8443/admin/activity/",
+                 "https://admin.archive.example/admin/activity/",
+                 "https://admin.archive.example:8443/admin/login/",
+                 "https://admin.archive.example:8443/admin/activity/?next=/admin/"] {
+        let url = try #require(URL(string: text))
+        #expect(BrowserNavigation.legacyActivityURL(for: try response(404, at: url), expected: expected) == nil)
+    }
+}

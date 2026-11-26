@@ -14,6 +14,7 @@ import UIKit
     public var configuredOrigin: URL?
     public var openNativeBack: (() -> Void)?
     public var nativeHeaderReady: (() -> Void)?
+    public var legacyActivityFallback: ((HTTPURLResponse) -> URL?)?
     public var didStartProvisional: ((WKWebView) -> Void)?
     public var didCommit: ((WKWebView) -> Void)?
     public var didFinish: ((WKWebView) -> Void)?
@@ -168,9 +169,27 @@ import UIKit
             (parts.first == "archive" || parts.contains(where: isSnapshotID))
     }
 
+    public nonisolated static func legacyActivityURL(for response: HTTPURLResponse, expected: URL) -> URL? {
+        guard response.statusCode == 404, response.url == expected,
+              var parts = URLComponents(url: expected, resolvingAgainstBaseURL: false),
+              ["http", "https"].contains(parts.scheme ?? ""), parts.host != nil,
+              parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil,
+              parts.percentEncodedPath == "/admin/activity/" else { return nil }
+        parts.path = "/admin/"
+        parts.fragment = "progress-monitor"
+        return parts.url
+    }
+
     public func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse,
                         decisionHandler: @escaping @MainActor (WKNavigationResponsePolicy) -> Void) {
-        let disposition = (response.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Disposition") ?? ""
+        let http = response.response as? HTTPURLResponse
+        let disposition = http?.value(forHTTPHeaderField: "Content-Disposition") ?? ""
+        if response.isForMainFrame, response.canShowMIMEType, !disposition.lowercased().hasPrefix("attachment"),
+           let http, let legacyURL = legacyActivityFallback?(http) {
+            decisionHandler(.cancel)
+            webView.load(URLRequest(url: legacyURL))
+            return
+        }
         decisionHandler(!response.canShowMIMEType || disposition.lowercased().hasPrefix("attachment") ? .download : .allow)
     }
 

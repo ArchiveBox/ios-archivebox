@@ -38,37 +38,51 @@ def runs(repo, workflow, branch, successful=True, artifact_names=("site-screensh
             text=True,
         )
         candidates.extend(json.loads(row) for row in rows.splitlines())
+    eligible = [
+        artifact
+        for artifact in candidates
+        if artifact["name"] in artifact_names
+        and (source := artifact.get("workflow_run") or {}).get("id")
+        and source.get("head_branch") == branch
+        and source.get("head_repository_id") == source.get("repository_id")
+    ]
+    available = {artifact["name"] for artifact in eligible}
     seen = set()
-    for artifact in sorted(candidates, key=lambda item: item["created_at"], reverse=True):
-        source = artifact.get("workflow_run") or {}
-        run_id = source.get("id")
-        if (
-            artifact["name"] not in artifact_names
-            or not run_id
-            or run_id in seen
-            or source.get("head_branch") != branch
-            or source.get("head_repository_id") != source.get("repository_id")
-        ):
+    found = set()
+    for artifact in sorted(eligible, key=lambda item: item["created_at"], reverse=True):
+        run_id = artifact["workflow_run"]["id"]
+        if run_id in seen:
             continue
         seen.add(run_id)
         run = api(repo, f"actions/runs/{run_id}")
         if trusted(run, repo, workflow, branch, successful):
             yield run
+            # Absent groups (such as locally captured Server screenshots) are
+            # recovered by the published-site fallback, not by scanning older
+            # runs which cannot supply them.
+            found.update(names(repo, run))
+            if available <= found:
+                return
 
 
 def names(repo, run):
-    rows = subprocess.check_output(
-        [
-            "gh",
-            "api",
-            f"repos/{repo}/actions/runs/{run['id']}/artifacts?per_page=100",
-            "--paginate",
-            "--jq",
-            ".artifacts[] | @json",
-        ],
-        text=True,
-    )
-    return {artifact["name"] for row in rows.splitlines() if not (artifact := json.loads(row))["expired"]}
+    if "_unexpired_artifact_names" not in run:
+        rows = subprocess.check_output(
+            [
+                "gh",
+                "api",
+                f"repos/{repo}/actions/runs/{run['id']}/artifacts?per_page=100",
+                "--paginate",
+                "--jq",
+                ".artifacts[] | @json",
+            ],
+            text=True,
+        )
+        run["_unexpired_artifact_names"] = {
+            artifact["name"] for row in rows.splitlines()
+            if not (artifact := json.loads(row))["expired"]
+        }
+    return run["_unexpired_artifact_names"]
 
 
 def download(repo, run, name, destination):

@@ -139,7 +139,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         scrollTo(start, app: app)
         Thread.sleep(forTimeInterval: 10)
         capture("agent-welcome", app: app)
-        press(start)
+        dismissAgentWelcome(start, app: app)
         assertPage("New session", app: app, type: pageTextType, screen: "agent")
         capture("agent", app: app)
         openScreen("openActivity", app: app)
@@ -167,6 +167,15 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
         press(discover)
         XCTAssertTrue(app.buttons["discovery.search"].waitForExistence(timeout: 10), app.debugDescription)
         capture("discovery", app: app)
+    }
+
+    private func dismissAgentWelcome(_ button: XCUIElement, app: XCUIApplication) {
+        #if os(iOS)
+        // WebKit can report buttons clipped by the scrollable welcome panel as hittable.
+        app.webViews.firstMatch.swipeUp()
+        #endif
+        press(button)
+        XCTAssertTrue(button.waitForNonExistence(timeout: 10), app.debugDescription)
     }
 
     private func scrollTo(_ element: XCUIElement, app: XCUIApplication) {
@@ -255,7 +264,7 @@ final class ArchiveBoxScreenshotTests: XCTestCase {
                 scrollTo(start, app: app)
                 Thread.sleep(forTimeInterval: 10)
                 capture("agent-welcome", app: app)
-                press(start)
+                dismissAgentWelcome(start, app: app)
             }
             assertPage(marker, app: app, screen: id)
 

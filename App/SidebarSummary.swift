@@ -67,14 +67,20 @@ struct SidebarSummary: View {
             }
             .font(.caption).monospacedDigit().frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
-            .padding(.vertical, compactHome ? 5 : 12)
+            .padding(.vertical, compactHome ? 8 : 12)
             .contentShape(Rectangle())
             .accessibilityElement(children: .combine).accessibilityIdentifier("sidebar.summary")
         }
         .buttonStyle(.plain)
         .disabled(settings.verifiedServer == nil)
-        #if os(macOS)
         // Keep the backdrop opaque when the button's disabled style dims its label.
+        #if os(iOS)
+        .background {
+            if compactHome {
+                RoundedRectangle(cornerRadius: 12).fill(Color("SidebarStatusBackground"))
+            }
+        }
+        #else
         .background(Color("SidebarStatusBackground").ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .top) {
             Rectangle().fill(.primary.opacity(0.12)).frame(height: 2)
@@ -110,7 +116,10 @@ struct SidebarSummary: View {
                     try Task.checkCancellation()
                     guard credentials == requestedCredentials else { return }
                     let elapsed = start.duration(to: .now).components
-                    settings.sidebarStatus = (value, Int(elapsed.seconds * 1000 + elapsed.attoseconds / 1_000_000_000_000_000), Date())
+                    settings.recordSidebarProgress(
+                        value, latency: Int(elapsed.seconds * 1000 + elapsed.attoseconds / 1_000_000_000_000_000),
+                        server: server, token: token
+                    )
                     initialConnection = true; failure = nil
                 } catch {
                     // Losing focus can suspend networking before task cancellation

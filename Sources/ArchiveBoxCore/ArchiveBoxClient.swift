@@ -98,7 +98,10 @@ public final class ArchiveBoxClient: Sendable {
     }
 
     public func sidebarProgress(server: URL, cookie: String) async throws -> SidebarProgress {
-        let data = try await request(server, path: "progress.json", query: [URLQueryItem(name: "collection", value: "1")], cookie: cookie)
+        // Use the existing short-lived progress sample shared by monitor polls.
+        let data = try await request(server, path: "progress.json",
+                                     query: [URLQueryItem(name: "poll", value: "1"),
+                                             URLQueryItem(name: "collection", value: "1")], cookie: cookie)
         return try JSONDecoder().decode(SidebarProgress.self, from: data)
     }
 

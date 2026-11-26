@@ -178,7 +178,27 @@ final class SettingsModel {
     var busy = false
     // Keep the last successful sample beyond the sidebar view's lifetime. Sleep,
     // background cancellation and temporary network failures do not erase it.
-    var sidebarStatus: (progress: SidebarProgress, latency: Int, refreshedAt: Date)?
+    private struct SidebarSample {
+        let progress: SidebarProgress
+        let latency: Int
+        let refreshedAt: Date
+        let server: URL
+        let token: String
+    }
+
+    private var sidebarSample: SidebarSample?
+    var sidebarStatus: (progress: SidebarProgress, latency: Int, refreshedAt: Date)? {
+        guard let sample = sidebarSample, sample.server == verifiedServer, sample.token == verifiedToken else { return nil }
+        return (sample.progress, sample.latency, sample.refreshedAt)
+    }
+
+    func recordSidebarProgress(_ progress: SidebarProgress, latency: Int, server: URL, token: String) {
+        guard server == verifiedServer, token == verifiedToken else { return }
+        sidebarSample = SidebarSample(
+            progress: progress.retainingCollection(from: sidebarStatus?.progress),
+            latency: latency, refreshedAt: Date(), server: server, token: token
+        )
+    }
     private let client = ArchiveBoxClient()
     private var didLoad = false
     private var validation: Task<Void, Never>?
@@ -318,7 +338,7 @@ final class SettingsModel {
         recoveryAttempted = false; rejectedSavedKey = nil; recoveryServer = nil
         allowsAutomaticRecoveryNavigation = true
         serverReachable = false
-        sidebarStatus = nil
+        sidebarSample = nil
         validation?.cancel(); busy = false; serverError = nil; tokenError = nil
         // A changed destination must not silently receive the previous server’s key.
         server_id = nil
@@ -328,7 +348,7 @@ final class SettingsModel {
         serverMessage = nil; tokenMessage = nil; savedMessage = nil; errorMessage = nil
     }
     func tokenChanged() {
-        sidebarStatus = nil
+        sidebarSample = nil
         let preserveServerCheck = busy && verifiedServer == nil
         if !preserveServerCheck {
             validation?.cancel()

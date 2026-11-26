@@ -463,7 +463,7 @@ struct MainView: View {
         List {
             if usesPhoneHome {
                 sidebarSummary(compactHome: true)
-                    .listRowInsets(EdgeInsets())
+                    .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                     .listRowBackground(Color.clear)
                 Section("Collection") { rows([.crawls, .snapshots, .tags, .schedules, .results, .domains, .importers, .agent]) }
             } else {

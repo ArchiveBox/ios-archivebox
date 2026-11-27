@@ -65,19 +65,16 @@ Your server must be reachable to save new links.
 
 </div>
 
-<h2 id="your-server-your-choice">Run your own server, or use a friend’s.</h2>
+<h2 id="your-server-your-choice">How ArchiveBox works</h2>
 
-Use an existing ArchiveBox server anywhere you can reach it, or keep your archive on your Mac with **ArchiveBox Server.app**.
+**To use ArchiveBox, you need a server.** The server is the computer that runs the archiving engine and stores your collection. It can be your Mac, another computer you run, or a server you have access to.
 
-| | ArchiveBox.app | ArchiveBox Server.app |
-|---|---|---|
-| **What it does** | Save links, browse, and manage your archive | Run the actual ArchiveBox server on your Mac |
-| **Where it runs** | iPhone, iPad, and Mac | Apple Silicon Mac with macOS 26+ |
-| **What to install** | The client on each device you use | The optional companion on the Mac that stores your archive |
-| **Already have a server?** | Connect it in Settings | You don’t need the companion |
+The iPhone, iPad, Mac, and [Android](https://android.archivebox.io/) apps, the [browser extension](https://extension.archivebox.io/), and the web UI at your server’s address all give you access to the same collection. Send a URL from your phone, then find the saved page and manage your collection on your Mac or in a browser.
+
+**Run your own server** on [macOS](https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.Server.app.zip) (Apple Silicon, macOS 26+), [Windows](https://windows.archivebox.io/), [Linux](https://archivebox.io/#install-apt), or with [Docker](https://archivebox.io/#install-compose). If you already have access to a server, enter its address in **Connection Settings**.
 
 <div class="server-download-heading">
-<h3 id="archivebox-serverapp"><a class="button server-download" href="https://github.com/ArchiveBox/ios-archivebox/releases"><img class="button-icon" src="docs/icons/apple.svg" width="20" height="20" alt=""> <span>ArchiveBox Server.app</span> <img class="button-icon" src="docs/icons/download.svg" width="20" height="20" alt=""></a></h3>
+<h3 id="archivebox-serverapp"><a class="button server-download" href="https://github.com/ArchiveBox/ios-archivebox/releases/latest/download/ArchiveBox.Server.app.zip"><img class="button-icon" src="docs/icons/apple.svg" width="20" height="20" alt=""> <span>ArchiveBox Server.app</span> <img class="button-icon" src="docs/icons/download.svg" width="20" height="20" alt=""></a></h3>
 <p>Share a single ArchiveBox instance across multiple users and devices.</p>
 </div>
 

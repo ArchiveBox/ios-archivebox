@@ -59,7 +59,7 @@ groups that have never produced a validated capture. Preserve these images until
 replacement captures are available; a port change alone is not a reason to delete
 them. The same gallery data powers both product tabs and the two homepage marquees.
 The main marquee contains only client screenshots; the smaller marquee between
-the comparison table and Server.app button contains only companion screenshots.
+the server setup links and Server.app button contains only companion screenshots.
 
 To validate exported XCTest attachments for one device:
 

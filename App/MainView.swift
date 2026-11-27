@@ -289,18 +289,28 @@ struct MainView: View {
                                     displayedPage = (screen, session)
                                     session.routing.openSnapshot = screen == .search ? { openSnapshot($0) } : nil
                                 }
-                                .task(id: focusSearch == screen && !session.isLoading && !session.navigationLoading) {
-                                    guard focusSearch == screen, !session.isLoading, !session.navigationLoading else { return }
+                                .task(id: focusSearch == screen && session.canFocusSearch) {
+                                    guard focusSearch == screen, session.canFocusSearch else { return }
+                                    #if os(iOS)
+                                    guard session.page.window != nil, let url = session.page.url,
+                                          session.routing.canFocusArchiveSearch(url) else { return }
+                                    #endif
                                     // Whether focus succeeds or the field is unavailable, consume this
                                     // tap. A later tap must be able to try again on a recovered page.
                                     defer { if !Task.isCancelled { focusSearch = nil } }
                                     guard session.errorMessage == nil else { return }
-                                    // The authenticated server page owns autocomplete, editing and live
-                                    // results. Older servers expose the plain Django input on this same form.
+                                    // WKWebView can raise the keyboard from a native evaluation.
+                                    // Use the server's editor, including older servers' plain input.
                                     _ = try? await session.page.evaluateJavaScript("""
                                         (() => {
+                                            if (typeof window.archiveBoxFocusSearch === 'function') {
+                                                return window.archiveBoxFocusSearch();
+                                            }
                                             const form = document.querySelector('#changelist-search');
                                             const editor = form?.querySelector('[role="combobox"]') ?? form?.querySelector('#searchbar');
+                                            if (editor === document.activeElement && window.webkit?.messageHandlers?.archiveBoxNativeSearch) {
+                                                editor.blur();
+                                            }
                                             editor?.focus();
                                         })()
                                         """)
@@ -566,6 +576,7 @@ struct MainView: View {
 
     private func returnToSidebar() {
         settings.preserveExplicitNavigation()
+        focusSearch = nil
         withAnimation {
             compactColumn = .sidebar
             columnVisibility = .all

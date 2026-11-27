@@ -24,6 +24,12 @@ import UIKit
     private var renewedLogin: URL?
     #if os(iOS)
     private var didFallbackActivity = false
+    private var searchEditorReady = false
+    private var webViewMounted = false
+    // Focus must wait for the editor and its window, not unrelated subresources.
+    var canFocusSearch: Bool { webViewMounted && searchEditorReady }
+    #else
+    var canFocusSearch: Bool { !isLoading && !navigationLoading }
     #endif
     private let diagnosticID = String(UUID().uuidString.prefix(8))
     init(_ page: WKWebView, routing: BrowserNavigation, owner: WebPages) {
@@ -48,6 +54,9 @@ import UIKit
         routing.didStartProvisional = { [weak self] _ in
             guard let self else { return }
             nativeHeaderReady = false
+            #if os(iOS)
+            searchEditorReady = false
+            #endif
             NSLog("ArchiveBox page navigation %@: provisional navigation started", diagnosticID)
         }
         routing.didCommit = { [weak self] page in
@@ -70,6 +79,15 @@ import UIKit
         }
         routing.nativeHeaderReady = { [weak self] in self?.nativeHeaderReady = true }
         #if os(iOS)
+        (page as? MountedWebView)?.onMountChange = { [weak self] mounted in
+            // A UIKit update can run inside SwiftUI's view update. Publish
+            // after that update so the focus task runs on the mounted view.
+            Task { @MainActor [weak self] in
+                guard let self, mounted == (self.page.window != nil) else { return }
+                self.webViewMounted = mounted
+            }
+        }
+        routing.nativeSearchReady = { [weak self] in self?.searchEditorReady = true }
         routing.legacyActivityFallback = { [weak self] response in
             // Older Core versions put the monitor in the normal admin page.
             // Only the missing standalone route falls back, not login or errors.
@@ -85,6 +103,11 @@ import UIKit
             guard let self, page.url?.scheme != "about" else { return }
             NSLog("ArchiveBox page navigation %@: finished", diagnosticID)
             isLoading = false
+            #if os(iOS)
+            // Older servers have no editor-ready bridge. They can still use
+            // the same focus request once the main document has loaded.
+            if let url = page.url, routing.canFocusArchiveSearch(url) { searchEditorReady = true }
+            #endif
             if !owner.hasCredentials { owner.onWebLogin?(page) }
             guard page.url?.path.contains("/login") == true else { renewedLogin = nil; return }
             // Renew an expired session once per login URL, including navigations
@@ -122,6 +145,9 @@ import UIKit
         navigation = nil
         page.stopLoading()
         isLoading = true
+        #if os(iOS)
+        searchEditorReady = false
+        #endif
         // Stop timers and redirects in cached pages while credentials are absent.
         // Keep the destination so the same connection can authenticate and reload it.
         page.loadHTMLString("", baseURL: nil)
@@ -134,6 +160,7 @@ import UIKit
         destination = url
         #if os(iOS)
         didFallbackActivity = false
+        searchEditorReady = false
         #endif
         loadingProgress = 0
         started = true
@@ -230,19 +257,21 @@ import UIKit
         configuration.websiteDataStore = authentication.dataStore
         // Each page keeps the routing boundary of its configured connection.
         let routing = BrowserNavigation(baseURL: baseURL)
+        // WKWebView exposes authenticated download and blob completion callbacks;
+        // SwiftUI's WebPage currently does not. Keep the surrounding UI in SwiftUI.
         #if os(iOS)
         configuration.applicationNameForUserAgent = "ArchiveBoxNative/iOS"
         routing.configuredOrigin = server
         routing.openNativeBack = { [weak self] in self?.onWebBack?() }
         configuration.userContentController.add(routing, name: "archiveBoxNativeHeader")
+        configuration.userContentController.add(routing, name: "archiveBoxNativeSearch")
+        let webPage = MountedWebView(frame: .zero, configuration: configuration)
         #else
         configuration.userContentController.addUserScript(
             EmbeddedPage.script(activity: key.hasPrefix("activity-"))
         )
-        #endif
-        // WKWebView exposes authenticated download and blob completion callbacks;
-        // SwiftUI's WebPage currently does not. Keep the surrounding UI in SwiftUI.
         let webPage = WKWebView(frame: .zero, configuration: configuration)
+        #endif
         #if os(iOS)
         // The previous screen stays visible until this page commits. UIKit
         // exposes this identity so checks can distinguish shared admin text
@@ -342,6 +371,15 @@ private struct EmbeddedWebView: NSViewRepresentable {
     }
 }
 #else
+private final class MountedWebView: WKWebView {
+    var onMountChange: ((Bool) -> Void)?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        onMountChange?(window != nil)
+    }
+}
+
 private struct EmbeddedWebView: UIViewRepresentable {
     let page: WKWebView
     func makeUIView(context: Context) -> UIView { UIView() }

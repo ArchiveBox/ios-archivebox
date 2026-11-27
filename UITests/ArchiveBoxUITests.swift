@@ -693,6 +693,7 @@ final class ArchiveBoxUITests: XCTestCase {
         search.tap()
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 15), app.debugDescription)
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 20), "Search must focus the actual server editor on the first tap")
+        attach("iPhone search focused on first tap", app: app)
         XCTAssertFalse(progress.isHittable)
         XCTAssertFalse(add.isHittable)
         // Type into the focused WKWebView as a user would. The server owns
@@ -715,6 +716,13 @@ final class ArchiveBoxUITests: XCTestCase {
         submitSearch(query, app: app, capture: true)
         XCTAssertTrue(app.webViews.links.matching(NSPredicate(format: "label CONTAINS[c] %@", title ?? host)).firstMatch.waitForExistence(timeout: 20))
         attach("iPhone server search results", app: app)
+
+        embeddedBack(app).tap()
+        XCTAssertTrue(search.waitForExistence(timeout: 5), app.debugDescription)
+        search.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5),
+                      "Reopening the cached search must show the keyboard without tapping the web editor again")
+        XCTAssertTrue(app.webViews.links.matching(NSPredicate(format: "label CONTAINS[c] %@", title ?? host)).firstMatch.exists)
     }
 
     func testNativeHeadersAcrossDomainsReplayAndActivity() async throws {

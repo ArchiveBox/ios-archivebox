@@ -14,6 +14,7 @@ import UIKit
     public var configuredOrigin: URL?
     public var openNativeBack: (() -> Void)?
     public var nativeHeaderReady: (() -> Void)?
+    public var nativeSearchReady: (() -> Void)?
     public var legacyActivityFallback: ((HTTPURLResponse) -> URL?)?
     public var didStartProvisional: ((WKWebView) -> Void)?
     public var didCommit: ((WKWebView) -> Void)?
@@ -98,9 +99,21 @@ import UIKit
     }
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard message.name == "archiveBoxNativeHeader", message.body as? String == "ready",
+        guard message.body as? String == "ready",
               isCurrentNativeHeaderPage(message.frameInfo, webView: message.webView) else { return }
-        nativeHeaderReady?()
+        switch message.name {
+        case "archiveBoxNativeHeader": nativeHeaderReady?()
+        case "archiveBoxNativeSearch":
+            guard let url = message.webView?.url, canFocusArchiveSearch(url) else { return }
+            nativeSearchReady?()
+        default: break
+        }
+    }
+
+    public func canFocusArchiveSearch(_ url: URL) -> Bool {
+        let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard path == "admin/core/snapshot" || path == "admin/core/snapshot/grid" else { return false }
+        return Self.isTrustedNativeHeaderPage(url, configured: configuredOrigin, admin: authenticatedOrigin, base: baseURL)
     }
 
     public func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
